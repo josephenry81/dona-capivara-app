@@ -1,0 +1,117 @@
+// ==========================================
+// INSTRUÇÕES PARA ATUALIZAR O BACKEND (Google Apps Script)
+// ==========================================
+
+// 1. Abra o seu projeto no Google Apps Script (https://script.google.com/)
+// 2. No arquivo 'Code.gs', adicione a função 'getBanners' abaixo:
+
+function getBanners() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('BANNERS');
+  if (!sheet) return [];
+  const data = sheetToJSON(sheet);
+  // Filter active banners
+  return data.filter(item => String(item.Ativo).toUpperCase() === 'TRUE');
+}
+
+// 3. Atualize a função 'handleRequest' (ou 'doGet'/'doPost') para incluir o case 'getBanners':
+
+/*
+  switch (action) {
+    // ... outros cases ...
+    case 'getBanners':
+      result = getBanners();
+      break;
+    // ...
+  }
+*/
+
+// 4. SUBSTITUA a função 'createOrder' existente pela nova versão abaixo:
+//    (Esta versão inclui verificação de estoque e bloqueio de concorrência)
+
+function createOrder(orderData) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const vendasSheet = ss.getSheetByName('VENDAS');
+  const geladinhosSheet = ss.getSheetByName('GELADINHOS');
+  const clientesSheet = ss.getSheetByName('CLIENTES');
+  
+  // Bloqueio Forte: Garante que ninguém mexa na planilha enquanto esse pedido processa
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000); // Espera até 15s para conseguir a vez
+  } catch (e) {
+    return { success: false, message: "Servidor ocupado. Tente novamente." };
+  }
+
+  try {
+    // 1. VERIFICAÇÃO DE ESTOQUE EM TEMPO REAL (A Solução da Concorrência)
+    const produtosData = geladinhosSheet.getDataRange().getValues();
+    const headers = produtosData[0];
+    const idCol = headers.indexOf('ID_Geladinho');
+    // Procura com ou sem espaço no nome da coluna
+    const stockCol = headers.indexOf('Estoque_Atual') > -1 ? headers.indexOf('Estoque_Atual') : headers.indexOf(' Estoque_Atual');
+
+    let errors = [];
+    
+    if (orderData.cart) {
+      // Primeiro valida TODOS os itens
+      orderData.cart.forEach(item => {
+        let productFound = false;
+        for (let i = 1; i < produtosData.length; i++) {
+          if (String(produtosData[i][idCol]) === String(item.id)) {
+            productFound = true;
+            const currentStock = Number(produtosData[i][stockCol] || 0);
+            if (currentStock < item.quantity) {
+              errors.push(`"${item.nome}": Apenas ${currentStock} restantes.`);
+            }
+            break;
+          }
+        }
+      });
+
+      // Se tiver erro de estoque, cancela tudo e avisa o cliente
+      if (errors.length > 0) {
+        return { success: false, message: "Estoque insuficiente: " + errors.join(", ") };
+      }
+
+      // Se passou, AGORA debita o estoque
+      orderData.cart.forEach(item => {
+        for (let i = 1; i < produtosData.length; i++) {
+          if (String(produtosData[i][idCol]) === String(item.id)) {
+            const currentStock = Number(produtosData[i][stockCol] || 0);
+            geladinhosSheet.getRange(i + 1, stockCol + 1).setValue(currentStock - item.quantity);
+            break;
+          }
+        }
+      });
+    }
+
+    // 2. Registra a Venda (Igual ao anterior)
+    const idVenda = Utilities.getUuid();
+    const now = new Date();
+    
+    vendasSheet.appendRow([
+      idVenda, now, orderData.customer?.id || 'GUEST', 
+      orderData.referralCode ? `Ref: ${orderData.referralCode}` : '', 
+      orderData.total || 0, orderData.total || 0, 'Pendente', 0, false, 
+      orderData.deliveryFee || 0, orderData.customer?.name || 'Visitante', 
+      orderData.customer?.details?.torre || '', orderData.customer?.details?.apto || '', 
+      orderData.paymentMethod || ''
+    ]);
+
+    // 3. Pontos (Igual ao anterior)
+    if (orderData.customer?.id && String(orderData.customer.id) !== 'GUEST') {
+      // ... (manter lógica de pontos existente) ...
+      // Se você tiver a lógica de pontos aqui, mantenha-a.
+      // Caso contrário, certifique-se de que ela está sendo chamada ou integrada.
+    }
+    
+    return { success: true, idVenda: idVenda };
+
+  } catch (error) {
+    return { success: false, message: "Erro no processamento: " + error.toString() };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// 5. Salve e Implante (Deploy) novamente como "Nova versão".
