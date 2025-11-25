@@ -10,6 +10,7 @@ import OrderHistoryView from '../components/views/OrderHistoryView';
 import ProductDetailView from '../components/views/ProductDetailView';
 import BottomNav from '../components/navigation/BottomNav';
 import Toast from '../components/ui/Toast';
+import FloatingWhatsApp from '../components/ui/FloatingWhatsApp'; // Import new component
 import { API } from '../services/api';
 
 export default function Page() {
@@ -90,57 +91,63 @@ export default function Page() {
     };
 
     const handleSubmitOrder = async (orderData: any) => {
+        showToast("Preparando WhatsApp...", "info");
+
+        // 1. Construct Message IMMEDIATELY (Client-side)
+        const shortId = Math.random().toString(36).substr(2, 8).toUpperCase();
+        const pointsEarned = (!user?.isGuest) ? Math.floor(orderData.total) + (orderData.bonusPoints || 0) : 0;
+
+        let msg = `*Novo Pedido Dona Capivara* 🐹\n`;
+        msg += `ID: ${shortId}\n`;
+        msg += `----------------\n`;
+
+        orderData.cart.forEach((item: any) => {
+            msg += `${item.quantity}x ${item.nome}\n`;
+        });
+
+        msg += `\n*Total: R$ ${orderData.total.toFixed(2)}*\n`;
+        msg += `Cliente: ${orderData.customer.name}\n`;
+
+        if (orderData.customer.fullAddress) {
+            msg += `Endereço: ${orderData.customer.fullAddress}\n`;
+        } else {
+            msg += `Torre: ${orderData.customer.details.torre} - Apto: ${orderData.customer.details.apto}\n`;
+        }
+
+        msg += `Pgto: ${orderData.paymentMethod}\n`;
+
+        if (!user?.isGuest) {
+            msg += `✨ Pontos Ganhos: +${pointsEarned}\n`;
+            if (orderData.referralCode) msg += `🎟️ Cupom: ${orderData.referralCode}\n`;
+        }
+
+        // 2. Generate Link
+        const phone = '5541991480096';
+        const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+
+        // 3. Open WhatsApp (Primary Action)
+        // We do this slightly delayed to allow the toast to render, but NOT dependent on API success
+        setTimeout(() => {
+            window.open(whatsappUrl, '_blank');
+        }, 1000);
+
+        // 4. Save to Backend (Background Action)
+        // We still try to save, but if it fails, the user has already sent the order via WhatsApp!
         const finalOrder = {
             ...orderData,
             customer: user?.isGuest ? { id: 'GUEST', name: orderData.customer.name } : { ...orderData.customer, id: user.id_Cliente || user.id }
         };
 
-        showToast("Enviando pedido...", "info");
-
         try {
-            const response: any = await API.submitOrder(finalOrder);
-
-            // --- ALERT REMOVED HERE ---
-
-            if (response && response.success) {
-                const shortId = (response.idVenda || 'PENDENTE').slice(0, 8).toUpperCase();
-
-                let msg = `*Novo Pedido Dona Capivara* 🐹\n`;
-                msg += `ID: ${shortId}\n`;
-                msg += `----------------\n`;
-
-                orderData.cart.forEach((item: any) => {
-                    msg += `${item.quantity}x ${item.nome}\n`;
-                });
-
-                msg += `\n*Total: R$ ${orderData.total.toFixed(2)}*\n`;
-                msg += `Cliente: ${orderData.customer.name}\n`;
-
-                if (orderData.customer.fullAddress) {
-                    msg += `Endereço: ${orderData.customer.fullAddress}\n`;
-                } else {
-                    msg += `Torre: ${orderData.customer.details.torre} - Apto: ${orderData.customer.details.apto}\n`;
-                }
-
-                msg += `Pgto: ${orderData.paymentMethod}\n`;
-
-                if (!user.isGuest) {
-                    const pointsEarned = Math.floor(orderData.total) + (orderData.bonusPoints || 0);
-                    msg += `✨ Pontos Ganhos: +${pointsEarned}\n`;
-                }
-
-                // Auto Redirect to WhatsApp
-                const whatsappUrl = `https://wa.me/5541991480096?text=${encodeURIComponent(msg)}`;
-                window.open(whatsappUrl, '_blank');
-
-                showToast(`Pedido ${shortId} enviado!`, 'success');
-                setCart([]);
-                setActiveTab('home');
-            } else {
-                showToast(response.message || 'Erro ao salvar pedido.', 'error');
-            }
+            await API.submitOrder(finalOrder);
+            showToast(`Pedido registrado no sistema!`, 'success');
+            setCart([]);
+            setActiveTab('home');
         } catch (e) {
-            showToast('Erro de conexão.', 'error');
+            console.error("Backend save failed, but WhatsApp opened", e);
+            // We don't show error to user since WhatsApp likely worked
+            setCart([]);
+            setActiveTab('home');
         }
     };
 
@@ -154,6 +161,9 @@ export default function Page() {
                 isVisible={toast.visible}
                 onClose={() => setToast({ ...toast, visible: false })}
             />
+
+            {/* ADD FLOATING BUTTON HERE */}
+            <FloatingWhatsApp />
 
             {selectedProduct ? (
                 <ProductDetailView
