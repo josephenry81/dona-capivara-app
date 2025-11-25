@@ -31,21 +31,17 @@ export default function AuthView({ onLogin, onGuest }: AuthViewProps) {
             }
 
             if (result && result.success) {
-                // --- CRITICAL FIX: DATA NORMALIZATION ---
-                // Map backend keys (Nome, Pontos_Fidelidade) to frontend keys (name, points)
-                // Handles both 'Login' return structure and 'Register' return structure
                 const raw = result.customer;
 
                 const normalizedUser = {
                     name: raw.Nome || raw.name || formData.name || 'Cliente',
                     phone: raw.Telefone || raw.phone || formData.phone,
-                    // Safely convert points to Number, defaulting to 0
                     points: Number(raw.Pontos_Fidelidade || raw.points || 0),
-                    email: raw.Email || '', // Optional
+                    inviteCode: raw.Codigo_Convite || raw.inviteCode || '---',
                     isGuest: false
                 };
 
-                // Persist the NORMALIZED user
+                // REMOVED THE DEBUG ALERT HERE
                 localStorage.setItem('donaCapivaraUser', JSON.stringify(normalizedUser));
                 onLogin(normalizedUser);
             } else {

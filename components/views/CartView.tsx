@@ -170,9 +170,9 @@ export default function CartView({ cart, addToCart, removeFromCart, onSubmitOrde
 
                         {/* CONDITIONAL INPUTS */}
                         {deliveryType === 'CONDO' ? (
-                            <div className="flex gap-3">
-                                <input required name="torre" placeholder="Torre" value={addressData.torre} onChange={handleInputChange} className="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82]" />
-                                <input required name="apto" placeholder="Apto" value={addressData.apto} onChange={handleInputChange} className="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82]" />
+                            <div className="grid grid-cols-2 gap-3">
+                                <input required name="torre" placeholder="Torre" value={addressData.torre} onChange={handleInputChange} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82]" />
+                                <input required name="apto" placeholder="Apto" value={addressData.apto} onChange={handleInputChange} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82]" />
                             </div>
                         ) : (
                             <div className="space-y-3">
