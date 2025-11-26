@@ -101,7 +101,6 @@ export default function Page() {
             if (response && response.success) {
                 const shortId = (response.idVenda || 'PENDENTE').slice(0, 8).toUpperCase();
 
-                // WhatsApp Logic
                 let msg = `*Novo Pedido Dona Capivara* 🐹\nID: ${shortId}\n----------------\n`;
                 orderData.cart.forEach((item: any) => msg += `${item.quantity}x ${item.nome}\n`);
                 msg += `\n*Total: R$ ${orderData.total.toFixed(2)}*\nCliente: ${orderData.customer.name}\n`;
@@ -115,7 +114,6 @@ export default function Page() {
                     msg += `✨ Pontos Ganhos: +${earned}\n`;
                 }
                 window.open(`https://wa.me/5541991480096?text=${encodeURIComponent(msg)}`, '_blank');
-
                 showToast(`Pedido ${shortId} enviado!`, 'success');
                 setCart([]);
                 setActiveTab('home');
@@ -130,7 +128,7 @@ export default function Page() {
                         savedAddress: {
                             torre: orderData.customer.details.torre,
                             apto: orderData.customer.details.apto,
-                            fullAddress: orderData.customer.fullAddress // Store full if needed
+                            fullAddress: orderData.customer.fullAddress
                         }
                     };
                     setUser(updatedUser);
@@ -153,13 +151,19 @@ export default function Page() {
             <Toast message={toast.message} type={toast.type} isVisible={toast.visible} onClose={() => setToast({ ...toast, visible: false })} />
 
             {selectedProduct ? (
-                <ProductDetailView product={selectedProduct} onBack={() => setSelectedProduct(null)} onAddToCart={(p, q) => { addToCart(p, q); setSelectedProduct(null); }} />
+                <ProductDetailView
+                    product={selectedProduct}
+                    onBack={() => setSelectedProduct(null)}
+                    onAddToCart={(p, q) => { addToCart(p, q); setSelectedProduct(null); }}
+                />
             ) : (
                 <>
                     {activeTab === 'home' && <HomeView user={user} products={products} categories={categories} banners={banners} favorites={favorites} onAddToCart={addToCart} onToggleFavorite={toggleFavorite} onProductClick={setSelectedProduct} onHeaderAction={handleHeaderAction} />}
                     {activeTab === 'favorites' && <FavoritesView products={products} favorites={favorites} onAddToCart={addToCart} onToggleFavorite={toggleFavorite} onProductClick={setSelectedProduct} />}
+
                     {/* PASS USER TO CART */}
                     {activeTab === 'cart' && <CartView cart={cart} user={user} addToCart={addToCart} removeFromCart={removeFromCart} onSubmitOrder={handleSubmitOrder} />}
+
                     {activeTab === 'profile' && !user.isGuest && <ProfileView user={user} onLogout={() => { localStorage.removeItem('donaCapivaraUser'); setUser(null); setFavorites([]); }} onNavigate={setActiveTab} />}
                     {activeTab === 'orders' && !user.isGuest && <OrderHistoryView user={user} onBack={() => setActiveTab('profile')} />}
                     {activeTab !== 'orders' && <BottomNav activeTab={activeTab} onTabChange={setActiveTab} cartCount={cart.length} favoriteCount={favorites.length} isGuest={user.isGuest} />}

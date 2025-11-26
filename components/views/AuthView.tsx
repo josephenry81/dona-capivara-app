@@ -43,9 +43,7 @@ export default function AuthView({ onLogin, onGuest }: AuthViewProps) {
                     points: Number(raw.Pontos_Fidelidade || raw.points || 0),
                     inviteCode: raw.Codigo_Convite || raw.inviteCode || '---',
                     favorites: raw.favorites || [],
-                    address: raw.savedAddress?.fullAddress || '',
-                    tower: raw.savedAddress?.torre || '',
-                    apt: raw.savedAddress?.apto || '',
+                    savedAddress: raw.savedAddress || {},
                     isGuest: false
                 };
 
