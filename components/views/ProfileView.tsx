@@ -70,6 +70,16 @@ export default function ProfileView({ user, onLogout, onNavigate }: ProfileViewP
 
             {/* Menu */}
             <div className="px-6 space-y-3 mt-6">
+                <a
+                    href="https://wa.me/5541991480096?text=Ol%C3%A1%20Dona%20Capivara!%20Preciso%20de%20ajuda."
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center hover:bg-green-50"
+                >
+                    <div className="flex items-center gap-3"><span className="text-green-500">💬</span><span className="text-gray-700 font-medium text-sm">Falar no WhatsApp</span></div>
+                    <span className="text-gray-300">›</span>
+                </a>
+
                 <button onClick={() => onNavigate('orders')} className="w-full bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center hover:bg-gray-50">
                     <div className="flex items-center gap-3"><span className="text-[#FF4B82]">📦</span><span className="text-gray-700 font-medium text-sm">Meus Pedidos</span></div>
                     <span className="text-gray-300">›</span>
