@@ -24,8 +24,6 @@ export default function AuthView({ onLogin, onGuest }: AuthViewProps) {
         try {
             let result;
 
-            console.log("Attempting Auth...", isSignup ? "Signup" : "Login");
-
             if (isSignup) {
                 result = await API.registerCustomer({
                     name: formData.name,
@@ -36,8 +34,6 @@ export default function AuthView({ onLogin, onGuest }: AuthViewProps) {
                 result = await API.login(formData.phone, formData.password);
             }
 
-            console.log("Auth Result:", result);
-
             if (result && result.success) {
                 const raw = result.customer;
                 // Normalize Data
@@ -47,6 +43,9 @@ export default function AuthView({ onLogin, onGuest }: AuthViewProps) {
                     points: Number(raw.Pontos_Fidelidade || raw.points || 0),
                     inviteCode: raw.Codigo_Convite || raw.inviteCode || '---',
                     favorites: raw.favorites || [],
+                    address: raw.savedAddress?.fullAddress || '',
+                    tower: raw.savedAddress?.torre || '',
+                    apt: raw.savedAddress?.apto || '',
                     isGuest: false
                 };
 

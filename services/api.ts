@@ -59,7 +59,6 @@ export const API = {
             const data = await response.json();
 
             if (data.success && data.customer) {
-                // PARSE FAVORITES (CSV string to Array)
                 const favString = data.customer.Favoritos || '';
                 const favArray = favString ? favString.split(',') : [];
 
@@ -69,8 +68,14 @@ export const API = {
                     phone: data.customer.Telefone,
                     points: Number(data.customer.Pontos_Fidelidade || 0),
                     inviteCode: data.customer.Codigo_Convite || '---',
-                    favorites: favArray, // <--- MAPPED HERE
-                    isGuest: false
+                    favorites: favArray,
+                    isGuest: false,
+                    // --- ADDRESS MAPPING ---
+                    savedAddress: {
+                        torre: data.customer.Torre || '',
+                        apto: data.customer.Apartamento || '',
+                        fullAddress: data.customer.Endereco || ''
+                    }
                 };
             }
             return data;
@@ -80,34 +85,20 @@ export const API = {
     async registerCustomer(userData: any) {
         if (!API_URL) return { success: false, message: "Config Error" };
         try {
-            const response = await fetch(API_URL + '?action=createCustomer', {
-                method: 'POST',
-                body: JSON.stringify(userData)
-            });
+            const response = await fetch(API_URL + '?action=createCustomer', { method: 'POST', body: JSON.stringify(userData) });
             return await response.json();
         } catch (error) { return { success: false, message: "Erro de conexão" }; }
     },
 
-    // --- NEW FUNCTION: SYNC FAVORITES ---
     async syncFavorites(phone: string, favorites: string[]) {
         if (!API_URL) return;
-        try {
-            await fetch(API_URL + '?action=updateFavorites', {
-                method: 'POST',
-                body: JSON.stringify({
-                    phone,
-                    favorites: favorites.join(',') // Convert array back to CSV
-                })
-            });
-        } catch (error) { console.error("Fav Sync Error", error); }
+        try { await fetch(API_URL + '?action=updateFavorites', { method: 'POST', body: JSON.stringify({ phone, favorites: favorites.join(',') }) }); } catch (e) { }
     },
 
     async submitOrder(orderData: any) {
         if (!API_URL) return;
-        try {
-            await fetch(API_URL + '?action=createOrder', { method: 'POST', body: JSON.stringify(orderData) });
-            return { success: true };
-        } catch (error) { return { success: false }; }
+        try { await fetch(API_URL + '?action=createOrder', { method: 'POST', body: JSON.stringify(orderData) }); return { success: true }; }
+        catch (e) { return { success: false }; }
     },
 
     async getCustomerOrders(customerId: string) {

@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
 import HomeView from '../components/views/HomeView';
 import CartView from '../components/views/CartView';
@@ -33,10 +32,7 @@ export default function Page() {
             try {
                 const parsed = JSON.parse(savedUser);
                 setUser(parsed);
-                // LOAD FAVORITES ON BOOT
-                if (parsed.favorites && Array.isArray(parsed.favorites)) {
-                    setFavorites(parsed.favorites);
-                }
+                if (parsed.favorites) setFavorites(parsed.favorites);
             } catch (e) { localStorage.removeItem('donaCapivaraUser'); }
         }
 
@@ -51,31 +47,19 @@ export default function Page() {
         setCart(prev => {
             const existingItem = prev.find(item => item.id === product.id);
             const currentQty = existingItem ? existingItem.quantity : 0;
-
             if (currentQty + qtyToAdd > product.estoque) {
-                showToast(`Estoque insuficiente! Apenas ${product.estoque} disponíveis.`, 'error');
-                return prev;
+                showToast(`Estoque insuficiente!`, 'error'); return prev;
             }
-
             let newCart;
-            if (existingItem) {
-                newCart = prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + qtyToAdd } : item);
-            } else {
-                newCart = [...prev, { ...product, quantity: qtyToAdd }];
-            }
-
-            const finalQty = currentQty + qtyToAdd;
-            showToast(`Adicionado! (Total: ${finalQty})`, 'success');
+            if (existingItem) newCart = prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + qtyToAdd } : item);
+            else newCart = [...prev, { ...product, quantity: qtyToAdd }];
+            showToast(`Adicionado!`, 'success');
             return newCart;
         });
     };
 
-    const removeFromCart = (productId: string) => {
-        setCart(prev => prev.filter(item => item.id !== productId));
-        showToast('Item removido', 'info');
-    };
+    const removeFromCart = (id: string) => setCart(prev => prev.filter(item => item.id !== id));
 
-    // --- UPDATED TOGGLE LOGIC ---
     const toggleFavorite = (productId: string) => {
         setFavorites(prev => {
             let newFavs;
@@ -86,18 +70,12 @@ export default function Page() {
                 showToast('Salvo nos favoritos!', 'success');
                 newFavs = [...prev, productId];
             }
-
-            // SYNC WITH BACKEND
             if (user && !user.isGuest) {
-                // Send to Cloud
                 API.syncFavorites(user.phone, newFavs);
-
-                // Update Local Storage so it persists on refresh
                 const updatedUser = { ...user, favorites: newFavs };
                 setUser(updatedUser);
                 localStorage.setItem('donaCapivaraUser', JSON.stringify(updatedUser));
             }
-
             return newFavs;
         });
     };
@@ -107,7 +85,7 @@ export default function Page() {
         if (confirm(`Deseja ${action}?`)) {
             localStorage.removeItem('donaCapivaraUser');
             setUser(null);
-            setFavorites([]); // Clear favs
+            setFavorites([]);
         }
     };
 
@@ -117,34 +95,55 @@ export default function Page() {
             customer: user?.isGuest ? { id: 'GUEST', name: orderData.customer.name } : { ...orderData.customer, id: user.id_Cliente || user.id }
         };
         showToast("Enviando pedido...", "info");
+
         try {
             const response: any = await API.submitOrder(finalOrder);
             if (response && response.success) {
                 const shortId = (response.idVenda || 'PENDENTE').slice(0, 8).toUpperCase();
+
+                // WhatsApp Logic
                 let msg = `*Novo Pedido Dona Capivara* 🐹\nID: ${shortId}\n----------------\n`;
                 orderData.cart.forEach((item: any) => msg += `${item.quantity}x ${item.nome}\n`);
                 msg += `\n*Total: R$ ${orderData.total.toFixed(2)}*\nCliente: ${orderData.customer.name}\n`;
                 if (orderData.customer.fullAddress) msg += `Endereço: ${orderData.customer.fullAddress}\n`;
                 else msg += `Torre: ${orderData.customer.details.torre} - Apto: ${orderData.customer.details.apto}\n`;
                 msg += `Pgto: ${orderData.paymentMethod}\n`;
+
+                let earned = 0;
                 if (!user.isGuest) {
-                    const pointsEarned = Math.floor(orderData.total) + (orderData.bonusPoints || 0);
-                    msg += `✨ Pontos Ganhos: +${pointsEarned}\n`;
+                    earned = Math.floor(orderData.total) + (orderData.bonusPoints || 0);
+                    msg += `✨ Pontos Ganhos: +${earned}\n`;
                 }
                 window.open(`https://wa.me/5541991480096?text=${encodeURIComponent(msg)}`, '_blank');
+
                 showToast(`Pedido ${shortId} enviado!`, 'success');
                 setCart([]);
                 setActiveTab('home');
+
+                // --- REAL-TIME UPDATE LOGIC ---
+                if (!user.isGuest) {
+                    const updatedUser = {
+                        ...user,
+                        // Add points immediately
+                        points: (user.points || 0) + earned,
+                        // Save address immediately
+                        savedAddress: {
+                            torre: orderData.customer.details.torre,
+                            apto: orderData.customer.details.apto,
+                            fullAddress: orderData.customer.fullAddress // Store full if needed
+                        }
+                    };
+                    setUser(updatedUser);
+                    localStorage.setItem('donaCapivaraUser', JSON.stringify(updatedUser));
+                }
+
             } else { showToast(response.message || 'Erro ao salvar.', 'error'); }
         } catch (e) { showToast('Erro de conexão.', 'error'); }
     };
 
-    // Updated Login Handler to load favorites
     const handleLogin = (u: any) => {
         setUser(u);
-        if (u.favorites && Array.isArray(u.favorites)) {
-            setFavorites(u.favorites);
-        }
+        if (u.favorites && Array.isArray(u.favorites)) setFavorites(u.favorites);
     };
 
     if (!user) return <AuthView onLogin={handleLogin} onGuest={() => setUser({ isGuest: true })} />;
@@ -154,35 +153,16 @@ export default function Page() {
             <Toast message={toast.message} type={toast.type} isVisible={toast.visible} onClose={() => setToast({ ...toast, visible: false })} />
 
             {selectedProduct ? (
-                <ProductDetailView
-                    product={selectedProduct}
-                    onBack={() => setSelectedProduct(null)}
-                    onAddToCart={(p, q) => { addToCart(p, q); setSelectedProduct(null); }}
-                />
+                <ProductDetailView product={selectedProduct} onBack={() => setSelectedProduct(null)} onAddToCart={(p, q) => { addToCart(p, q); setSelectedProduct(null); }} />
             ) : (
                 <>
-                    {activeTab === 'home' && (
-                        <HomeView
-                            user={user} products={products} categories={categories} banners={banners} favorites={favorites}
-                            onAddToCart={addToCart} onToggleFavorite={toggleFavorite} onProductClick={setSelectedProduct}
-                            onHeaderAction={handleHeaderAction}
-                        />
-                    )}
-                    {activeTab === 'favorites' && (
-                        <FavoritesView products={products} favorites={favorites} onAddToCart={addToCart} onToggleFavorite={toggleFavorite} onProductClick={setSelectedProduct} />
-                    )}
-                    {activeTab === 'cart' && (
-                        <CartView cart={cart} addToCart={addToCart} removeFromCart={removeFromCart} onSubmitOrder={handleSubmitOrder} />
-                    )}
-                    {activeTab === 'profile' && !user.isGuest && (
-                        <ProfileView user={user} onLogout={() => { localStorage.removeItem('donaCapivaraUser'); setUser(null); setFavorites([]); }} onNavigate={setActiveTab} />
-                    )}
-                    {activeTab === 'orders' && !user.isGuest && (
-                        <OrderHistoryView user={user} onBack={() => setActiveTab('profile')} />
-                    )}
-                    {activeTab !== 'orders' && (
-                        <BottomNav activeTab={activeTab} onTabChange={setActiveTab} cartCount={cart.length} favoriteCount={favorites.length} isGuest={user.isGuest} />
-                    )}
+                    {activeTab === 'home' && <HomeView user={user} products={products} categories={categories} banners={banners} favorites={favorites} onAddToCart={addToCart} onToggleFavorite={toggleFavorite} onProductClick={setSelectedProduct} onHeaderAction={handleHeaderAction} />}
+                    {activeTab === 'favorites' && <FavoritesView products={products} favorites={favorites} onAddToCart={addToCart} onToggleFavorite={toggleFavorite} onProductClick={setSelectedProduct} />}
+                    {/* PASS USER TO CART */}
+                    {activeTab === 'cart' && <CartView cart={cart} user={user} addToCart={addToCart} removeFromCart={removeFromCart} onSubmitOrder={handleSubmitOrder} />}
+                    {activeTab === 'profile' && !user.isGuest && <ProfileView user={user} onLogout={() => { localStorage.removeItem('donaCapivaraUser'); setUser(null); setFavorites([]); }} onNavigate={setActiveTab} />}
+                    {activeTab === 'orders' && !user.isGuest && <OrderHistoryView user={user} onBack={() => setActiveTab('profile')} />}
+                    {activeTab !== 'orders' && <BottomNav activeTab={activeTab} onTabChange={setActiveTab} cartCount={cart.length} favoriteCount={favorites.length} isGuest={user.isGuest} />}
                 </>
             )}
         </main>
