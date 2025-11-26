@@ -31,21 +31,6 @@ export default function AuthView({ onLogin, onGuest }: AuthViewProps) {
             }
 
             if (result && result.success) {
-                const raw = result.customer;
-
-                const normalizedUser = {
-                    name: raw.Nome || raw.name || formData.name || 'Cliente',
-                    phone: raw.Telefone || raw.phone || formData.phone,
-                    points: Number(raw.Pontos_Fidelidade || raw.points || 0),
-                    inviteCode: raw.Codigo_Convite || raw.inviteCode || '---',
-                    isGuest: false
-                };
-
-                // REMOVED THE DEBUG ALERT HERE
-                localStorage.setItem('donaCapivaraUser', JSON.stringify(normalizedUser));
-                onLogin(normalizedUser);
-            } else {
-                setErrorMsg(result.message || 'Erro ao acessar. Verifique os dados.');
             }
         } catch (err) {
             setErrorMsg('Erro de conexão.');

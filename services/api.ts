@@ -1,10 +1,7 @@
-
-
 const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || '';
 
 export const API = {
 
-    // --- CATALOG (Preserved) ---
     async fetchCatalogData() {
         try {
             if (!API_URL) throw new Error("API URL missing");
@@ -13,6 +10,7 @@ export const API = {
                 fetch(`${API_URL}?action=getCategories`),
                 fetch(`${API_URL}?action=getBanners`)
             ]);
+
             const productsRaw = await productsRes.json();
             const categoriesRaw = await categoriesRes.json();
             const bannersRaw = await bannersRes.json();
@@ -21,7 +19,7 @@ export const API = {
                 id: p.ID_Geladinho,
                 nome: p.Nome_Geladinho || p.Nome || p.nome || 'Produto sem nome',
                 price: Number(p.Preco_Venda || 0),
-                imagem: getGoogleDriveDirectLink(p.URL_IMAGEM_CACHE || p.Imagem_Geladinho || ''),
+                imagem: p.URL_IMAGEM_CACHE || p.Imagem_Geladinho || '',
                 estoque: Number(p[' Estoque_Atual'] || p.Estoque_Atual || 0),
                 categoriaId: p.ID_Categoria,
                 descricao: p.Descricao,
@@ -38,7 +36,7 @@ export const API = {
 
             const banners = Array.isArray(bannersRaw) ? bannersRaw.map((b: any) => ({
                 id: b.ID_Banner,
-                image: getGoogleDriveDirectLink(b.Imagem_URL || b.Imagem),
+                image: b.Imagem_URL || b.Imagem,
                 title: b.Titulo || '',
                 subtitle: b.Subtitulo || '',
                 ctaText: b.Texto_Botao || 'Ver Mais'
@@ -51,7 +49,6 @@ export const API = {
         }
     },
 
-    // --- AUTH (UPDATED MAPPING) ---
     async login(phone: string, password: string) {
         if (!API_URL) return { success: false, message: "Config Error" };
         try {
@@ -60,16 +57,19 @@ export const API = {
                 body: JSON.stringify({ phone, password })
             });
             const data = await response.json();
-            // console.log("LOGIN RAW RESPONSE:", JSON.stringify(data, null, 2)); // DEBUG
 
             if (data.success && data.customer) {
-                // NORMALIZE BACKEND DATA
+                // PARSE FAVORITES (CSV string to Array)
+                const favString = data.customer.Favoritos || '';
+                const favArray = favString ? favString.split(',') : [];
+
                 data.customer = {
                     id: data.customer.ID_Cliente,
                     name: data.customer.Nome,
                     phone: data.customer.Telefone,
                     points: Number(data.customer.Pontos_Fidelidade || 0),
-                    inviteCode: data.customer.Codigo_Convite || data.customer.inviteCode || '---',
+                    inviteCode: data.customer.Codigo_Convite || '---',
+                    favorites: favArray, // <--- MAPPED HERE
                     isGuest: false
                 };
             }
@@ -84,40 +84,30 @@ export const API = {
                 method: 'POST',
                 body: JSON.stringify(userData)
             });
-            const data = await response.json();
-
-            // DEBUG: Show raw response in alert to capture it via screenshot/DOM
-            if (typeof window !== 'undefined') {
-                alert("DEBUG REGISTER: " + JSON.stringify(data));
-            }
-
-            if (data.success && data.customer) {
-                // NORMALIZE: Ensure inviteCode is mapped from backend Codigo_Convite
-                data.customer.inviteCode = data.customer.Codigo_Convite || data.customer.inviteCode || '---';
-                data.customer.isGuest = false;
-            }
-            return data;
+            return await response.json();
         } catch (error) { return { success: false, message: "Erro de conexão" }; }
     },
 
-    // --- ORDERS ---
+    // --- NEW FUNCTION: SYNC FAVORITES ---
+    async syncFavorites(phone: string, favorites: string[]) {
+        if (!API_URL) return;
+        try {
+            await fetch(API_URL + '?action=updateFavorites', {
+                method: 'POST',
+                body: JSON.stringify({
+                    phone,
+                    favorites: favorites.join(',') // Convert array back to CSV
+                })
+            });
+        } catch (error) { console.error("Fav Sync Error", error); }
+    },
+
     async submitOrder(orderData: any) {
         if (!API_URL) return;
         try {
-            // console.log("SUBMITTING ORDER:", JSON.stringify(orderData, null, 2)); // DEBUG
-            const response = await fetch(API_URL + '?action=createOrder', { method: 'POST', body: JSON.stringify(orderData) });
-            const result = await response.json();
-
-            // DEBUG: Show raw response in alert
-            if (typeof window !== 'undefined') {
-                alert("DEBUG ORDER: " + JSON.stringify(result));
-            }
-
-            return result;
-        } catch (error) {
-            if (typeof window !== 'undefined') alert("DEBUG ORDER ERROR: " + error);
-            return { success: false };
-        }
+            await fetch(API_URL + '?action=createOrder', { method: 'POST', body: JSON.stringify(orderData) });
+            return { success: true };
+        } catch (error) { return { success: false }; }
     },
 
     async getCustomerOrders(customerId: string) {
@@ -135,35 +125,3 @@ export const API = {
         } catch (error) { return []; }
     }
 };
-
-// Helper to transform Google Drive links
-function getGoogleDriveDirectLink(url: string): string {
-    if (!url) return '';
-
-    // If it's already a direct link or not a Google Drive link, return as is
-    if (!url.includes('drive.google.com')) return url;
-
-    // Extract ID from various Google Drive formats
-    let id = '';
-    const parts = url.split('/');
-
-    // Format: https://drive.google.com/file/d/ID/view...
-    if (url.includes('/file/d/')) {
-        const index = parts.indexOf('d');
-        if (index !== -1 && parts.length > index + 1) {
-            id = parts[index + 1];
-        }
-    }
-    // Format: https://drive.google.com/open?id=ID or thumbnail?id=ID
-    else if (url.includes('id=')) {
-        const match = url.match(/id=([a-zA-Z0-9_-]+)/);
-        if (match) id = match[1];
-    }
-
-    if (id) {
-        // Use lh3 with size param to force display
-        return `https://lh3.googleusercontent.com/d/${id}=s1000`;
-    }
-
-    return url;
-}
