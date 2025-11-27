@@ -110,7 +110,7 @@ export const API = {
         } catch (error) { return []; }
     },
 
-    // --- ADMIN FUNCTIONS (V7) ---
+    // --- ADMIN FUNCTIONS ---
     async getAdminOrders(adminKey: string) {
         if (!API_URL) return [];
         try {
