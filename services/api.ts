@@ -1,16 +1,18 @@
-
+import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || '';
 
 export const API = {
 
+    // --- PUBLIC CATALOG ---
     async fetchCatalogData() {
         try {
             if (!API_URL) throw new Error("API URL missing");
+            const timestamp = Date.now(); // Cache busting
             const [productsRes, categoriesRes, bannersRes] = await Promise.all([
-                fetch(`${API_URL}?action=getProducts`),
-                fetch(`${API_URL}?action=getCategories`),
-                fetch(`${API_URL}?action=getBanners`)
+                fetch(`${API_URL}?action=getProducts&_t=${timestamp}`),
+                fetch(`${API_URL}?action=getCategories&_t=${timestamp}`),
+                fetch(`${API_URL}?action=getBanners&_t=${timestamp}`)
             ]);
 
             const productsRaw = await productsRes.json();
@@ -31,26 +33,17 @@ export const API = {
                 tempo: p.Tempo_Preparo || 'Pronta Entrega'
             }));
 
-            const categories = categoriesRaw.map((c: any) => ({
-                id: c.ID_Categoria,
-                nome: c.Nome_Categoria
-            }));
-
-            const banners = Array.isArray(bannersRaw) ? bannersRaw.map((b: any) => ({
-                id: b.ID_Banner,
-                image: b.Imagem_URL || b.Imagem,
-                title: b.Titulo || '',
-                subtitle: b.Subtitulo || '',
-                ctaText: b.Texto_Botao || 'Ver Mais'
-            })) : [];
+            const categories = categoriesRaw.map((c: any) => ({ id: c.ID_Categoria, nome: c.Nome_Categoria }));
+            const banners = Array.isArray(bannersRaw) ? bannersRaw.map((b: any) => ({ id: b.ID_Banner, image: b.Imagem_URL, title: b.Titulo || '', subtitle: b.Subtitulo || '', ctaText: b.Texto_Botao || 'Ver Mais' })) : [];
 
             return { products, categories, banners };
         } catch (error) {
-            console.error("Sync Error", error);
+            console.error("Catalog Sync Error", error);
             return { products: [], categories: [], banners: [] };
         }
     },
 
+    // --- AUTH ---
     async login(phone: string, password: string) {
         if (!API_URL) return { success: false, message: "Config Error" };
         try {
@@ -72,7 +65,6 @@ export const API = {
                     inviteCode: data.customer.Codigo_Convite || '---',
                     favorites: favArray,
                     isGuest: false,
-                    // --- ADDRESS MAPPING ---
                     savedAddress: {
                         torre: data.customer.Torre || '',
                         apto: data.customer.Apartamento || '',
@@ -97,6 +89,7 @@ export const API = {
         try { await fetch(API_URL + '?action=updateFavorites', { method: 'POST', body: JSON.stringify({ phone, favorites: favorites.join(',') }) }); } catch (e) { }
     },
 
+    // --- ORDERS ---
     async submitOrder(orderData: any) {
         if (!API_URL) return;
         try { await fetch(API_URL + '?action=createOrder', { method: 'POST', body: JSON.stringify(orderData) }); return { success: true }; }
@@ -106,7 +99,7 @@ export const API = {
     async getCustomerOrders(customerId: string) {
         if (!API_URL) return [];
         try {
-            const response = await fetch(`${API_URL}?action=getOrders&customerId=${customerId}`);
+            const response = await fetch(`${API_URL}?action=getOrders&customerId=${customerId}&_t=${Date.now()}`);
             const data = await response.json();
             return data.map((order: any) => ({
                 id: order.ID_Venda,
@@ -116,5 +109,49 @@ export const API = {
                 paymentMethod: order.Forma_de_Pagamento || 'Não informado'
             }));
         } catch (error) { return []; }
+    },
+
+    // --- ADMIN FUNCTIONS (V7) ---
+    async getAdminOrders(adminKey: string) {
+        if (!API_URL) return [];
+        try {
+            // Uses 'getAdminOrders' action defined in Backend V7
+            const timestamp = Date.now();
+            const response = await fetch(`${API_URL}?action=getAdminOrders&adminKey=${adminKey}&_t=${timestamp}`, {
+                cache: 'no-store'
+            });
+
+            const data = await response.json();
+
+            if (data.error || data.success === false) return null;
+
+            // Backend V7 returns { orders: [...] }
+            const list = data.orders || (Array.isArray(data) ? data : []);
+
+            return list.map((order: any) => ({
+                id: order.ID_Venda,
+                date: order.Data_Venda,
+                customerName: order.Cliente || order.Nome || 'Cliente',
+                total: Number(order.Total_Venda || 0),
+                status: order.Status || 'Pendente',
+                payment: order.Forma_de_Pagamento || '-',
+                address: order.Torre ? `Torre ${order.Torre}, Ap ${order.Ap}` : (order.Endereco || 'Retirada')
+            }));
+        } catch (error) {
+            console.error("Admin Fetch Error", error);
+            return null;
+        }
+    },
+
+    async updateOrderStatus(adminKey: string, orderId: string, newStatus: string) {
+        if (!API_URL) return false;
+        try {
+            const response = await fetch(API_URL + '?action=updateOrderStatus', {
+                method: 'POST',
+                body: JSON.stringify({ adminKey, orderId, newStatus })
+            });
+            const res = await response.json();
+            return res.success;
+        } catch (e) { return false; }
     }
 };
