@@ -1,5 +1,4 @@
-import axios from 'axios';
-
+// REMOVED AXIOS IMPORT - USING NATIVE FETCH
 const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || '';
 
 export const API = {
@@ -8,7 +7,9 @@ export const API = {
     async fetchCatalogData() {
         try {
             if (!API_URL) throw new Error("API URL missing");
-            const timestamp = Date.now(); // Cache busting
+            // Cache Busting
+            const timestamp = Date.now();
+
             const [productsRes, categoriesRes, bannersRes] = await Promise.all([
                 fetch(`${API_URL}?action=getProducts&_t=${timestamp}`),
                 fetch(`${API_URL}?action=getCategories&_t=${timestamp}`),
@@ -38,7 +39,7 @@ export const API = {
 
             return { products, categories, banners };
         } catch (error) {
-            console.error("Catalog Sync Error", error);
+            console.error("Sync Error", error);
             return { products: [], categories: [], banners: [] };
         }
     },
@@ -115,17 +116,12 @@ export const API = {
     async getAdminOrders(adminKey: string) {
         if (!API_URL) return [];
         try {
-            // Uses 'getAdminOrders' action defined in Backend V7
             const timestamp = Date.now();
-            const response = await fetch(`${API_URL}?action=getAdminOrders&adminKey=${adminKey}&_t=${timestamp}`, {
-                cache: 'no-store'
-            });
+            const response = await fetch(`${API_URL}?action=getAdminOrders&adminKey=${adminKey}&_t=${timestamp}`, { cache: 'no-store' });
 
             const data = await response.json();
-
             if (data.error || data.success === false) return null;
 
-            // Backend V7 returns { orders: [...] }
             const list = data.orders || (Array.isArray(data) ? data : []);
 
             return list.map((order: any) => ({
