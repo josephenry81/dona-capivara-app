@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { API } from '../../services/api';
-import Toast from '../ui/Toast'; // Ensure we use Toast for feedback
+import Toast from '../ui/Toast';
 
 interface AuthViewProps {
     onLogin: (user: any) => void;
@@ -34,28 +34,54 @@ export default function AuthView({ onLogin, onGuest }: AuthViewProps) {
                 result = await API.login(formData.phone, formData.password);
             }
 
+            console.log('🔐 Login Result:', result); // Debug log
+
             if (result && result.success) {
                 const raw = result.customer;
-                // Normalize Data
+
+                // ✅ ADMIN INTERCEPTOR - Handle admin login differently
+                if (raw.isAdmin) {
+                    const adminUser = {
+                        id: raw.id || 'ADMIN',
+                        name: raw.name || 'Administrador',
+                        phone: formData.phone,
+                        isAdmin: true,
+                        adminKey: raw.adminKey, // ⚠️ CRITICAL: Save adminKey for API calls
+                        isGuest: false,
+                        points: 0,
+                        inviteCode: '---',
+                        favorites: [],
+                        savedAddress: {}
+                    };
+                    console.log('👑 Admin Login Successful:', adminUser);
+                    localStorage.setItem('donaCapivaraUser', JSON.stringify(adminUser));
+                    onLogin(adminUser);
+                    return;
+                }
+
+                // Regular Customer Normalization
                 const normalizedUser = {
-                    name: raw.Nome || raw.name || formData.name || 'Cliente',
-                    phone: raw.Telefone || raw.phone || formData.phone,
-                    points: Number(raw.Pontos_Fidelidade || raw.points || 0),
-                    inviteCode: raw.Codigo_Convite || raw.inviteCode || '---',
+                    id: raw.id || raw.ID_Cliente,
+                    name: raw.name || raw.Nome || formData.name || 'Cliente',
+                    phone: raw.phone || raw.Telefone || formData.phone,
+                    points: Number(raw.points || raw.Pontos_Fidelidade || 0),
+                    inviteCode: raw.inviteCode || raw.Codigo_Convite || '---',
                     favorites: raw.favorites || [],
                     savedAddress: raw.savedAddress || {},
                     isGuest: false,
-                    isAdmin: raw.isAdmin || false
+                    isAdmin: false
                 };
 
+                console.log('✅ Member Login Successful:', normalizedUser);
                 localStorage.setItem('donaCapivaraUser', JSON.stringify(normalizedUser));
                 onLogin(normalizedUser);
             } else {
                 // Show the EXACT error from backend
+                console.error('❌ Login Failed:', result);
                 showToast(result?.message || 'Erro desconhecido no servidor.');
             }
         } catch (err: any) {
-            console.error("Auth Error:", err);
+            console.error("🔥 Auth Error:", err);
             showToast('Erro de conexão. Verifique sua internet ou contate o suporte.');
         } finally {
             setIsLoading(false);

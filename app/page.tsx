@@ -147,7 +147,14 @@ export default function Page() {
 
     if (!user) return <AuthView onLogin={handleLogin} onGuest={() => setUser({ isGuest: true })} />;
 
-    if (user.isAdmin) return <AdminView onLogout={() => { localStorage.removeItem('donaCapivaraUser'); setUser(null); }} />;
+    if (user?.isAdmin) {
+        return (
+            <AdminView
+                adminKey={user.adminKey}
+                onLogout={() => { localStorage.removeItem('donaCapivaraUser'); setUser(null); }}
+            />
+        );
+    }
 
     return (
         <main className="min-h-screen bg-[#F5F6FA] relative">
