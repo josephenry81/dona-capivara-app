@@ -44,7 +44,8 @@ export default function AuthView({ onLogin, onGuest }: AuthViewProps) {
                     inviteCode: raw.Codigo_Convite || raw.inviteCode || '---',
                     favorites: raw.favorites || [],
                     savedAddress: raw.savedAddress || {},
-                    isGuest: false
+                    isGuest: false,
+                    isAdmin: raw.isAdmin || false
                 };
 
                 localStorage.setItem('donaCapivaraUser', JSON.stringify(normalizedUser));

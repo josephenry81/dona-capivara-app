@@ -44,6 +44,19 @@ export const API = {
 
     // --- AUTH ---
     async login(phone: string, password: string) {
+        // --- ADMIN INTERCEPTOR ---
+        if (phone.toLowerCase() === 'admin' && password === 'Jxd701852@') {
+            return {
+                success: true,
+                customer: {
+                    id: 'ADMIN',
+                    name: 'Administrador',
+                    isAdmin: true // Flag to trigger Admin View
+                }
+            };
+        }
+
+        // --- STANDARD CUSTOMER LOGIN ---
         if (!API_URL) return { success: false, message: "Config Error" };
         try {
             const response = await fetch(API_URL + '?action=loginCustomer', {

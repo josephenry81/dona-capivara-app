@@ -6,6 +6,7 @@ import ProfileView from '../components/views/ProfileView';
 import FavoritesView from '../components/views/FavoritesView';
 import AuthView from '../components/views/AuthView';
 import OrderHistoryView from '../components/views/OrderHistoryView';
+import AdminView from '../components/views/AdminView';
 import ProductDetailView from '../components/views/ProductDetailView';
 import BottomNav from '../components/navigation/BottomNav';
 import Toast from '../components/ui/Toast';
@@ -145,6 +146,8 @@ export default function Page() {
     };
 
     if (!user) return <AuthView onLogin={handleLogin} onGuest={() => setUser({ isGuest: true })} />;
+
+    if (user.isAdmin) return <AdminView onLogout={() => { localStorage.removeItem('donaCapivaraUser'); setUser(null); }} />;
 
     return (
         <main className="min-h-screen bg-[#F5F6FA] relative">
