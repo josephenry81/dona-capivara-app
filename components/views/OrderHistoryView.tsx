@@ -23,9 +23,6 @@ export default function OrderHistoryView({ user, onBack }: OrderHistoryProps) {
             API.getCustomerOrders(user.id)
                 .then(data => setOrders(data))
                 .finally(() => setLoading(false));
-        } else {
-            // Guest users don't have orders
-            setLoading(false);
         }
     }, [user]);
 
@@ -38,7 +35,7 @@ export default function OrderHistoryView({ user, onBack }: OrderHistoryProps) {
 
     const getStatusColor = (status: string) => {
         const s = (status || '').toLowerCase();
-        if (s.includes('entregue')) return 'bg-green-100 text-green-600';
+        if (s.includes('entregue') || s.includes('concluído')) return 'bg-green-100 text-green-600';
         if (s.includes('cancelado')) return 'bg-red-100 text-red-600';
         return 'bg-orange-100 text-orange-600';
     };
@@ -48,9 +45,18 @@ export default function OrderHistoryView({ user, onBack }: OrderHistoryProps) {
             {/* Header */}
             <div className="bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white p-6 pt-12 pb-12 rounded-b-[30px] shadow-lg sticky top-0 z-10">
                 <div className="flex items-center gap-4">
-                    <button onClick={onBack} className="bg-white/20 p-2 rounded-full hover:bg-white/30 transition">
-                        ←
+
+                    {/* --- NEW STYLED BACK BUTTON --- */}
+                    <button
+                        onClick={onBack}
+                        className="bg-white/20 backdrop-blur-md p-2 rounded-full hover:bg-white/40 transition active:scale-95 flex items-center justify-center"
+                        aria-label="Voltar"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
                     </button>
+
                     <h1 className="text-2xl font-bold">Histórico de Pedidos</h1>
                 </div>
             </div>

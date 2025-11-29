@@ -127,6 +127,14 @@ export default function Page() {
                 else msg += `Torre: ${orderData.customer.details.torre} - Apto: ${orderData.customer.details.apto}\n`;
                 msg += `Pgto: ${orderData.paymentMethod}\n`;
 
+                // Add Coupon Info
+                if (orderData.couponCode) {
+                    const couponDiscount = orderData.discountValue - (orderData.pointsRedeemed ? orderData.pointsRedeemed / 20 : 0);
+                    if (couponDiscount > 0) {
+                        msg += `🎟️ Cupom: ${orderData.couponCode} (-R$ ${couponDiscount.toFixed(2)})\n`;
+                    }
+                }
+
                 let earned = 0;
                 if (!user.isGuest) {
                     earned = Math.floor(orderData.total) + (orderData.bonusPoints || 0);

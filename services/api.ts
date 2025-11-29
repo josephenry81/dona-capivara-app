@@ -1,23 +1,23 @@
-// ... imports ...
+import axios from 'axios';
+
 const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || '';
 
 export const API = {
+
     async fetchCatalogData() {
         try {
             if (!API_URL) throw new Error("API URL missing");
-            const timestamp = Date.now();
             const [productsRes, categoriesRes, bannersRes] = await Promise.all([
-                fetch(`${API_URL}?action=getProducts&_t=${timestamp}`),
-                fetch(`${API_URL}?action=getCategories&_t=${timestamp}`),
-                fetch(`${API_URL}?action=getBanners&_t=${timestamp}`)
+                fetch(`${API_URL}?action=getProducts`),
+                fetch(`${API_URL}?action=getCategories`),
+                fetch(`${API_URL}?action=getBanners`)
             ]);
 
             const productsRaw = await productsRes.json();
             const categoriesRaw = await categoriesRes.json();
             const bannersRaw = await bannersRes.json();
 
-            // ✅ Add defensive checks for array data
-            const products = Array.isArray(productsRaw) ? productsRaw.map((p: any) => ({
+            const products = productsRaw.map((p: any) => ({
                 id: p.ID_Geladinho,
                 nome: p.Nome_Geladinho || p.Nome || p.nome || 'Produto sem nome',
                 price: Number(p.Preco_Venda || 0),
@@ -29,10 +29,20 @@ export const API = {
                 calorias: p.Calorias || 'N/A',
                 ingredientes: p.Ingredientes || 'Ingredientes não informados.',
                 tempo: p.Tempo_Preparo || 'Pronta Entrega'
-            })) : [];
+            }));
 
-            const categories = Array.isArray(categoriesRaw) ? categoriesRaw.map((c: any) => ({ id: c.ID_Categoria, nome: c.Nome_Categoria })) : [];
-            const banners = Array.isArray(bannersRaw) ? bannersRaw.map((b: any) => ({ id: b.ID_Banner, image: b.Imagem_URL, title: b.Titulo || '', subtitle: b.Subtitulo || '', ctaText: b.Texto_Botao || 'Ver Mais' })) : [];
+            const categories = categoriesRaw.map((c: any) => ({
+                id: c.ID_Categoria,
+                nome: c.Nome_Categoria
+            }));
+
+            const banners = Array.isArray(bannersRaw) ? bannersRaw.map((b: any) => ({
+                id: b.ID_Banner,
+                image: b.Imagem_URL || b.Imagem,
+                title: b.Titulo || '',
+                subtitle: b.Subtitulo || '',
+                ctaText: b.Texto_Botao || 'Ver Mais'
+            })) : [];
 
             return { products, categories, banners };
         } catch (error) {
@@ -41,7 +51,6 @@ export const API = {
         }
     },
 
-    // --- UNIFIED LOGIN ---
     async login(phone: string, password: string) {
         if (!API_URL) return { success: false, message: "Config Error" };
         try {
@@ -52,20 +61,6 @@ export const API = {
             const data = await response.json();
 
             if (data.success && data.customer) {
-                // Check if it's Admin
-                if (data.customer.isAdmin) {
-                    return {
-                        success: true,
-                        customer: {
-                            id: 'ADMIN',
-                            name: 'Administrador',
-                            isAdmin: true,
-                            adminKey: data.customer.adminKey // Save key for future requests
-                        }
-                    };
-                }
-
-                // Regular Customer Normalization
                 const favString = data.customer.Favoritos || '';
                 const favArray = favString ? favString.split(',') : [];
 
@@ -83,6 +78,12 @@ export const API = {
                         fullAddress: data.customer.Endereco || ''
                     }
                 };
+
+                // Admin Trapdoor Response Handling
+                if (data.customer.isAdmin) {
+                    data.customer.isGuest = false;
+                    data.customer.adminKey = data.customer.adminKey;
+                }
             }
             return data;
         } catch (error) { return { success: false, message: "Erro de conexão" }; }
@@ -91,7 +92,19 @@ export const API = {
     async registerCustomer(userData: any) {
         if (!API_URL) return { success: false, message: "Config Error" };
         try {
-            const response = await fetch(API_URL + '?action=createCustomer', { method: 'POST', body: JSON.stringify(userData) });
+            const response = await fetch(API_URL + '?action=createCustomer', {
+                method: 'POST',
+                body: JSON.stringify(userData)
+            });
+            return await response.json();
+        } catch (error) { return { success: false, message: "Erro de conexão" }; }
+    },
+
+    // --- NEW: VALIDATE COUPON ---
+    async validateCoupon(code: string) {
+        if (!API_URL) return { success: false, message: "Config Error" };
+        try {
+            const response = await fetch(`${API_URL}?action=validateCoupon&code=${code}`);
             return await response.json();
         } catch (error) { return { success: false, message: "Erro de conexão" }; }
     },
@@ -103,8 +116,10 @@ export const API = {
 
     async submitOrder(orderData: any) {
         if (!API_URL) return;
-        try { await fetch(API_URL + '?action=createOrder', { method: 'POST', body: JSON.stringify(orderData) }); return { success: true }; }
-        catch (e) { return { success: false }; }
+        try {
+            await fetch(API_URL + '?action=createOrder', { method: 'POST', body: JSON.stringify(orderData) });
+            return { success: true };
+        } catch (error) { return { success: false }; }
     },
 
     async getCustomerOrders(customerId: string) {
@@ -126,7 +141,9 @@ export const API = {
         if (!API_URL) return [];
         try {
             const timestamp = Date.now();
-            const response = await fetch(`${API_URL}?action=getAdminOrders&adminKey=${adminKey}&_t=${timestamp}`, { cache: 'no-store' });
+            const response = await fetch(`${API_URL}?action=getAdminOrders&adminKey=${adminKey}&_t=${timestamp}`, {
+                cache: 'no-store'
+            });
             const data = await response.json();
             if (data.error || data.success === false) return null;
             const list = data.orders || (Array.isArray(data) ? data : []);
