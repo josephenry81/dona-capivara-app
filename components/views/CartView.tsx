@@ -4,7 +4,7 @@ interface Product { id: string; nome: string; price: number; imagem?: string; qu
 
 interface CartViewProps {
     cart: Product[];
-    user: any; // NEW PROP
+    user: any;
     addToCart: (product: any) => void;
     removeFromCart: (productId: string) => void;
     onSubmitOrder: (orderData: any) => void;
@@ -16,27 +16,20 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
     const [paymentMethod, setPaymentMethod] = useState('');
     const [deliveryType, setDeliveryType] = useState<'CONDO' | 'NEIGHBOR' | 'FAR'>('CONDO');
 
+    // --- SCHEDULING STATE ---
+    const [isScheduled, setIsScheduled] = useState(false);
+    const [scheduleDate, setScheduleDate] = useState('');
+    const [scheduleTime, setScheduleTime] = useState('');
+
     const [addressData, setAddressData] = useState({
         nome: '', torre: '', apto: '', rua: '', numero: '', bairro: '', complemento: ''
     });
 
-    // --- AUTO-FILL LOGIC ---
     useEffect(() => {
         if (user && !user.isGuest) {
-            // Pre-fill name
             const startName = user.name || '';
-
-            // Pre-fill address if available
             const saved = user.savedAddress || {};
-
-            setAddressData(prev => ({
-                ...prev,
-                nome: startName,
-                torre: saved.torre || '',
-                apto: saved.apto || ''
-            }));
-
-            // Smart Selection: If we have a saved Tower, default to CONDO
+            setAddressData(prev => ({ ...prev, nome: startName, torre: saved.torre || '', apto: saved.apto || '' }));
             if (saved.torre) setDeliveryType('CONDO');
         }
     }, [user]);
@@ -54,13 +47,23 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
         e.preventDefault();
         if (!paymentMethod) return alert('Selecione uma forma de pagamento');
 
+        // Validate Schedule
+        let schedulingInfo = 'Imediata';
+        if (isScheduled) {
+            if (!scheduleDate || !scheduleTime) return alert('Por favor, preencha a data e hora do agendamento.');
+            // Format: "DD/MM às HH:mm"
+            const dateParts = scheduleDate.split('-');
+            schedulingInfo = `${dateParts[2]}/${dateParts[1]} às ${scheduleTime}`;
+        }
+
         let finalAddress = '';
         if (deliveryType === 'CONDO') finalAddress = `Condomínio - Torre ${addressData.torre}, Apto ${addressData.apto}`;
         else finalAddress = `${addressData.rua}, ${addressData.numero} - ${addressData.bairro} (${deliveryType === 'NEIGHBOR' ? 'Vizinhança' : 'Entrega Externa'})`;
 
         onSubmitOrder({
             cart, total, referralCode, bonusPoints, paymentMethod, deliveryFee,
-            customer: { name: addressData.nome, fullAddress: finalAddress, details: addressData }
+            customer: { name: addressData.nome, fullAddress: finalAddress, details: addressData },
+            scheduling: schedulingInfo // Pass to parent
         });
     };
 
@@ -90,6 +93,46 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                 {cart.length > 0 && (
                     <>
                         <div className="bg-white p-4 rounded-2xl shadow-sm">
+                            <h3 className="font-bold text-gray-700 mb-3">Quando entregar?</h3>
+                            <div className="flex bg-gray-100 p-1 rounded-xl mb-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsScheduled(false)}
+                                    className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${!isScheduled ? 'bg-white text-[#FF4B82] shadow-sm' : 'text-gray-400'}`}
+                                >
+                                    Agora ⚡
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsScheduled(true)}
+                                    className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${isScheduled ? 'bg-white text-[#FF4B82] shadow-sm' : 'text-gray-400'}`}
+                                >
+                                    Agendar 📅
+                                </button>
+                            </div>
+
+                            {isScheduled && (
+                                <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2">
+                                    <input
+                                        type="date"
+                                        required={isScheduled}
+                                        className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82]"
+                                        value={scheduleDate}
+                                        onChange={(e) => setScheduleDate(e.target.value)}
+                                        min={new Date().toISOString().split('T')[0]}
+                                    />
+                                    <input
+                                        type="time"
+                                        required={isScheduled}
+                                        className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82]"
+                                        value={scheduleTime}
+                                        onChange={(e) => setScheduleTime(e.target.value)}
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="bg-white p-4 rounded-2xl shadow-sm">
                             <h3 className="font-bold text-gray-700 mb-3">Entrega</h3>
                             <div className="grid gap-3">
                                 {[{ id: 'CONDO', icon: '🏢', label: 'Condomínio', sub: 'Grátis' }, { id: 'NEIGHBOR', icon: '🏡', label: 'Vizinhança', sub: 'Grátis' }, { id: 'FAR', icon: '🛵', label: 'Outros', sub: 'R$ 5,00' }].map((zone) => (
@@ -104,7 +147,6 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                         <form onSubmit={handleFinalize} className="space-y-4">
                             <div className="bg-white p-4 rounded-2xl shadow-sm space-y-4 w-full">
                                 <h3 className="font-bold text-gray-700">Dados</h3>
-                                {/* --- NEW LABEL --- */}
                                 <label className="text-xs font-bold text-gray-400 ml-1 uppercase">Como gostaria de ser chamado?</label>
                                 <input required name="nome" placeholder="Ex: João da Silva" value={addressData.nome} onChange={handleInputChange} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82]" />
 

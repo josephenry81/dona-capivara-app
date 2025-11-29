@@ -103,6 +103,12 @@ export default function Page() {
                 const shortId = (response.idVenda || 'PENDENTE').slice(0, 8).toUpperCase();
 
                 let msg = `*Novo Pedido Dona Capivara* 🐹\nID: ${shortId}\n----------------\n`;
+
+                // SCHEDULING INFO IN WHATSAPP
+                if (orderData.scheduling && orderData.scheduling !== 'Imediata') {
+                    msg += `📅 *AGENDADO:* ${orderData.scheduling}\n\n`;
+                }
+
                 orderData.cart.forEach((item: any) => msg += `${item.quantity}x ${item.nome}\n`);
                 msg += `\n*Total: R$ ${orderData.total.toFixed(2)}*\nCliente: ${orderData.customer.name}\n`;
                 if (orderData.customer.fullAddress) msg += `Endereço: ${orderData.customer.fullAddress}\n`;
