@@ -2,12 +2,6 @@
 const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || '';
 
 export const API = {
-    // ... (Keep fetchCatalogData, registerCustomer, syncFavorites, submitOrder, getCustomerOrders, getAdminOrders, updateOrderStatus) ...
-    // IMPORTANT: Preserve all other functions. Only rewriting 'login' for brevity here, 
-    // BUT PLEASE OUTPUT THE FULL FILE content if possible or carefully splice.
-
-    // To be safe, I will provide the FULL file content to avoid any "missing function" errors.
-
     async fetchCatalogData() {
         try {
             if (!API_URL) throw new Error("API URL missing");
@@ -22,7 +16,8 @@ export const API = {
             const categoriesRaw = await categoriesRes.json();
             const bannersRaw = await bannersRes.json();
 
-            const products = productsRaw.map((p: any) => ({
+            // ✅ Add defensive checks for array data
+            const products = Array.isArray(productsRaw) ? productsRaw.map((p: any) => ({
                 id: p.ID_Geladinho,
                 nome: p.Nome_Geladinho || p.Nome || p.nome || 'Produto sem nome',
                 price: Number(p.Preco_Venda || 0),
@@ -34,9 +29,9 @@ export const API = {
                 calorias: p.Calorias || 'N/A',
                 ingredientes: p.Ingredientes || 'Ingredientes não informados.',
                 tempo: p.Tempo_Preparo || 'Pronta Entrega'
-            }));
+            })) : [];
 
-            const categories = categoriesRaw.map((c: any) => ({ id: c.ID_Categoria, nome: c.Nome_Categoria }));
+            const categories = Array.isArray(categoriesRaw) ? categoriesRaw.map((c: any) => ({ id: c.ID_Categoria, nome: c.Nome_Categoria })) : [];
             const banners = Array.isArray(bannersRaw) ? bannersRaw.map((b: any) => ({ id: b.ID_Banner, image: b.Imagem_URL, title: b.Titulo || '', subtitle: b.Subtitulo || '', ctaText: b.Texto_Botao || 'Ver Mais' })) : [];
 
             return { products, categories, banners };
