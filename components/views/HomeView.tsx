@@ -12,7 +12,7 @@ interface HomeViewProps {
     onAddToCart: (product: any) => void;
     onToggleFavorite: (id: string) => void;
     onProductClick: (product: any) => void;
-    onHeaderAction: () => void; // NEW PROP
+    onHeaderAction: () => void;
 }
 
 export default function HomeView({
@@ -23,7 +23,6 @@ export default function HomeView({
     const [activeCategory, setActiveCategory] = useState('todos');
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Defensive check
     const filteredProducts = (products || []).filter(p => {
         const name = p.nome || p.Nome_Geladinho || '';
         if (!name) return false;
@@ -42,29 +41,33 @@ export default function HomeView({
     return (
         <div className="min-h-screen bg-[#F5F6FA] pb-24">
             {/* Header */}
-            <div className="bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] pt-12 pb-24 px-6 rounded-b-[40px]">
-                <div className="flex justify-between items-start text-white">
+            <div className="bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] pt-12 pb-24 px-6 rounded-b-[40px] relative z-0">
+                <div className="flex justify-between items-start text-white relative z-10">
                     <div>
                         <p className="text-sm opacity-90">Bem-vindo(a)!</p>
                         <h2 className="text-2xl font-bold">{user?.name || 'Dona Capivara'}</h2>
                     </div>
 
-                    {/* --- SMART AUTH BUTTON --- */}
+                    {/* --- FIXED BUTTON --- */}
                     <button
-                        onClick={onHeaderAction}
-                        className="bg-white/20 backdrop-blur-sm p-2 rounded-full hover:bg-white/30 transition flex items-center justify-center w-10 h-10 shadow-sm"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onHeaderAction();
+                        }}
+                        className="bg-white/20 backdrop-blur-md p-2 rounded-full hover:bg-white/30 transition flex items-center justify-center w-10 h-10 shadow-md cursor-pointer z-50 pointer-events-auto"
                         title={user?.isGuest ? "Fazer Login" : "Sair da Conta"}
                     >
                         {user?.isGuest ? (
-                            <span className="text-lg">🔐</span> // Guest sees Login
+                            <span className="text-xl">🔐</span>
                         ) : (
-                            <span className="text-lg">🚪</span> // User sees Logout
+                            <span className="text-xl">🚪</span>
                         )}
                     </button>
                 </div>
             </div>
 
-            {/* Search */}
+            {/* Search - Lower Z-Index to not block header */}
             <div className="-mt-8 mx-6 relative z-20">
                 <div className="bg-white rounded-full shadow-lg flex items-center p-4">
                     <span className="text-gray-400 mr-2">🔍</span>

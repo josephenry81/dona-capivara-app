@@ -82,11 +82,23 @@ export default function Page() {
     };
 
     const handleHeaderAction = () => {
-        const action = user?.isGuest ? 'fazer login' : 'sair';
-        if (confirm(`Deseja ${action}?`)) {
+        const isGuest = user?.isGuest;
+        const message = isGuest
+            ? "Deseja fazer login? Seus itens no carrinho serão mantidos."
+            : "Tem certeza que deseja sair?";
+
+        if (confirm(message)) {
+            // Clear Session
             localStorage.removeItem('donaCapivaraUser');
+
+            // Clear Auth State -> Triggers <AuthView /> render
             setUser(null);
+
+            // Clear Favorites (Optional, good for privacy)
             setFavorites([]);
+
+            // Reset Tab
+            setActiveTab('home');
         }
     };
 
