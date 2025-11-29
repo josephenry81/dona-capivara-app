@@ -16,6 +16,11 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
     const [paymentMethod, setPaymentMethod] = useState('');
     const [deliveryType, setDeliveryType] = useState<'CONDO' | 'NEIGHBOR' | 'FAR'>('CONDO');
 
+    // --- LOYALTY STATE ---
+    const [usePoints, setUsePoints] = useState(false);
+    const userPoints = user?.points || 0;
+    const isGoldPlus = userPoints >= 500; // Strategy: Only Gold (500+) can redeem
+
     // --- SCHEDULING STATE ---
     const [isScheduled, setIsScheduled] = useState(false);
     const [scheduleDate, setScheduleDate] = useState('');
@@ -36,10 +41,31 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
 
     useEffect(() => { if (referralCode.length > 3) setBonusPoints(50); else setBonusPoints(0); }, [referralCode]);
 
+    // --- CALCULATIONS ---
     const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
     const deliveryFee = deliveryType === 'FAR' ? 5.00 : 0.00;
-    const total = subtotal + deliveryFee;
-    const totalPoints = Math.floor(total) + bonusPoints;
+
+    // Discount Logic
+    let discountValue = 0;
+    let pointsRedeemed = 0;
+
+    if (usePoints && isGoldPlus) {
+        // Rule: 20 pts = R$ 1.00
+        // Max Discount: 50% of Subtotal (Safety Margin)
+        const maxDiscountAllowed = subtotal * 0.5;
+        const potentialDiscountFromPoints = userPoints / 20;
+
+        // Actual discount is the lesser of: What points allow OR Max allowed
+        const actualDiscount = Math.min(maxDiscountAllowed, potentialDiscountFromPoints);
+
+        // Round down to nearest R$ 1.00 to keep integer points usually
+        discountValue = Math.floor(actualDiscount);
+        pointsRedeemed = discountValue * 20;
+    }
+
+    const total = Math.max(0, subtotal + deliveryFee - discountValue);
+    // Points earned on the PAID amount only
+    const totalPointsEarned = Math.floor(total) + bonusPoints;
 
     const handleInputChange = (e: any) => setAddressData({ ...addressData, [e.target.name]: e.target.value });
 
@@ -63,7 +89,10 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
         onSubmitOrder({
             cart, total, referralCode, bonusPoints, paymentMethod, deliveryFee,
             customer: { name: addressData.nome, fullAddress: finalAddress, details: addressData },
-            scheduling: schedulingInfo // Pass to parent
+            scheduling: schedulingInfo,
+            // New Data passed to backend
+            pointsRedeemed,
+            discountValue
         });
     };
 
@@ -92,6 +121,40 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
 
                 {cart.length > 0 && (
                     <>
+                        {/* --- LOYALTY REDEMPTION CARD --- */}
+                        {!user.isGuest && (
+                            <div className={`p-4 rounded-2xl border transition-all ${usePoints ? 'bg-yellow-50 border-yellow-400' : 'bg-white border-gray-200'}`}>
+                                <div className="flex justify-between items-center mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xl">👑</span>
+                                        <div>
+                                            <p className="font-bold text-sm text-gray-800">Usar meus pontos</p>
+                                            <p className="text-xs text-gray-500">Saldo: {userPoints} pts</p>
+                                        </div>
+                                    </div>
+
+                                    {isGoldPlus ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => setUsePoints(!usePoints)}
+                                            className={`w-12 h-6 rounded-full p-1 transition-colors ${usePoints ? 'bg-green-500' : 'bg-gray-300'}`}
+                                        >
+                                            <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${usePoints ? 'translate-x-6' : ''}`} />
+                                        </button>
+                                    ) : (
+                                        <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">Mín. 500 pts</span>
+                                    )}
+                                </div>
+
+                                {usePoints && (
+                                    <div className="text-sm text-gray-600 mt-2 border-t border-yellow-200 pt-2">
+                                        <p>Você vai usar <span className="font-bold text-red-500">{pointsRedeemed} pts</span></p>
+                                        <p>Desconto aplicado: <span className="font-bold text-green-600">R$ {discountValue.toFixed(2)}</span></p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         <div className="bg-white p-4 rounded-2xl shadow-sm">
                             <h3 className="font-bold text-gray-700 mb-3">Quando entregar?</h3>
                             <div className="flex bg-gray-100 p-1 rounded-xl mb-4">
@@ -174,8 +237,17 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                             <div className="bg-white p-4 rounded-2xl shadow-sm space-y-2 text-sm">
                                 <div className="flex justify-between text-gray-500"><span>Subtotal</span><span>R$ {subtotal.toFixed(2)}</span></div>
                                 <div className="flex justify-between text-gray-500"><span>Entrega</span><span className={deliveryFee === 0 ? 'text-[#28a745]' : 'text-red-500'}>{deliveryFee === 0 ? 'Grátis' : `R$ ${deliveryFee.toFixed(2)}`}</span></div>
+
+                                {/* DISCOUNT LINE */}
+                                {discountValue > 0 && (
+                                    <div className="flex justify-between text-green-600 font-bold">
+                                        <span>Desconto Fidelidade</span>
+                                        <span>- R$ {discountValue.toFixed(2)}</span>
+                                    </div>
+                                )}
+
                                 <div className="border-t border-gray-100 my-2 pt-2 flex justify-between text-lg font-bold text-[#2D3436]"><span>Total</span><span>R$ {total.toFixed(2)}</span></div>
-                                <div className="bg-[#FFF0F5] text-[#FF4B82] text-center py-2 rounded-lg font-bold text-xs">💎 Ganhe {totalPoints} pontos</div>
+                                <div className="bg-[#FFF0F5] text-[#FF4B82] text-center py-2 rounded-lg font-bold text-xs">💎 Ganhe {totalPointsEarned} pontos</div>
                             </div>
 
                             <div className="grid grid-cols-3 gap-2">
