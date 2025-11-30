@@ -19,27 +19,27 @@ export default function Receipt({ order, items, id }: ReceiptProps) {
         backgroundColor: 'white',
         color: 'black',
         fontFamily: 'Arial, Helvetica, sans-serif',
-        fontWeight: '600',
-        fontSize: '14px',
-        lineHeight: '1.25',
-        padding: '15px 10px',
+        fontWeight: '700',
+        fontSize: '16px',
+        lineHeight: '1.3',
+        padding: '15px 5px',
         boxSizing: 'border-box',
         position: 'relative'
     };
 
     const borderStyle: React.CSSProperties = {
-        borderBottom: '2px dashed black',
-        margin: '12px 0'
+        borderBottom: '3px dashed black',
+        margin: '15px 0'
     };
 
     const tableStyle: React.CSSProperties = {
         width: '100%',
         borderCollapse: 'collapse',
-        fontSize: '14px'
+        fontSize: '16px'
     };
 
     const cellStyle: React.CSSProperties = {
-        paddingBottom: '8px',
+        paddingBottom: '10px',
         verticalAlign: 'top'
     };
 
@@ -48,22 +48,22 @@ export default function Receipt({ order, items, id }: ReceiptProps) {
             <div id={id} style={containerStyle}>
 
                 <div style={{ textAlign: 'center', marginBottom: '10px' }}>
-                    <h1 style={{ fontSize: '26px', fontWeight: '900', margin: 0, textTransform: 'uppercase' }}>DONA CAPIVARA</h1>
-                    <p style={{ fontSize: '12px', margin: 0 }}>Culinaria Gourmet</p>
+                    <h1 style={{ fontSize: '30px', fontWeight: '900', margin: 0, textTransform: 'uppercase', lineHeight: '1' }}>DONA CAPIVARA</h1>
+                    <p style={{ fontSize: '14px', margin: '5px 0 0 0' }}>Culinaria Gourmet</p>
                 </div>
 
                 <div style={borderStyle}></div>
 
                 <div style={{ marginBottom: '5px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                        <span>PEDIDO:</span>
-                        <span style={{ fontSize: '18px', fontWeight: '800' }}>#{order.id.slice(0, 8)}</span>
+                        <span style={{ fontSize: '14px' }}>PEDIDO:</span>
+                        <span style={{ fontSize: '22px', fontWeight: '900' }}>#{order.id.slice(0, 8)}</span>
                     </div>
-                    <div style={{ fontSize: '12px' }}>{new Date(order.date).toLocaleString('pt-BR')}</div>
+                    <div style={{ fontSize: '14px' }}>{new Date(order.date).toLocaleString('pt-BR')}</div>
 
-                    <div style={{ marginTop: '10px' }}>
-                        <span style={{ fontSize: '12px', color: '#333' }}>CLIENTE:</span><br />
-                        <span style={{ fontSize: '20px', fontWeight: '800', textTransform: 'uppercase', lineHeight: '1.1' }}>{order.customerName}</span>
+                    <div style={{ marginTop: '12px' }}>
+                        <span style={{ fontSize: '12px', color: '#000' }}>CLIENTE:</span><br />
+                        <span style={{ fontSize: '22px', fontWeight: '900', textTransform: 'uppercase', lineHeight: '1.1', display: 'block', marginTop: '2px' }}>{order.customerName}</span>
                     </div>
                 </div>
 
@@ -73,11 +73,11 @@ export default function Receipt({ order, items, id }: ReceiptProps) {
                     <tbody>
                         {items.map((item, idx) => (
                             <tr key={idx}>
-                                <td style={{ ...cellStyle, width: '35px' }}>{item.qtd}x</td>
+                                <td style={{ ...cellStyle, width: '40px' }}>{item.qtd}x</td>
                                 <td style={cellStyle}>
                                     {item.nome}
                                 </td>
-                                <td style={{ ...cellStyle, width: '80px', textAlign: 'right', fontSize: '15px' }}>
+                                <td style={{ ...cellStyle, width: '90px', textAlign: 'right', fontSize: '18px' }}>
                                     {Number(item.total).toFixed(2)}
                                 </td>
                             </tr>
@@ -87,7 +87,7 @@ export default function Receipt({ order, items, id }: ReceiptProps) {
 
                 <div style={borderStyle}></div>
 
-                <table style={{ ...tableStyle, fontSize: '14px' }}>
+                <table style={{ ...tableStyle, fontSize: '16px' }}>
                     <tbody>
                         <tr>
                             <td>Subtotal:</td>
@@ -108,32 +108,31 @@ export default function Receipt({ order, items, id }: ReceiptProps) {
                     </tbody>
                 </table>
 
-                <div style={{ ...borderStyle, borderBottom: '4px solid black' }}></div>
+                <div style={{ ...borderStyle, borderBottom: '5px solid black' }}></div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '15px 0' }}>
-                    <span style={{ fontSize: '20px', fontWeight: '800' }}>TOTAL</span>
-                    <span style={{ fontSize: '32px', fontWeight: '900' }}>R$ {finalTotal.toFixed(2)}</span>
+                    <span style={{ fontSize: '24px', fontWeight: '800' }}>TOTAL</span>
+                    <span style={{ fontSize: '40px', fontWeight: '900' }}>R$ {finalTotal.toFixed(2)}</span>
                 </div>
 
-                <div style={{ marginTop: '10px', fontSize: '14px' }}>
-                    <p style={{ marginBottom: '8px' }}><strong>Forma Pgto:</strong> {order.payment}</p>
+                <div style={{ marginTop: '15px', fontSize: '16px' }}>
+                    <p style={{ marginBottom: '10px' }}><strong>Pgto:</strong> {order.payment}</p>
 
-                    <div style={{ border: '2px solid #000', padding: '10px', borderRadius: '4px' }}>
-                        <strong>ENTREGA:</strong>
-                        <p style={{ fontSize: '16px', lineHeight: '1.3', marginTop: '4px', fontWeight: 'bold' }}>{order.address}</p>
+                    <div style={{ border: '3px solid #000', padding: '10px', borderRadius: '6px' }}>
+                        <strong style={{ fontSize: '14px' }}>ENTREGA:</strong>
+                        <p style={{ fontSize: '18px', lineHeight: '1.3', marginTop: '5px', fontWeight: 'bold' }}>{order.address}</p>
                     </div>
 
                     {order.scheduling && order.scheduling !== 'Imediata' && (
-                        <div style={{ marginTop: '10px', background: '#000', color: '#fff', padding: '8px', textAlign: 'center' }}>
-                            <p style={{ margin: 0, fontSize: '14px', fontWeight: 'bold' }}>AGENDAMENTO</p>
-                            <p style={{ margin: 0, fontSize: '18px' }}>{order.scheduling}</p>
+                        <div style={{ marginTop: '15px', background: '#000', color: '#fff', padding: '10px', textAlign: 'center' }}>
+                            <p style={{ margin: 0, fontSize: '16px', fontWeight: 'bold' }}>AGENDAMENTO</p>
+                            <p style={{ margin: '5px 0 0 0', fontSize: '20px' }}>{order.scheduling}</p>
                         </div>
                     )}
                 </div>
 
-                <div style={{ textAlign: 'center', marginTop: '25px', fontSize: '12px' }}>
+                <div style={{ textAlign: 'center', marginTop: '30px', fontSize: '14px', fontWeight: 'bold' }}>
                     <p>Obrigado pela preferência!</p>
-                    <p>www.donacapivara.app</p>
                 </div>
 
             </div>
