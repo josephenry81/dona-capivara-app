@@ -21,84 +21,71 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
     const [isScheduled, setIsScheduled] = useState(false);
     const [scheduleDate, setScheduleDate] = useState('');
     const [scheduleTime, setScheduleTime] = useState('');
-
-    // Address State with CEP
-    const [addressData, setAddressData] = useState({
-        nome: '', torre: '', apto: '', rua: '', numero: '', bairro: '', complemento: '', cep: ''
-    });
+    const [addressData, setAddressData] = useState({ nome: '', torre: '', apto: '', rua: '', numero: '', bairro: '', complemento: '', cep: '' });
 
     useEffect(() => {
-        // 1. Check for Referral Code in LocalStorage
-        const savedRef = localStorage.getItem('donaCapivaraRef');
-        if (savedRef && !referralCode) {
-            setReferralCode(savedRef);
-            // Clear it after applying to avoid re-applying on future visits
-            localStorage.removeItem('donaCapivaraRef');
-        }
-
-        // 2. Auto-fill Address
         if (user && !user.isGuest) {
             const startName = user.name || '';
             const saved = user.savedAddress || {};
-            setAddressData(prev => ({
-                ...prev,
-                nome: startName,
-                torre: saved.torre || '',
-                apto: saved.apto || ''
-            }));
+            setAddressData(prev => ({ ...prev, nome: startName, torre: saved.torre || '', apto: saved.apto || '', rua: saved.fullAddress?.split(',')[0] || '' }));
             if (saved.torre) setDeliveryType('CONDO');
+        }
+        const savedRef = localStorage.getItem('donaCapivaraRef');
+        if (savedRef && !referralCode) {
+            setReferralCode(savedRef);
+            localStorage.removeItem('donaCapivaraRef');
         }
     }, [user]);
 
-    useEffect(() => { if (referralCode.length > 3) setBonusPoints(50); else setBonusPoints(0); }, [referralCode]);
+    useEffect(() => {
+        if (referralCode.length > 3) {
+            // Anti-Fraud: Prevent Self-Referral
+            if (user?.inviteCode && referralCode.toUpperCase() === user.inviteCode.toUpperCase()) {
+                setBonusPoints(0);
+            } else {
+                setBonusPoints(50);
+            }
+        } else {
+            setBonusPoints(0);
+        }
+    }, [referralCode, user]);
 
-    // --- CEP AUTO-COMPLETE LOGIC ---
+    // --- CEP ---
     const handleCepBlur = async () => {
         const cleanCep = addressData.cep.replace(/\D/g, '');
         if (cleanCep.length === 8) {
             try {
                 const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
                 const data = await res.json();
-                if (!data.erro) {
-                    setAddressData(prev => ({
-                        ...prev,
-                        rua: data.logradouro || '',
-                        bairro: data.bairro || ''
-                    }));
-                } else {
-                    alert('CEP não encontrado.');
-                }
-            } catch (e) {
-                console.error("CEP Error", e);
-            }
+                if (!data.erro) setAddressData(prev => ({ ...prev, rua: data.logradouro, bairro: data.bairro }));
+                else alert('CEP não encontrado.');
+            } catch (e) { console.error(e); }
         }
     };
 
-    const userPoints = user?.points || 0;
-    const isGoldPlus = userPoints >= 500;
+    // --- CALCULATIONS ---
     const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
     const deliveryFee = deliveryType === 'FAR' ? 5.00 : 0.00;
+    const userPoints = user?.points || 0;
+    const isGoldPlus = userPoints >= 500;
 
-    let discountValue = 0;
-    let pointsRedeemed = 0;
     let couponDiscount = 0;
-
     if (appliedCoupon) {
         couponDiscount = appliedCoupon.type === 'PORCENTAGEM' ? subtotal * (appliedCoupon.value / 100) : appliedCoupon.value;
     }
 
+    let discountValue = 0;
+    let pointsRedeemed = 0;
     if (usePoints && isGoldPlus) {
-        const maxPointsDiscount = (subtotal - couponDiscount) * 0.5;
-        const potentialPointsDiscount = userPoints / 20;
-        const actualPointsDiscount = Math.min(maxPointsDiscount, potentialPointsDiscount);
-        const ptsMoney = Math.floor(actualPointsDiscount);
-        if (ptsMoney > 0) {
-            discountValue += ptsMoney;
-            pointsRedeemed = ptsMoney * 20;
+        const maxDiscount = (subtotal - couponDiscount) * 0.5;
+        const ptsDiscount = Math.floor(Math.min(maxDiscount, userPoints / 20));
+        if (ptsDiscount > 0) {
+            discountValue = ptsDiscount;
+            pointsRedeemed = ptsDiscount * 20;
         }
     }
 
-    const totalDiscount = discountValue + couponDiscount;
+    const totalDiscount = couponDiscount + discountValue;
     const total = Math.max(0, subtotal + deliveryFee - totalDiscount);
     const totalPointsEarned = Math.floor(total) + bonusPoints;
 
@@ -110,26 +97,23 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
             alert(`Cupom aplicado: ${res.type === 'PORCENTAGEM' ? res.value + '%' : 'R$ ' + res.value}`);
         } else {
             setAppliedCoupon(null);
-            alert(res.message || 'Cupom inválido');
+            alert(res.message || 'Inválido');
         }
     };
 
     const handleInputChange = (e: any) => {
         let value = e.target.value;
-        // Apply mask for CEP (only numbers)
-        if (e.target.name === 'cep') {
-            value = value.replace(/\D/g, '').slice(0, 8);
-        }
+        if (e.target.name === 'cep') value = value.replace(/\D/g, '').slice(0, 8);
         setAddressData({ ...addressData, [e.target.name]: value });
     };
 
     const handleFinalize = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!paymentMethod) return alert('Selecione uma forma de pagamento');
+        if (!paymentMethod) return alert('Selecione pagamento');
 
         let schedulingInfo = 'Imediata';
         if (isScheduled) {
-            if (!scheduleDate || !scheduleTime) return alert('Preencha o agendamento.');
+            if (!scheduleDate || !scheduleTime) return alert('Preencha agendamento');
             const d = scheduleDate.split('-');
             schedulingInfo = `${d[2]}/${d[1]} às ${scheduleTime}`;
         }
@@ -223,20 +207,10 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                                     </div>
                                 ) : (
                                     <>
-                                        {/* --- CEP FIELD WITH AUTO-COMPLETE --- */}
                                         <div className="relative">
-                                            <input
-                                                name="cep"
-                                                placeholder="CEP (ex: 12345678)"
-                                                value={addressData.cep}
-                                                onChange={handleInputChange}
-                                                onBlur={handleCepBlur}
-                                                maxLength={8}
-                                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82]"
-                                            />
+                                            <input name="cep" placeholder="CEP (ex: 12345678)" value={addressData.cep} onChange={handleInputChange} onBlur={handleCepBlur} maxLength={8} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82]" />
                                             {addressData.cep.length === 8 && <span className="absolute right-3 top-3 text-green-500 text-xs">✓</span>}
                                         </div>
-
                                         <div className="grid grid-cols-3 gap-3">
                                             <input required name="rua" placeholder="Rua" value={addressData.rua} onChange={handleInputChange} className="col-span-2 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82]" />
                                             <input required name="numero" placeholder="Nº" value={addressData.numero} onChange={handleInputChange} className="col-span-1 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82]" />
@@ -246,7 +220,7 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                                 )}
 
                                 <div className="mt-4 bg-[#FFF8E1] border border-[#FFE082] p-3 rounded-xl">
-                                    <input type="text" placeholder="Código de Indicação (Opcional)" value={referralCode} onChange={(e) => setReferralCode(e.target.value)} className="w-full bg-white border border-[#FFE082] rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-[#FFB300]" />
+                                    <input type="text" placeholder="Código de Indicação (Opcional)" value={referralCode} onChange={(e) => setReferralCode(e.target.value.toUpperCase())} className="w-full bg-white border border-[#FFE082] rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-[#FFB300]" />
                                     {bonusPoints > 0 && <div className="text-[#F57F17] text-xs font-bold mt-1">✨ +{bonusPoints} pontos!</div>}
                                 </div>
                             </div>
