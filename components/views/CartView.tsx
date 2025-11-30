@@ -21,39 +21,72 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
     const [isScheduled, setIsScheduled] = useState(false);
     const [scheduleDate, setScheduleDate] = useState('');
     const [scheduleTime, setScheduleTime] = useState('');
-    const [addressData, setAddressData] = useState({ nome: '', torre: '', apto: '', rua: '', numero: '', bairro: '', complemento: '' });
+
+    // Address State with CEP
+    const [addressData, setAddressData] = useState({
+        nome: '', torre: '', apto: '', rua: '', numero: '', bairro: '', complemento: '', cep: ''
+    });
 
     useEffect(() => {
+        // 1. Check for Referral Code in LocalStorage
+        const savedRef = localStorage.getItem('donaCapivaraRef');
+        if (savedRef && !referralCode) {
+            setReferralCode(savedRef);
+            // Clear it after applying to avoid re-applying on future visits
+            localStorage.removeItem('donaCapivaraRef');
+        }
+
+        // 2. Auto-fill Address
         if (user && !user.isGuest) {
             const startName = user.name || '';
             const saved = user.savedAddress || {};
-            setAddressData(prev => ({ ...prev, nome: startName, torre: saved.torre || '', apto: saved.apto || '' }));
+            setAddressData(prev => ({
+                ...prev,
+                nome: startName,
+                torre: saved.torre || '',
+                apto: saved.apto || ''
+            }));
             if (saved.torre) setDeliveryType('CONDO');
         }
     }, [user]);
 
     useEffect(() => { if (referralCode.length > 3) setBonusPoints(50); else setBonusPoints(0); }, [referralCode]);
 
+    // --- CEP AUTO-COMPLETE LOGIC ---
+    const handleCepBlur = async () => {
+        const cleanCep = addressData.cep.replace(/\D/g, '');
+        if (cleanCep.length === 8) {
+            try {
+                const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+                const data = await res.json();
+                if (!data.erro) {
+                    setAddressData(prev => ({
+                        ...prev,
+                        rua: data.logradouro || '',
+                        bairro: data.bairro || ''
+                    }));
+                } else {
+                    alert('CEP não encontrado.');
+                }
+            } catch (e) {
+                console.error("CEP Error", e);
+            }
+        }
+    };
+
     const userPoints = user?.points || 0;
     const isGoldPlus = userPoints >= 500;
     const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
     const deliveryFee = deliveryType === 'FAR' ? 5.00 : 0.00;
 
-    // --- DISCOUNT LOGIC ---
     let discountValue = 0;
     let pointsRedeemed = 0;
-
-    // 1. Coupon Discount
     let couponDiscount = 0;
+
     if (appliedCoupon) {
-        if (appliedCoupon.type === 'PORCENTAGEM') {
-            couponDiscount = subtotal * (appliedCoupon.value / 100);
-        } else {
-            couponDiscount = appliedCoupon.value;
-        }
+        couponDiscount = appliedCoupon.type === 'PORCENTAGEM' ? subtotal * (appliedCoupon.value / 100) : appliedCoupon.value;
     }
 
-    // 2. Points Discount
     if (usePoints && isGoldPlus) {
         const maxPointsDiscount = (subtotal - couponDiscount) * 0.5;
         const potentialPointsDiscount = userPoints / 20;
@@ -81,7 +114,14 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
         }
     };
 
-    const handleInputChange = (e: any) => setAddressData({ ...addressData, [e.target.name]: e.target.value });
+    const handleInputChange = (e: any) => {
+        let value = e.target.value;
+        // Apply mask for CEP (only numbers)
+        if (e.target.name === 'cep') {
+            value = value.replace(/\D/g, '').slice(0, 8);
+        }
+        setAddressData({ ...addressData, [e.target.name]: value });
+    };
 
     const handleFinalize = (e: React.FormEvent) => {
         e.preventDefault();
@@ -96,13 +136,11 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
 
         let finalAddress = '';
         if (deliveryType === 'CONDO') finalAddress = `Condomínio - Torre ${addressData.torre}, Apto ${addressData.apto}`;
-        else finalAddress = `${addressData.rua}, ${addressData.numero} - ${addressData.bairro} (${deliveryType === 'NEIGHBOR' ? 'Vizinhança' : 'Entrega Externa'})`;
+        else finalAddress = `${addressData.rua}, ${addressData.numero} - ${addressData.bairro} (CEP: ${addressData.cep})`;
 
         onSubmitOrder({
             cart, total, referralCode, bonusPoints, paymentMethod, deliveryFee, scheduling: schedulingInfo,
-            pointsRedeemed,
-            discountValue: totalDiscount,
-            couponCode: appliedCoupon ? couponCode : '',
+            pointsRedeemed, discountValue: totalDiscount, couponCode: appliedCoupon ? couponCode : '',
             customer: { name: addressData.nome, fullAddress: finalAddress, details: addressData }
         });
     };
@@ -121,7 +159,6 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
 
                 {cart.length > 0 && (
                     <>
-                        {/* Loyalty Card */}
                         {!user.isGuest && (
                             <div className={`p-4 rounded-2xl border transition-all ${usePoints ? 'bg-yellow-50 border-yellow-400' : 'bg-white border-gray-200'}`}>
                                 <div className="flex justify-between items-center mb-2">
@@ -134,7 +171,6 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                             </div>
                         )}
 
-                        {/* Coupon Card */}
                         <div className="bg-white p-4 rounded-2xl shadow-sm">
                             <h3 className="font-bold text-gray-700 mb-2 text-sm">Possui Cupom?</h3>
                             <div className="flex gap-2">
@@ -148,7 +184,6 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                             {appliedCoupon && <p className="text-green-500 text-xs mt-1 font-bold">Cupom aplicado!</p>}
                         </div>
 
-                        {/* Scheduling */}
                         <div className="bg-white p-4 rounded-2xl shadow-sm">
                             <h3 className="font-bold text-gray-700 mb-3">Quando entregar?</h3>
                             <div className="flex bg-gray-100 p-1 rounded-xl mb-4">
@@ -163,7 +198,6 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                             )}
                         </div>
 
-                        {/* Zones */}
                         <div className="bg-white p-4 rounded-2xl shadow-sm">
                             <h3 className="font-bold text-gray-700 mb-3">Entrega</h3>
                             <div className="grid gap-3">
@@ -181,6 +215,7 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                                 <h3 className="font-bold text-gray-700">Dados</h3>
                                 <label className="text-xs font-bold text-gray-400 ml-1 uppercase">Como gostaria de ser chamado?</label>
                                 <input required name="nome" value={addressData.nome} onChange={handleInputChange} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82]" />
+
                                 {deliveryType === 'CONDO' ? (
                                     <div className="grid grid-cols-2 gap-3">
                                         <input required name="torre" placeholder="Torre" value={addressData.torre} onChange={handleInputChange} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82]" />
@@ -188,6 +223,20 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                                     </div>
                                 ) : (
                                     <>
+                                        {/* --- CEP FIELD WITH AUTO-COMPLETE --- */}
+                                        <div className="relative">
+                                            <input
+                                                name="cep"
+                                                placeholder="CEP (ex: 12345678)"
+                                                value={addressData.cep}
+                                                onChange={handleInputChange}
+                                                onBlur={handleCepBlur}
+                                                maxLength={8}
+                                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82]"
+                                            />
+                                            {addressData.cep.length === 8 && <span className="absolute right-3 top-3 text-green-500 text-xs">✓</span>}
+                                        </div>
+
                                         <div className="grid grid-cols-3 gap-3">
                                             <input required name="rua" placeholder="Rua" value={addressData.rua} onChange={handleInputChange} className="col-span-2 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82]" />
                                             <input required name="numero" placeholder="Nº" value={addressData.numero} onChange={handleInputChange} className="col-span-1 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82]" />
@@ -195,6 +244,7 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                                         <input required name="bairro" placeholder="Bairro" value={addressData.bairro} onChange={handleInputChange} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82]" />
                                     </>
                                 )}
+
                                 <div className="mt-4 bg-[#FFF8E1] border border-[#FFE082] p-3 rounded-xl">
                                     <input type="text" placeholder="Código de Indicação (Opcional)" value={referralCode} onChange={(e) => setReferralCode(e.target.value)} className="w-full bg-white border border-[#FFE082] rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-[#FFB300]" />
                                     {bonusPoints > 0 && <div className="text-[#F57F17] text-xs font-bold mt-1">✨ +{bonusPoints} pontos!</div>}
@@ -215,6 +265,7 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                                     <button key={method} type="button" onClick={() => setPaymentMethod(method)} className={`py-3 rounded-xl text-sm font-bold border ${paymentMethod === method ? 'bg-[#FF4B82] text-white border-[#FF4B82]' : 'bg-white text-gray-500 border-gray-200'}`}>{method}</button>
                                 ))}
                             </div>
+
                             <button type="submit" disabled={!paymentMethod} className="w-full bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white font-bold py-4 rounded-2xl mt-6 disabled:opacity-50">Finalizar Pedido</button>
                         </form>
                     </>

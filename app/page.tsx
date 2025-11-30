@@ -28,6 +28,7 @@ export default function Page() {
     };
 
     useEffect(() => {
+        // 1. AUTH CHECK
         const savedUser = localStorage.getItem('donaCapivaraUser');
         if (savedUser) {
             try {
@@ -37,6 +38,18 @@ export default function Page() {
             } catch (e) { localStorage.removeItem('donaCapivaraUser'); }
         }
 
+        // 2. REFERRAL LINK CAPTURE (NEW)
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const refCode = params.get('ref');
+            if (refCode) {
+                localStorage.setItem('donaCapivaraRef', refCode);
+                // Show toast slightly delayed to ensure UI is ready
+                setTimeout(() => showToast(`Código de convite ${refCode} aplicado!`, 'success'), 1000);
+            }
+        }
+
+        // 3. DATA FETCH
         API.fetchCatalogData().then(data => {
             setProducts(data.products);
             setCategories(data.categories);
