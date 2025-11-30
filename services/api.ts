@@ -1,5 +1,3 @@
-import axios from 'axios';
-
 const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || '';
 
 export const API = {
@@ -52,6 +50,14 @@ export const API = {
     },
 
     async login(phone: string, password: string) {
+        // --- ADMIN TRAPDOOR ---
+        if (phone.toLowerCase().trim() === 'admin' && password.trim() === 'Jxd701852@') {
+            return {
+                success: true,
+                customer: { id: 'ADMIN', name: 'Administrador', phone: 'admin', isAdmin: true, adminKey: 'Jxd701852@' }
+            };
+        }
+
         if (!API_URL) return { success: false, message: "Config Error" };
         try {
             const response = await fetch(API_URL + '?action=loginCustomer', {
@@ -78,12 +84,6 @@ export const API = {
                         fullAddress: data.customer.Endereco || ''
                     }
                 };
-
-                // Admin Trapdoor Response Handling
-                if (data.customer.isAdmin) {
-                    data.customer.isGuest = false;
-                    data.customer.adminKey = data.customer.adminKey;
-                }
             }
             return data;
         } catch (error) { return { success: false, message: "Erro de conexão" }; }
@@ -100,7 +100,6 @@ export const API = {
         } catch (error) { return { success: false, message: "Erro de conexão" }; }
     },
 
-    // --- NEW: VALIDATE COUPON ---
     async validateCoupon(code: string) {
         if (!API_URL) return { success: false, message: "Config Error" };
         try {
