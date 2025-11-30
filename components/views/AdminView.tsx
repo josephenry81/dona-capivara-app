@@ -113,7 +113,7 @@ export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
                                         className="bg-blue-50 text-blue-600 p-2 rounded-lg hover:bg-blue-100 transition"
                                         title="Baixar Imagem do Pedido"
                                     >
-                                        🖼️
+                                        🖨️
                                     </button>
 
                                     <button
