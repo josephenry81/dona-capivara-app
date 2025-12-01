@@ -43,12 +43,8 @@ export const API = {
         }
         if (!API_URL) return { success: false, message: "Config Error" };
         try {
-            const response = await fetch(API_URL + '?action=loginCustomer', {
-                method: 'POST',
-                body: JSON.stringify({ phone, password })
-            });
+            const response = await fetch(API_URL + '?action=loginCustomer', { method: 'POST', body: JSON.stringify({ phone, password }) });
             const data = await response.json();
-
             if (data.success && data.customer) {
                 const favString = data.customer.Favoritos || '';
                 const favArray = favString ? favString.split(',') : [];
@@ -73,34 +69,28 @@ export const API = {
     },
 
     async registerCustomer(userData: any) {
-        if (!API_URL) return { success: false, message: "Config Error" };
         try {
             const response = await fetch(API_URL + '?action=createCustomer', { method: 'POST', body: JSON.stringify(userData) });
             return await response.json();
-        } catch (error) { return { success: false, message: "Erro de conexão" }; }
+        } catch (e) { return { success: false }; }
     },
 
     async validateCoupon(code: string) {
-        if (!API_URL) return { success: false, message: "Config Error" };
         try {
             const response = await fetch(`${API_URL}?action=validateCoupon&code=${code}`);
             return await response.json();
-        } catch (error) { return { success: false, message: "Erro de conexão" }; }
+        } catch (e) { return { success: false }; }
     },
 
     async syncFavorites(phone: string, favorites: string[]) {
-        if (!API_URL) return;
         try { await fetch(API_URL + '?action=updateFavorites', { method: 'POST', body: JSON.stringify({ phone, favorites: favorites.join(',') }) }); } catch (e) { }
     },
 
     async submitOrder(orderData: any) {
-        if (!API_URL) return;
-        try { await fetch(API_URL + '?action=createOrder', { method: 'POST', body: JSON.stringify(orderData) }); return { success: true }; }
-        catch (e) { return { success: false }; }
+        try { await fetch(API_URL + '?action=createOrder', { method: 'POST', body: JSON.stringify(orderData) }); return { success: true }; } catch (e) { return { success: false }; }
     },
 
     async getCustomerOrders(customerId: string) {
-        if (!API_URL) return [];
         try {
             const response = await fetch(`${API_URL}?action=getOrders&customerId=${customerId}&_t=${Date.now()}`);
             const data = await response.json();
@@ -111,7 +101,7 @@ export const API = {
                 status: order.Status || 'Pendente',
                 paymentMethod: order.Forma_de_Pagamento || 'Não informado'
             }));
-        } catch (error) { return []; }
+        } catch (e) { return []; }
     },
 
     async getAdminOrders(adminKey: string) {
@@ -125,24 +115,22 @@ export const API = {
             const list = data.orders || (Array.isArray(data) ? data : []);
 
             return list.map((order: any) => {
-                let addressDisplay = 'Retirada';
-                if (order.Torre) {
-                    const apto = order.Ap || order.Apto || order.Apartamento || '?';
-                    addressDisplay = `Torre ${order.Torre}, Ap ${apto}`;
-                } else if (order.Endereco) {
-                    addressDisplay = order.Endereco;
-                }
+                const apto = order.Ap || order.Apto || order.Apartamento || '-';
+
+                const addressDisplay = order.Torre
+                    ? `Torre ${order.Torre}, Ap ${apto}`
+                    : (order.Endereco || 'Retirada');
 
                 return {
                     id: order.ID_Venda,
                     date: order.Data_Venda,
-                    customerName: order.Cliente || order.Nome || order.Cliente_Nome || 'Visitante',
+                    customerName: order.Cliente || order.Nome || 'Cliente',
                     customerId: order.ID_Cliente || 'GUEST',
                     deliveryFee: Number(order.Taxa_Entrega || order.Entregar || 0),
                     discount: Number(order.Desconto || 0),
                     total: Number(order.Total_Venda || 0),
                     status: order.Status || 'Pendente',
-                    payment: order.Forma_de_Pagamento || order.Pagamento || order.Forma_Pagamento || 'Não Inf.',
+                    payment: order.Forma_de_Pagamento || '-',
                     address: addressDisplay,
                     scheduling: order.Agendamento || ''
                 };
@@ -158,15 +146,17 @@ export const API = {
         } catch (error) { return []; }
     },
 
-    async updateOrderStatus(adminKey: string, orderId: string, newStatus: string) {
-        if (!API_URL) return false;
+    async getDashboardStats(adminKey: string) {
         try {
-            const response = await fetch(API_URL + '?action=updateOrderStatus', {
-                method: 'POST',
-                body: JSON.stringify({ adminKey, orderId, newStatus })
-            });
-            const res = await response.json();
-            return res.success;
+            const response = await fetch(`${API_URL}?action=getDashboardStats&adminKey=${adminKey}&_t=${Date.now()}`, { cache: 'no-store' });
+            return await response.json();
+        } catch (e) { return null; }
+    },
+
+    async updateOrderStatus(adminKey: string, orderId: string, newStatus: string) {
+        try {
+            const response = await fetch(API_URL + '?action=updateOrderStatus', { method: 'POST', body: JSON.stringify({ adminKey, orderId, newStatus }) });
+            return (await response.json()).success;
         } catch (e) { return false; }
     }
 };
