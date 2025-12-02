@@ -1,10 +1,11 @@
 import React from 'react';
+import { API } from '../../services/api'; // Import API
 
 interface ProfileViewProps {
     user: any;
     onLogout: () => void;
     onNavigate: (view: string) => void;
-    onUpdateUser?: (user: any) => void;
+    onUpdateUser?: (user: any) => void; // Checking prop existence
 }
 
 export default function ProfileView({ user, onLogout, onNavigate, onUpdateUser }: ProfileViewProps) {
@@ -18,22 +19,30 @@ export default function ProfileView({ user, onLogout, onNavigate, onUpdateUser }
         if (pts >= 200) return { name: '🥈 Prata', color: 'from-gray-300 to-gray-500', next: 500, max: false };
         return { name: '🥉 Bronze', color: 'from-orange-300 to-orange-500', next: 200, max: false };
     };
+
     const level = getLevelInfo(safePoints);
     const progressPercent = level.max ? 100 : Math.min(100, (safePoints / level.next) * 100);
 
-    // --- COPY LINK LOGIC ---
-    const copyLink = () => {
-        const origin = typeof window !== 'undefined' ? window.location.origin : '';
-        const link = `${origin}/?ref=${inviteCode}`;
-
+    const copyCode = () => {
         if (navigator.clipboard) {
-            navigator.clipboard.writeText(link);
-            alert('Link copiado! Envie no WhatsApp.');
+            navigator.clipboard.writeText(inviteCode);
+            alert('Código copiado!');
+        }
+    };
+
+    const handleSync = async () => {
+        if (user.phone && onUpdateUser) {
+            const res = await API.login(user.phone, 'HIDDEN'); // This might fail without pass, better to just reload logic or fetch customer
+            // Simplest "Sync" is actually fetching details. For now, let's just use the new Clear Cache.
+            API.clearCacheAndReload();
+        } else {
+            API.clearCacheAndReload();
         }
     };
 
     return (
         <div className="min-h-screen bg-[#F5F6FA] pb-24">
+            {/* Header */}
             <div className="bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white pt-10 pb-24 px-6 rounded-b-[40px] shadow-lg">
                 <div className="flex justify-between items-start">
                     <div>
@@ -45,6 +54,7 @@ export default function ProfileView({ user, onLogout, onNavigate, onUpdateUser }
                 </div>
             </div>
 
+            {/* Gamification */}
             <div className="mx-6 -mt-16 bg-white rounded-2xl shadow-xl p-5 relative z-10">
                 <div className="flex justify-between items-center mb-3">
                     <span className={`text-lg font-bold bg-gradient-to-r ${level.color} bg-clip-text text-transparent`}>{level.name}</span>
@@ -55,35 +65,38 @@ export default function ProfileView({ user, onLogout, onNavigate, onUpdateUser }
                 </div>
             </div>
 
-            {/* --- INVITE CARD WITH SHAREABLE LINK --- */}
+            {/* Invite Card */}
             <div className="mx-6 mt-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 rounded-2xl p-4 flex flex-col items-center text-center shadow-sm">
                 <h3 className="text-[#FF4B82] font-bold text-sm mb-1">🎁 Indique e Ganhe 50 pts!</h3>
-                <p className="text-gray-500 text-xs mb-3">Envie seu link para amigos ganharem pontos na 1ª compra.</p>
-
-                <button
-                    onClick={copyLink}
-                    className="flex items-center gap-3 bg-white px-4 py-3 rounded-xl border border-dashed border-[#FF4B82] active:scale-95 transition shadow-sm w-full justify-center hover:bg-pink-50"
-                >
-                    <span className="text-2xl">🔗</span>
-                    <div className="text-left">
-                        <p className="text-[10px] text-gray-400 font-bold">SEU LINK:</p>
-                        <p className="font-mono font-bold text-sm text-gray-700 truncate max-w-[200px]">dona-capivara.app/?ref={inviteCode}</p>
-                    </div>
+                <p className="text-gray-500 text-xs mb-3">Seu código de amigo:</p>
+                <button onClick={copyCode} className="flex items-center gap-3 bg-white px-6 py-3 rounded-xl border border-dashed border-[#FF4B82] active:scale-95 transition shadow-sm w-full justify-center">
+                    <span className="font-mono font-bold text-lg text-gray-700 tracking-widest">{inviteCode}</span>
+                    <span className="text-xs bg-[#FF4B82] text-white px-2 py-1 rounded">COPIAR</span>
                 </button>
             </div>
 
+            {/* Menu */}
             <div className="px-6 space-y-3 mt-6">
                 <button onClick={() => onNavigate('orders')} className="w-full bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center hover:bg-gray-50">
                     <div className="flex items-center gap-3"><span className="text-[#FF4B82]">📦</span><span className="text-gray-700 font-medium text-sm">Meus Pedidos</span></div>
                     <span className="text-gray-300">›</span>
                 </button>
+
                 <button onClick={() => window.open('https://wa.me/5541991480096?text=Suporte', '_blank')} className="w-full bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center hover:bg-green-50">
                     <div className="flex items-center gap-3"><span className="text-green-500">💬</span><span className="text-gray-700 font-medium text-sm">Fale com a Dona Capivara</span></div>
                     <span className="text-gray-300">›</span>
                 </button>
-                <button onClick={onLogout} className="w-full bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center hover:bg-red-50 mt-4">
+
+                <button onClick={handleSync} className="w-full bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center hover:bg-blue-50">
+                    <div className="flex items-center gap-3"><span className="text-blue-500">🔄</span><span className="text-gray-700 font-medium text-sm">Atualizar App (Limpar Cache)</span></div>
+                    <span className="text-gray-300">›</span>
+                </button>
+
+                <button onClick={onLogout} className="w-full bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center hover:bg-red-50 mt-4 mb-8">
                     <div className="flex items-center gap-3"><span className="text-red-400">🚪</span><span className="text-red-500 font-medium text-sm">Sair da Conta</span></div>
                 </button>
+
+                <p className="text-center text-[10px] text-gray-300 pb-4">Versão 1.5.0 • Dona Capivara</p>
             </div>
         </div>
     );

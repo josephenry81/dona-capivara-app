@@ -187,5 +187,21 @@ export const API = {
             const response = await fetch(API_URL + '?action=updateOrderStatus', { method: 'POST', body: JSON.stringify({ adminKey, orderId, newStatus }) });
             return (await response.json()).success;
         } catch (e) { return false; }
+    },
+
+    // --- UTILS ---
+    async clearCacheAndReload() {
+        if ('serviceWorker' in navigator) {
+            // Unregister all service workers to force immediate update
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (const registration of registrations) {
+                await registration.unregister();
+            }
+        }
+        // Clear Local Storage (Optional, keeps user logged in if we don't clear everything)
+        // We keep 'donaCapivaraUser' to avoid logging out, but clear others if needed.
+
+        // Force Reload from Server
+        window.location.reload();
     }
 };
