@@ -37,12 +37,7 @@ export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
         if (ordersData) setOrders(ordersData);
         else { showToast('Erro de autenticação', 'error'); setTimeout(onLogout, 2000); }
 
-        if (statsData) {
-            console.log('📊 Dashboard Stats:', statsData);
-            console.log('🏆 Top Flavors Data:', statsData.topFlavors);
-            console.log('🔍 Top Flavors JSON:', JSON.stringify(statsData.topFlavors, null, 2));
-            setStats(statsData);
-        }
+        if (statsData) setStats(statsData);
 
         setLoading(false);
     };

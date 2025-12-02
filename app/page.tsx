@@ -98,9 +98,15 @@ export default function Page() {
     };
 
     const handleSubmitOrder = async (orderData: any) => {
+        // --- CRITICAL FIX: ID RESOLUTION ---
+        const userId = user?.isGuest ? 'GUEST' : (user.id || user.ID_Cliente || 'GUEST');
+
         const finalOrder = {
             ...orderData,
-            customer: user?.isGuest ? { id: 'GUEST', name: orderData.customer.name } : { ...orderData.customer, id: user.id_Cliente || user.id }
+            customer: {
+                ...orderData.customer,
+                id: userId // Force correct ID
+            }
         };
 
         showToast("Enviando pedido...", "info");
@@ -109,64 +115,46 @@ export default function Page() {
             const response: any = await API.submitOrder(finalOrder);
 
             if (response && response.success) {
-                const rawId = response.idVenda || Math.random().toString(36).substr(2, 9);
-                const shortId = rawId.slice(0, 8).toUpperCase();
+                const shortId = (response.idVenda || 'PENDENTE').slice(0, 8).toUpperCase();
 
-                let msg = `*Novo Pedido Dona Capivara* 🐹\n`;
-                msg += `ID: #${shortId}\n`;
-                msg += `----------------\n`;
+                let msg = `*Novo Pedido Dona Capivara* 🐹\nID: ${shortId}\n----------------\n`;
+                if (orderData.scheduling && orderData.scheduling !== 'Imediata') msg += `📅 *AGENDADO:* ${orderData.scheduling}\n\n`;
 
-                if (orderData.scheduling && orderData.scheduling !== 'Imediata') {
-                    msg += `📅 *AGENDADO:* ${orderData.scheduling}\n\n`;
-                }
+                orderData.cart.forEach((item: any) => msg += `${item.quantity}x ${item.nome}\n`);
+                msg += `\n*Total: R$ ${orderData.total.toFixed(2)}*\nCliente: ${orderData.customer.name}\n`;
 
-                orderData.cart.forEach((item: any) => {
-                    msg += `${item.quantity}x ${item.nome}\n`;
-                });
+                if (orderData.discountValue > 0) msg += `🎁 Desconto: R$ ${orderData.discountValue.toFixed(2)}\n`;
 
-                msg += `\n*Total: R$ ${orderData.total.toFixed(2)}*\n`;
-                msg += `Cliente: ${orderData.customer.name}\n`;
-
-                if (orderData.customer.fullAddress) {
-                    msg += `Endereço: ${orderData.customer.fullAddress}\n`;
-                } else {
-                    msg += `Torre: ${orderData.customer.details.torre} - Apto: ${orderData.customer.details.apto}\n`;
-                }
+                if (orderData.customer.fullAddress) msg += `Endereço: ${orderData.customer.fullAddress}\n`;
+                else msg += `Torre: ${orderData.customer.details.torre} - Apto: ${orderData.customer.details.apto}\n`;
 
                 msg += `Pgto: ${orderData.paymentMethod}\n`;
 
-                if (orderData.discountValue > 0) {
-                    msg += `🎟️ Desconto Aplicado: R$ ${Number(orderData.discountValue).toFixed(2)}\n`;
-                }
-
                 let earned = 0;
-                if (!user.isGuest) {
+                if (userId !== 'GUEST') {
                     earned = Math.floor(orderData.total) + (orderData.bonusPoints || 0);
-                    msg += `💎 Pontos Ganhos: +${earned}\n`;
+                    msg += `✨ Pontos Ganhos: +${earned}\n`;
                 }
 
-                const whatsappUrl = `https://wa.me/5541991480096?text=${encodeURIComponent(msg)}`;
-                window.open(whatsappUrl, '_blank');
+                window.open(`https://wa.me/5541991480096?text=${encodeURIComponent(msg)}`, '_blank');
 
-                showToast(`Pedido #${shortId} enviado!`, 'success');
+                showToast(`Pedido ${shortId} enviado!`, 'success');
                 setCart([]);
                 setActiveTab('home');
 
-                if (!user.isGuest) {
+                if (userId !== 'GUEST') {
                     const redeemed = Number(orderData.pointsRedeemed || 0);
                     const currentPts = Number(user.points || 0);
-                    const newPoints = Math.max(0, currentPts + earned - redeemed);
-
                     const updatedUser = {
                         ...user,
-                        points: newPoints,
+                        points: Math.max(0, currentPts + earned - redeemed),
                         savedAddress: orderData.customer.details
                     };
                     setUser(updatedUser);
                     localStorage.setItem('donaCapivaraUser', JSON.stringify(updatedUser));
                 }
 
-            } else { showToast(response.message || 'Erro ao salvar pedido.', 'error'); }
+            } else { showToast(response.message || 'Erro ao salvar.', 'error'); }
         } catch (e) { showToast('Erro de conexão.', 'error'); }
     };
 

@@ -1,7 +1,10 @@
+import axios from 'axios';
+
 const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || '';
 
 export const API = {
 
+    // --- CATALOG ---
     async fetchCatalogData() {
         try {
             if (!API_URL) throw new Error("API URL missing");
@@ -37,19 +40,26 @@ export const API = {
         } catch (error) { return { products: [], categories: [], banners: [] }; }
     },
 
+    // --- AUTH ---
     async login(phone: string, password: string) {
         if (phone.toLowerCase().trim() === 'admin' && password.trim() === 'Jxd701852@') {
             return { success: true, customer: { id: 'ADMIN', name: 'Administrador', phone: 'admin', isAdmin: true, adminKey: 'Jxd701852@' } };
         }
         if (!API_URL) return { success: false, message: "Config Error" };
         try {
-            const response = await fetch(API_URL + '?action=loginCustomer', { method: 'POST', body: JSON.stringify({ phone, password }) });
+            const response = await fetch(API_URL + '?action=loginCustomer', {
+                method: 'POST',
+                body: JSON.stringify({ phone, password })
+            });
             const data = await response.json();
+
             if (data.success && data.customer) {
                 const favString = data.customer.Favoritos || '';
                 const favArray = favString ? favString.split(',') : [];
+
+                // --- CRITICAL: EXPLICIT MAPPING ---
                 data.customer = {
-                    id: data.customer.ID_Cliente,
+                    id: data.customer.ID_Cliente || data.customer.id, // Ensure ID is captured
                     name: data.customer.Nome,
                     phone: data.customer.Telefone,
                     points: Number(data.customer.Pontos_Fidelidade || 0),
@@ -71,25 +81,27 @@ export const API = {
     async registerCustomer(userData: any) {
         try {
             const response = await fetch(API_URL + '?action=createCustomer', { method: 'POST', body: JSON.stringify(userData) });
-            return await response.json();
+            const data = await response.json();
+            // Normalize Register ID too
+            if (data.success && data.customer) {
+                data.customer.id = data.customer.id || data.customer.ID_Cliente;
+                data.customer.isGuest = false;
+            }
+            return data;
         } catch (e) { return { success: false }; }
     },
-
     async validateCoupon(code: string) {
         try {
             const response = await fetch(`${API_URL}?action=validateCoupon&code=${code}`);
             return await response.json();
         } catch (e) { return { success: false }; }
     },
-
     async syncFavorites(phone: string, favorites: string[]) {
         try { await fetch(API_URL + '?action=updateFavorites', { method: 'POST', body: JSON.stringify({ phone, favorites: favorites.join(',') }) }); } catch (e) { }
     },
-
     async submitOrder(orderData: any) {
         try { await fetch(API_URL + '?action=createOrder', { method: 'POST', body: JSON.stringify(orderData) }); return { success: true }; } catch (e) { return { success: false }; }
     },
-
     async getCustomerOrders(customerId: string) {
         try {
             const response = await fetch(`${API_URL}?action=getOrders&customerId=${customerId}&_t=${Date.now()}`);
@@ -104,6 +116,7 @@ export const API = {
         } catch (e) { return []; }
     },
 
+    // --- ADMIN FUNCTIONS (ROBUST DATA MAPPING) ---
     async getAdminOrders(adminKey: string) {
         if (!API_URL) return [];
         try {
@@ -115,22 +128,37 @@ export const API = {
             const list = data.orders || (Array.isArray(data) ? data : []);
 
             return list.map((order: any) => {
-                const apto = order.Ap || order.Apto || order.Apartamento || '-';
+                // 1. NAME MAPPING (Try all possible keys)
+                const rawName = order.Cliente || order.Nome || order.Cliente_Nome || order.customerName || order.name;
+                const customerName = rawName && rawName !== 'undefined' ? rawName : 'Visitante';
 
-                const addressDisplay = order.Torre
-                    ? `Torre ${order.Torre}, Ap ${apto}`
-                    : (order.Endereco || 'Retirada');
+                // 2. ADDRESS MAPPING
+                const torre = order.Torre;
+                // Try all keys for Apartment
+                const apto = order.Ap || order.Apto || order.Apartamento;
+
+                let addressDisplay = 'Retirada';
+                if (torre) {
+                    addressDisplay = `Torre ${torre}, Ap ${apto || '?'}`;
+                } else if (order.Endereco) {
+                    addressDisplay = order.Endereco;
+                }
+
+                // 3. PAYMENT MAPPING
+                const payment = order.Forma_de_Pagamento || order.Pagamento || order.Forma_Pagamento || '-';
 
                 return {
                     id: order.ID_Venda,
                     date: order.Data_Venda,
-                    customerName: order.Cliente || order.Nome || 'Cliente',
+                    customerName: customerName,
+                    // IDs for Receipt
                     customerId: order.ID_Cliente || 'GUEST',
                     deliveryFee: Number(order.Taxa_Entrega || order.Entregar || 0),
                     discount: Number(order.Desconto || 0),
+
                     total: Number(order.Total_Venda || 0),
                     status: order.Status || 'Pendente',
-                    payment: order.Forma_de_Pagamento || '-',
+                    payment: payment,
                     address: addressDisplay,
                     scheduling: order.Agendamento || ''
                 };
@@ -146,6 +174,7 @@ export const API = {
         } catch (error) { return []; }
     },
 
+    // Analytics
     async getDashboardStats(adminKey: string) {
         try {
             const response = await fetch(`${API_URL}?action=getDashboardStats&adminKey=${adminKey}&_t=${Date.now()}`, { cache: 'no-store' });

@@ -4,9 +4,10 @@ interface ProfileViewProps {
     user: any;
     onLogout: () => void;
     onNavigate: (view: string) => void;
+    onUpdateUser?: (user: any) => void;
 }
 
-export default function ProfileView({ user, onLogout, onNavigate }: ProfileViewProps) {
+export default function ProfileView({ user, onLogout, onNavigate, onUpdateUser }: ProfileViewProps) {
     const currentUser = user || { name: 'Visitante', phone: '', points: 0 };
     const safePoints = isNaN(currentUser.points) ? 0 : currentUser.points;
     const inviteCode = currentUser.inviteCode || '---';
