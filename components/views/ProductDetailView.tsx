@@ -1,4 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import ShareButton from '../ui/ShareButton';
+import RatingStars from '../product/RatingStars';
+import ReviewForm from '../product/ReviewForm';
+import ReviewsList from '../product/ReviewsList';
+import { ReviewService, Review } from '../../services/reviews';
 
 interface Product {
     id: string;
@@ -17,10 +22,14 @@ interface ProductDetailProps {
     product: Product;
     onBack: () => void;
     onAddToCart: (product: Product, quantity: number) => void;
+    user?: any;
 }
 
-export default function ProductDetailView({ product, onBack, onAddToCart }: ProductDetailProps) {
+export default function ProductDetailView({ product, onBack, onAddToCart, user }: ProductDetailProps) {
     const [quantity, setQuantity] = useState(1);
+    const [reviews, setReviews] = useState<Review[]>([]);
+    const [showReviewForm, setShowReviewForm] = useState(false);
+    const [averageRating, setAverageRating] = useState(0);
 
     const handleIncrement = () => {
         if (quantity < product.estoque) setQuantity(q => q + 1);
@@ -29,6 +38,49 @@ export default function ProductDetailView({ product, onBack, onAddToCart }: Prod
     const handleDecrement = () => {
         if (quantity > 1) setQuantity(q => q - 1);
     };
+
+    useEffect(() => {
+        if (product?.id) {
+            ReviewService.getProductReviews(product.id).then((data) => {
+                setReviews(data);
+                setAverageRating(ReviewService.calculateAverageRating(data));
+            });
+        }
+    }, [product]);
+
+    const handleSubmitReview = async (rating: number, comment: string) => {
+        // FIX: Validação mais robusta
+        if (!user || !user.id || user.isGuest) {
+            alert('Você precisa estar logado para avaliar');
+            return;
+        }
+
+        const result = await ReviewService.submitReview(
+            product.id,
+            product.nome,
+            rating,
+            comment,
+            user
+        );
+
+        if (result.success) {
+            alert('✅ Avaliação enviada! Aguarde aprovação do admin.');
+            setShowReviewForm(false);
+            const updatedReviews = await ReviewService.getProductReviews(product.id);
+            setReviews(updatedReviews);
+            setAverageRating(ReviewService.calculateAverageRating(updatedReviews));
+        } else {
+            alert(result.message || 'Erro ao enviar avaliação');
+        }
+    };
+
+    // FIX: Detectar logout durante avaliação (race condition)
+    useEffect(() => {
+        if (showReviewForm && (!user || !user.id || user.isGuest)) {
+            setShowReviewForm(false);
+            alert('Sessão expirada. Faça login novamente para avaliar.');
+        }
+    }, [user, showReviewForm]);
 
     return (
         <div className="min-h-screen bg-white flex flex-col relative animate-in slide-in-from-right duration-300">
@@ -89,9 +141,47 @@ export default function ProductDetailView({ product, onBack, onAddToCart }: Prod
                 </p>
 
                 <h3 className="font-bold text-gray-800 mb-2">Ingredientes</h3>
-                <p className="text-gray-500 text-xs leading-relaxed mb-24 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                <p className="text-gray-500 text-xs leading-relaxed mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100">
                     {product.ingredientes || 'Informação não disponível.'}
                 </p>
+
+                {/* Rating Summary */}
+                {averageRating > 0 && (
+                    <div className="flex items-center gap-2 mb-4">
+                        <RatingStars rating={averageRating} size="md" />
+                        <span className="text-sm text-gray-600">
+                            ({reviews.length} {reviews.length === 1 ? 'avaliação' : 'avaliações'})
+                        </span>
+                    </div>
+                )}
+
+                {/* Review Button */}
+                {/* FIX: Validação mais robusta com user.id */}
+                {user && user.id && !user.isGuest && (
+                    <button
+                        onClick={() => setShowReviewForm(true)}
+                        className="w-full bg-white border-2 border-[#FF4B82] text-[#FF4B82] font-bold py-3 rounded-xl mb-4 hover:bg-[#FFF0F5] transition active:scale-95"
+                    >
+                        ⭐️ Avaliar Produto
+                    </button>
+                )}
+
+                {/* Reviews Section */}
+                <div className="mb-24">
+                    <h3 className="font-bold text-gray-800 mb-3">Avaliações</h3>
+                    <ReviewsList reviews={reviews} averageRating={averageRating} />
+                </div>
+
+                {/* Review Form Modal */}
+                {showReviewForm && (
+                    <ReviewForm
+                        productId={product.id}
+                        productName={product.nome}
+                        user={user}
+                        onSubmit={handleSubmitReview}
+                        onCancel={() => setShowReviewForm(false)}
+                    />
+                )}
 
                 {/* Footer Actions */}
                 <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 p-4 pb-8 flex items-center gap-4 z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
@@ -100,6 +190,11 @@ export default function ProductDetailView({ product, onBack, onAddToCart }: Prod
                         <span className="w-8 text-center font-bold text-gray-800 text-lg">{quantity}</span>
                         <button onClick={handleIncrement} className="w-8 text-xl font-bold text-gray-500 hover:text-[#FF4B82] transition">+</button>
                     </div>
+
+                    <ShareButton
+                        product={product}
+                        variant="icon"
+                    />
 
                     <button
                         onClick={() => onAddToCart(product, quantity)}

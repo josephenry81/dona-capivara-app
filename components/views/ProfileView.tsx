@@ -1,11 +1,11 @@
 import React from 'react';
-import { API } from '../../services/api'; // Import API
+import { API } from '../../services/api';
 
 interface ProfileViewProps {
     user: any;
     onLogout: () => void;
     onNavigate: (view: string) => void;
-    onUpdateUser?: (user: any) => void; // Checking prop existence
+    onUpdateUser?: (user: any) => void;
 }
 
 export default function ProfileView({ user, onLogout, onNavigate, onUpdateUser }: ProfileViewProps) {
@@ -30,10 +30,32 @@ export default function ProfileView({ user, onLogout, onNavigate, onUpdateUser }
         }
     };
 
+    // ✅ NEW: Share referral link function
+    const shareReferralLink = async () => {
+        const link = `https://dona-capivara-app.vercel.app/?ref=${inviteCode}`;
+
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: 'Dona Capivara - Geladinhos Deliciosos!',
+                    text: `Use meu código ${inviteCode} e ganhe 50 pontos! 🎁`,
+                    url: link
+                });
+            } catch (err) {
+                // User cancelled share
+            }
+        } else {
+            // Fallback: copy link to clipboard
+            if (navigator.clipboard) {
+                await navigator.clipboard.writeText(link);
+                alert('Link copiado! Compartilhe com seus amigos.');
+            }
+        }
+    };
+
     const handleSync = async () => {
         if (user.phone && onUpdateUser) {
-            const res = await API.login(user.phone, 'HIDDEN'); // This might fail without pass, better to just reload logic or fetch customer
-            // Simplest "Sync" is actually fetching details. For now, let's just use the new Clear Cache.
+            const res = await API.login(user.phone, 'HIDDEN');
             API.clearCacheAndReload();
         } else {
             API.clearCacheAndReload();
@@ -69,9 +91,14 @@ export default function ProfileView({ user, onLogout, onNavigate, onUpdateUser }
             <div className="mx-6 mt-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 rounded-2xl p-4 flex flex-col items-center text-center shadow-sm">
                 <h3 className="text-[#FF4B82] font-bold text-sm mb-1">🎁 Indique e Ganhe 50 pts!</h3>
                 <p className="text-gray-500 text-xs mb-3">Seu código de amigo:</p>
-                <button onClick={copyCode} className="flex items-center gap-3 bg-white px-6 py-3 rounded-xl border border-dashed border-[#FF4B82] active:scale-95 transition shadow-sm w-full justify-center">
+                <button onClick={copyCode} className="flex items-center gap-3 bg-white px-6 py-3 rounded-xl border border-dashed border-[#FF4B82] active:scale-95 transition shadow-sm w-full justify-center mb-2">
                     <span className="font-mono font-bold text-lg text-gray-700 tracking-widest">{inviteCode}</span>
                     <span className="text-xs bg-[#FF4B82] text-white px-2 py-1 rounded">COPIAR</span>
+                </button>
+                {/* ✅ NEW: Share Link Button */}
+                <button onClick={shareReferralLink} className="flex items-center gap-2 bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white px-6 py-3 rounded-xl active:scale-95 transition shadow-md w-full justify-center font-medium text-sm">
+                    <span>🔗</span>
+                    <span>Compartilhar Link de Indicação</span>
                 </button>
             </div>
 

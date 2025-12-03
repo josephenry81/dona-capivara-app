@@ -38,10 +38,16 @@ export default function Page() {
             } catch (e) { localStorage.removeItem('donaCapivaraUser'); }
         }
 
+        // ✅ REFERRAL LINK DETECTION
         if (typeof window !== 'undefined') {
             const params = new URLSearchParams(window.location.search);
             const refCode = params.get('ref');
-            if (refCode) localStorage.setItem('donaCapivaraRef', refCode);
+            if (refCode) {
+                localStorage.setItem('donaCapivaraRef', refCode);
+                showToast(`🎁 Código ${refCode} aplicado! Cadastre-se para ganhar 50 pontos.`, 'success');
+                // Limpar URL sem recarregar página
+                window.history.replaceState({}, '', window.location.pathname);
+            }
         }
 
         API.fetchCatalogData().then(data => {
@@ -103,6 +109,8 @@ export default function Page() {
 
         const finalOrder = {
             ...orderData,
+            // Send phone to let backend find the real ID
+            userPhone: user?.phone || null,
             customer: {
                 ...orderData.customer,
                 id: userId // Force correct ID
@@ -117,19 +125,41 @@ export default function Page() {
             if (response && response.success) {
                 const shortId = (response.idVenda || 'PENDENTE').slice(0, 8).toUpperCase();
 
+                // Mensagem formatada para WhatsApp
                 let msg = `*Novo Pedido Dona Capivara* 🐹\nID: ${shortId}\n----------------\n`;
-                if (orderData.scheduling && orderData.scheduling !== 'Imediata') msg += `📅 *AGENDADO:* ${orderData.scheduling}\n\n`;
 
-                orderData.cart.forEach((item: any) => msg += `${item.quantity}x ${item.nome}\n`);
-                msg += `\n*Total: R$ ${orderData.total.toFixed(2)}*\nCliente: ${orderData.customer.name}\n`;
+                // Agendamento (se houver)
+                if (orderData.scheduling && orderData.scheduling !== 'Imediata') {
+                    msg += `📅 *AGENDADO:* ${orderData.scheduling}\n\n`;
+                }
 
-                if (orderData.discountValue > 0) msg += `🎁 Desconto: R$ ${orderData.discountValue.toFixed(2)}\n`;
+                // Itens do pedido
+                orderData.cart.forEach((item: any) => {
+                    msg += `${item.quantity}x ${item.nome}\n`;
+                });
 
-                if (orderData.customer.fullAddress) msg += `Endereço: ${orderData.customer.fullAddress}\n`;
-                else msg += `Torre: ${orderData.customer.details.torre} - Apto: ${orderData.customer.details.apto}\n`;
+                // Total
+                msg += `\n*Total: R$ ${orderData.total.toFixed(2)}*\n`;
 
+                // Cliente
+                msg += `Cliente: ${orderData.customer.name}\n`;
+
+                // Cupom (se houver)
+                if (orderData.couponCode && orderData.discountValue > 0) {
+                    msg += `🎁 Cupom: ${orderData.couponCode} (-R$ ${orderData.discountValue.toFixed(2)})\n`;
+                }
+
+                // Endereço
+                if (orderData.customer.fullAddress) {
+                    msg += `Endereço: ${orderData.customer.fullAddress}\n`;
+                } else {
+                    msg += `Torre: ${orderData.customer.details.torre} - Apto: ${orderData.customer.details.apto}\n`;
+                }
+
+                // Pagamento
                 msg += `Pgto: ${orderData.paymentMethod}\n`;
 
+                // Pontos ganhos (se não for guest)
                 let earned = 0;
                 if (userId !== 'GUEST') {
                     earned = Math.floor(orderData.total) + (orderData.bonusPoints || 0);
@@ -163,7 +193,15 @@ export default function Page() {
         if (u.favorites && Array.isArray(u.favorites)) setFavorites(u.favorites);
     };
 
-    if (!user) return <AuthView onLogin={handleLogin} onGuest={() => setUser({ isGuest: true })} />;
+    // ✅ FIXED: Render Toast before AuthView
+    if (!user) {
+        return (
+            <>
+                <Toast message={toast.message} type={toast.type} isVisible={toast.visible} onClose={() => setToast({ ...toast, visible: false })} />
+                <AuthView onLogin={handleLogin} onGuest={() => setUser({ isGuest: true })} />
+            </>
+        );
+    }
 
     if (user.isAdmin) {
         return <AdminView onLogout={() => { localStorage.removeItem('donaCapivaraUser'); setUser(null); }} adminKey={user.adminKey} />;
@@ -175,7 +213,12 @@ export default function Page() {
             <InstallPrompt />
 
             {selectedProduct ? (
-                <ProductDetailView product={selectedProduct} onBack={() => setSelectedProduct(null)} onAddToCart={(p, q) => { addToCart(p, q); setSelectedProduct(null); }} />
+                <ProductDetailView
+                    product={selectedProduct}
+                    onBack={() => setSelectedProduct(null)}
+                    onAddToCart={(p, q) => { addToCart(p, q); setSelectedProduct(null); }}
+                    user={user}
+                />
             ) : (
                 <>
                     {activeTab === 'home' && <HomeView user={user} products={products} categories={categories} banners={banners} favorites={favorites} onAddToCart={addToCart} onToggleFavorite={toggleFavorite} onProductClick={setSelectedProduct} onHeaderAction={handleHeaderAction} />}
