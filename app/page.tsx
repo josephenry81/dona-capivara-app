@@ -126,47 +126,47 @@ export default function Page() {
                 const shortId = (response.idVenda || 'PENDENTE').slice(0, 8).toUpperCase();
 
                 // Mensagem formatada para WhatsApp
-                let msg = `*Novo Pedido Dona Capivara* 🐹\nID: ${shortId}\n----------------\n`;
+                let msg = `*Novo Pedido Dona Capivara* 🐹%0AID: ${shortId}%0A----------------%0A`;
 
                 // Agendamento (se houver)
                 if (orderData.scheduling && orderData.scheduling !== 'Imediata') {
-                    msg += `📅 *AGENDADO:* ${orderData.scheduling}\n\n`;
+                    msg += `📅 *AGENDADO:* ${orderData.scheduling}%0A%0A`;
                 }
 
                 // Itens do pedido
                 orderData.cart.forEach((item: any) => {
-                    msg += `${item.quantity}x ${item.nome}\n`;
+                    msg += `${item.quantity}x ${item.nome}%0A`;
                 });
 
                 // Total
-                msg += `\n*Total: R$ ${orderData.total.toFixed(2)}*\n`;
+                msg += `%0A*Total: R$ ${orderData.total.toFixed(2)}*%0A`;
 
                 // Cliente
-                msg += `Cliente: ${orderData.customer.name}\n`;
+                msg += `Cliente: ${orderData.customer.name}%0A`;
 
                 // Cupom (se houver)
                 if (orderData.couponCode && orderData.discountValue > 0) {
-                    msg += `🎁 Cupom: ${orderData.couponCode} (-R$ ${orderData.discountValue.toFixed(2)})\n`;
+                    msg += `🎁 Cupom: ${orderData.couponCode} (-R$ ${orderData.discountValue.toFixed(2)})%0A`;
                 }
 
                 // Endereço
                 if (orderData.customer.fullAddress) {
-                    msg += `Endereço: ${orderData.customer.fullAddress}\n`;
+                    msg += `Endereço: ${orderData.customer.fullAddress}%0A`;
                 } else {
-                    msg += `Torre: ${orderData.customer.details.torre} - Apto: ${orderData.customer.details.apto}\n`;
+                    msg += `Torre: ${orderData.customer.details.torre} - Apto: ${orderData.customer.details.apto}%0A`;
                 }
 
                 // Pagamento
-                msg += `Pgto: ${orderData.paymentMethod}\n`;
+                msg += `Pgto: ${orderData.paymentMethod}%0A`;
 
                 // Pontos ganhos (se não for guest)
                 let earned = 0;
                 if (userId !== 'GUEST') {
                     earned = Math.floor(orderData.total) + (orderData.bonusPoints || 0);
-                    msg += `✨ Pontos Ganhos: +${earned}\n`;
+                    msg += `✨ Pontos Ganhos: +${earned}%0A`;
                 }
 
-                window.open(`https://wa.me/5541991480096?text=${encodeURIComponent(msg)}`, '_blank');
+                window.open(`https://wa.me/5541991480096?text=${msg}`, '_blank');
 
                 showToast(`Pedido ${shortId} enviado!`, 'success');
                 setCart([]);
