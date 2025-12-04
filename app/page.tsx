@@ -166,7 +166,15 @@ export default function Page() {
                     msg += `✨ Pontos Ganhos: +${earned}%0A`;
                 }
 
-                window.open(`https://wa.me/5541991480096?text=${msg}`, '_blank');
+                // Abre WhatsApp usando link programático (funciona melhor em PWA/mobile)
+                const whatsappUrl = `https://wa.me/5541991480096?text=${msg}`;
+                const link = document.createElement('a');
+                link.href = whatsappUrl;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
 
                 showToast(`Pedido ${shortId} enviado!`, 'success');
                 setCart([]);
