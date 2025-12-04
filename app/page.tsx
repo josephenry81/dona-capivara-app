@@ -166,15 +166,33 @@ export default function Page() {
                     msg += `✨ Pontos Ganhos: +${earned}%0A`;
                 }
 
-                // Abre WhatsApp usando link programático (funciona melhor em PWA/mobile)
-                const whatsappUrl = `https://wa.me/5541991480096?text=${msg}`;
-                const link = document.createElement('a');
-                link.href = whatsappUrl;
-                link.target = '_blank';
-                link.rel = 'noopener noreferrer';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                // Detecção de plataforma
+                const isAndroid = /Android/.test(navigator.userAgent);
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                const phone = '5541991480096';
+
+                if (isAndroid) {
+                    // Android: tenta whatsapp:// primeiro (abre direto no app)
+                    try {
+                        window.location.href = `whatsapp://send?phone=${phone}&text=${msg}`;
+                    } catch (e) {
+                        // Fallback para wa.me se falhar
+                        window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+                    }
+                } else if (isIOS) {
+                    // iOS: usa wa.me com link temporário
+                    const whatsappUrl = `https://wa.me/${phone}?text=${msg}`;
+                    const link = document.createElement('a');
+                    link.href = whatsappUrl;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else {
+                    // Desktop/outros: abre wa.me em nova aba
+                    window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+                }
 
                 showToast(`Pedido ${shortId} enviado!`, 'success');
                 setCart([]);
