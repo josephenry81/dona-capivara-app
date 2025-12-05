@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { API } from '../../services/api';
 import Toast from '../ui/Toast';
 import Receipt from '../Receipt';
@@ -21,33 +21,93 @@ export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
     const [printOrder, setPrintOrder] = useState<any>(null);
     const [printItems, setPrintItems] = useState<any[]>([]);
     const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as any });
+    // FIX Bug #7: Estado para rastrear pedidos sendo atualizados
+    const [updatingOrderIds, setUpdatingOrderIds] = useState<Set<string>>(new Set());
 
     const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
         setToast({ visible: true, message: msg, type });
-        setTimeout(() => setToast({ ...toast, visible: false }), 3000);
+        // FIX: Usar função updater para evitar closure stale
+        setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000);
     };
 
-    const loadAll = async () => {
+    // FIX: Normalizar dados da API para formato esperado
+    const normalizeOrder = (order: any) => ({
+        id: order.ID_Venda,
+        status: order.Status || 'Pendente',
+        customerName: order.Nome_Cliente || 'Cliente',
+        address: order.Torre && order.Apartamento
+            ? `Torre ${order.Torre} - Apto ${order.Apartamento}`
+            : (order.Endereco || 'Sem endereço'),
+        date: order.Data_Venda,
+        payment: order.Forma_Pagamento || 'N/A',
+        total: Number(order.Total_Venda || 0),
+        scheduling: order.Agendamento || 'Imediata'
+    });
+
+    // FIX Bug #5: useCallback para evitar warning de dependência
+    const loadAll = useCallback(async () => {
+        console.log('🔍 [AdminView] loadAll iniciado');
+        console.log('🔍 [AdminView] adminKey recebido:', adminKey);
+
         setLoading(true);
-        const [ordersData, statsData] = await Promise.all([
-            API.getAdminOrders(adminKey),
-            API.getDashboardStats(adminKey)
-        ]);
+        try {
+            console.log('🔍 [AdminView] Chamando APIs...');
+            const [ordersResponse, statsData] = await Promise.all([
+                API.getAdminOrders(adminKey),
+                API.getDashboardStats(adminKey)
+            ]);
 
-        if (ordersData) setOrders(ordersData);
-        else { showToast('Erro de autenticação', 'error'); setTimeout(onLogout, 2000); }
+            console.log('🔍 [AdminView] ordersResponse:', ordersResponse);
+            console.log('🔍 [AdminView] ordersResponse?.orders:', ordersResponse?.orders);
+            console.log('🔍 [AdminView] statsData:', statsData);
 
-        if (statsData) setStats(statsData);
+            // FIX: Backend retorna { orders: [...] }, não [...]
+            if (ordersResponse?.orders) {
+                console.log('✅ [AdminView] Orders encontrados, normalizando...');
+                const normalized = ordersResponse.orders.map(normalizeOrder);
+                setOrders(normalized);
+                console.log('✅ [AdminView] Orders normalizados:', normalized.length);
+            } else {
+                console.error('❌ [AdminView] ordersResponse.orders é falsy!');
+                console.error('❌ [AdminView] Tipo de ordersResponse:', typeof ordersResponse);
+                console.error('❌ [AdminView] ordersResponse completo:', JSON.stringify(ordersResponse));
+                showToast('Erro de autenticação', 'error');
+                setTimeout(onLogout, 2000);
+            }
 
-        setLoading(false);
-    };
+            if (statsData) setStats(statsData);
+        } catch (error) {
+            console.error('💥 [AdminView] Erro ao carregar dados:', error);
+            showToast('Erro ao carregar dados. Tente novamente.', 'error');
+        } finally {
+            // FIX: Sempre desativa loading, mesmo em caso de erro
+            setLoading(false);
+        }
+    }, [adminKey, onLogout]); // Dependências necessárias
 
-    useEffect(() => { if (adminKey) loadAll(); }, [adminKey]);
+    // FIX Bug #5: Adicionar loadAll como dependência
+    useEffect(() => { if (adminKey) loadAll(); }, [adminKey, loadAll]);
 
+    // FIX Bug #7: Prevenir múltiplos cliques com loading state
     const changeStatus = async (orderId: string, currentStatus: string) => {
+        // Previne cliques múltiplos
+        if (updatingOrderIds.has(orderId)) return;
+
+        // Adiciona ID ao set de pedidos sendo atualizados
+        setUpdatingOrderIds(prev => new Set(prev).add(orderId));
+
         const newStatus = currentStatus === 'Pendente' ? 'Entregue' : 'Pendente';
         setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+
         const success = await API.updateOrderStatus(adminKey, orderId, newStatus);
+
+        // Remove ID do set após conclusão
+        setUpdatingOrderIds(prev => {
+            const next = new Set(prev);
+            next.delete(orderId);
+            return next;
+        });
+
         if (success) showToast('Pedido atualizado!');
         else { showToast('Erro ao atualizar.', 'error'); loadAll(); }
     };
@@ -71,6 +131,7 @@ export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
                         });
 
                         const link = document.createElement('a');
+                        // FIX: Usar campos normalizados
                         link.download = `Pedido-${order.customerName}-${order.id.slice(0, 4)}.png`;
                         link.href = canvas.toDataURL('image/png');
                         link.click();
@@ -143,7 +204,16 @@ export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
                     <div className="space-y-3">
                         {loading && <p className="text-center text-gray-500 py-10">Carregando pedidos...</p>}
 
-                        {!loading && orders.map(order => (
+                        {/* FIX: Adicionar estado vazio */}
+                        {!loading && orders.length === 0 && (
+                            <div className="text-center py-20">
+                                <p className="text-6xl mb-4">📦</p>
+                                <p className="text-gray-500 font-bold text-lg">Nenhum pedido encontrado</p>
+                                <p className="text-gray-400 text-sm mt-2">Os pedidos aparecerão aqui quando forem realizados</p>
+                            </div>
+                        )}
+
+                        {!loading && orders.length > 0 && orders.map(order => (
                             <div key={order.id} className={`bg-white p-4 rounded-2xl shadow-sm border-l-4 ${order.status === 'Pendente' ? 'border-orange-400' : 'border-green-500'}`}>
                                 <div className="flex justify-between mb-2">
                                     <span className="font-mono text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">#{order.id.slice(0, 8)}</span>
@@ -170,9 +240,18 @@ export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
 
                                         <button
                                             onClick={() => changeStatus(order.id, order.status)}
-                                            className={`px-3 py-2 rounded-lg text-xs font-bold uppercase transition ${order.status === 'Pendente' ? 'bg-orange-100 text-orange-700 hover:bg-orange-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+                                            disabled={updatingOrderIds.has(order.id)}
+                                            className={`px-3 py-2 rounded-lg text-xs font-bold uppercase transition ${updatingOrderIds.has(order.id)
+                                                ? 'opacity-50 cursor-not-allowed bg-gray-200 text-gray-500'
+                                                : order.status === 'Pendente'
+                                                    ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                                                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                                }`}
                                         >
-                                            {order.status === 'Pendente' ? 'Entregar' : 'OK'}
+                                            {updatingOrderIds.has(order.id)
+                                                ? '⏳'
+                                                : order.status === 'Pendente' ? 'Entregar' : 'OK'
+                                            }
                                         </button>
                                     </div>
                                 </div>

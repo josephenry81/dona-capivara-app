@@ -64,25 +64,33 @@ export const API = {
         } catch (error) { return { success: false, message: "Erro de conexão" }; }
     },
 
-    // --- ROBUST ADMIN MAPPING (BUG #2 FIXED) ---
+    // CRITICAL FIX: Return {orders: [...]} format expected by AdminView
     async getAdminOrders(adminKey: string) {
-        if (!API_URL) return null;
+        console.log('🔍 [API] getAdminOrders chamado com adminKey:', adminKey);
+        if (!API_URL) return { orders: [] };
         try {
             const response = await fetch(`${API_URL}?action=getAdminOrders&adminKey=${adminKey}&_t=${Date.now()}`, { cache: 'no-store' });
             const data = await response.json();
-            if (data.error || data.success === false) return null;
+
+            console.log('🔍 [API] Resposta bruta:', data);
+            console.log('🔍 [API] Tipo:', typeof data);
+            console.log('🔍 [API] É array?:', Array.isArray(data));
+
+            if (data.error || data.success === false) {
+                console.error('❌ [API] Backend retornou erro:', data);
+                return { orders: [] };
+            }
+
             const list = data.orders || (Array.isArray(data) ? data : []);
+            console.log('✅ [API] Lista de pedidos:', list.length, 'pedidos');
 
-            return list.map((order: any) => {
-                // DEBUG: Log raw order to see what fields are available
-                console.log('🔍 Raw order from backend:', order);
+            const normalized = list.map((order: any) => {
+                console.log('🔍 Raw order:', order);
 
-                // FIX: Handle all possible apartment field variations + Backend V14 normalized field
                 const apto = order.Apartamento_Cliente || order.Ap || order.Apto || order.Apartamento || '-';
                 const torre = order.Torre_Cliente || order.Torre || '';
                 const address = torre ? `Torre ${torre}, Ap ${apto}` : (order.Endereco || order.Endereco_Completo || 'Retirada');
 
-                // EXPANDED: Try all possible customer name fields from backend
                 const customerName = order.Nome_Cliente_Pedido ||
                     order.Nome_Cliente ||
                     order.Cliente ||
@@ -93,25 +101,28 @@ export const API = {
                     order.NomeCliente ||
                     'Visitante';
 
-                console.log('✅ Mapped customerName:', customerName);
-
                 return {
-                    id: order.ID_Venda,
-                    date: order.Data_Venda,
-                    customerName: customerName,
-                    customerId: order.ID_Cliente || 'GUEST',
-                    deliveryFee: Number(order.Taxa_Entrega || order.Entregar || 0),
-                    discount: Number(order.Desconto || 0),
-                    total: Number(order.Total_Venda || 0),
-                    status: order.Status || 'Pendente',
-                    payment: order.Forma_de_Pagamento || order.Pagamento || order.Metodo_Pagamento || '-',
-                    address: address,
-                    scheduling: order.Agendamento || ''
+                    ID_Venda: order.ID_Venda,
+                    Data_Venda: order.Data_Venda,
+                    Nome_Cliente: customerName,
+                    ID_Cliente: order.ID_Cliente || 'GUEST',
+                    Taxa_Entrega: Number(order.Taxa_Entrega || order.Entregar || 0),
+                    Desconto: Number(order.Desconto || 0),
+                    Total_Venda: Number(order.Total_Venda || 0),
+                    Status: order.Status || 'Pendente',
+                    Forma_Pagamento: order.Forma_de_Pagamento || order.Pagamento || order.Metodo_Pagamento || '-',
+                    Endereco: address,
+                    Torre: torre,
+                    Apartamento: apto,
+                    Agendamento: order.Agendamento || ''
                 };
             });
+
+            console.log('✅ [API] Retornando {orders: [...]} com', normalized.length, 'pedidos');
+            return { orders: normalized };
         } catch (error) {
-            console.error('getAdminOrders error:', error);
-            return null;
+            console.error('💥 [API] getAdminOrders error:', error);
+            return { orders: [] };
         }
     },
 
@@ -149,6 +160,7 @@ export const API = {
             }));
         } catch (e) { return []; }
     },
+
     async getOrderItems(adminKey: string, orderId: string) {
         try {
             const response = await fetch(`${API_URL}?action=getOrderItems&orderId=${orderId}&adminKey=${adminKey}&_t=${Date.now()}`);
@@ -194,5 +206,92 @@ export const API = {
             for (const reg of registrations) await reg.unregister();
         }
         window.location.reload();
+    },
+
+    // ========================================
+    // WHEEL / GAMIFICATION API FUNCTIONS
+    // ========================================
+
+    /**
+     * Girar roleta e obter prêmio garantido
+     */
+    async spinWheel(userId: string, spinNumber: number) {
+        console.log('🎰 [API] spinWheel:', { userId, spinNumber });
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'spinWheel',
+                    userId,
+                    spinNumber
+                })
+            });
+            const data = await response.json();
+            console.log('🎰 [API] spinWheel response:', data);
+            return data;
+        } catch (error) {
+            console.error('💥 [API] spinWheel error:', error);
+            return { success: false, message: 'Erro ao girar roleta' };
+        }
+    },
+
+    /**
+     * Obter prêmios pendentes do usuário
+     */
+    async getUserPrizes(userId: string) {
+        console.log('🎁 [API] getUserPrizes:', userId);
+        try {
+            const timestamp = Date.now();
+            const response = await fetch(`${API_URL}?action=getUserPrizes&userId=${userId}&_t=${timestamp}`);
+            const data = await response.json();
+            console.log('🎁 [API] getUserPrizes response:', data);
+            return data;
+        } catch (error) {
+            console.error('💥 [API] getUserPrizes error:', error);
+            return [];
+        }
+    },
+
+    /**
+     * Resgatar prêmio em um pedido
+     */
+    async redeemPrize(userId: string, prizeId: string, orderId: string) {
+        console.log('✅ [API] redeemPrize:', { userId, prizeId, orderId });
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'redeemPrize',
+                    userId,
+                    prizeId,
+                    orderId
+                })
+            });
+            const data = await response.json();
+            console.log('✅ [API] redeemPrize response:', data);
+            return data;
+        } catch (error) {
+            console.error('💥 [API] redeemPrize error:', error);
+            return { success: false, message: 'Erro ao resgatar prêmio' };
+        }
+    },
+
+    /**
+     * Obter número de giros disponíveis
+     */
+    async getUserSpins(userId: string) {
+        console.log('🎲 [API] getUserSpins:', userId);
+        try {
+            const timestamp = Date.now();
+            const response = await fetch(`${API_URL}?action=getUserSpins&userId=${userId}&_t=${timestamp}`);
+            const data = await response.json();
+            console.log('🎲 [API] getUserSpins response:', data);
+            return data;
+        } catch (error) {
+            console.error('💥 [API] getUserSpins error:', error);
+            return { success: false, spins: 0 };
+        }
     }
 };

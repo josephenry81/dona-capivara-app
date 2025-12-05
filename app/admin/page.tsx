@@ -21,8 +21,8 @@ export default function AdminPage() {
         const data = await API.getAdminOrders(adminKey);
         setLoading(false);
 
-        if (data) {
-            setOrders(data);
+        if (data && data.orders) {
+            setOrders(data.orders);
             setIsAuthenticated(true);
             localStorage.setItem('capivaraAdminKey', adminKey);
         } else {
@@ -35,7 +35,7 @@ export default function AdminPage() {
         if (savedKey) {
             setAdminKey(savedKey);
             API.getAdminOrders(savedKey).then(data => {
-                if (data) { setOrders(data); setIsAuthenticated(true); }
+                if (data && data.orders) { setOrders(data.orders); setIsAuthenticated(true); }
             });
         }
     }, []);
@@ -43,7 +43,7 @@ export default function AdminPage() {
     const refreshOrders = async () => {
         setLoading(true);
         const data = await API.getAdminOrders(adminKey);
-        if (data) setOrders(data);
+        if (data && data.orders) setOrders(data.orders);
         setLoading(false);
     };
 
@@ -125,8 +125,8 @@ export default function AdminPage() {
                             <button
                                 onClick={() => changeStatus(order.id, order.status)}
                                 className={`px-6 py-3 rounded-xl font-bold text-sm shadow-sm transition-all w-full md:w-auto ${order.status === 'Pendente'
-                                        ? 'bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100'
-                                        : 'bg-green-50 text-green-600 border border-green-200 hover:bg-green-100'
+                                    ? 'bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100'
+                                    : 'bg-green-50 text-green-600 border border-green-200 hover:bg-green-100'
                                     }`}
                             >
                                 {order.status === 'Pendente' ? '⏳ Marcar Entregue' : '✅ Concluído'}

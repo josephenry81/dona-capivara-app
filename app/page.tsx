@@ -215,8 +215,15 @@ export default function Page() {
     };
 
     const handleLogin = (u: any) => {
+        console.log('🔐 handleLogin called with:', u);
+
+        // CRITICAL FIX: Persist user to localStorage (including adminKey for admin users)
         setUser(u);
+        localStorage.setItem('donaCapivaraUser', JSON.stringify(u));
+
         if (u.favorites && Array.isArray(u.favorites)) setFavorites(u.favorites);
+
+        console.log('✅ User saved to localStorage:', u);
     };
 
     // ✅ FIXED: Render Toast before AuthView
