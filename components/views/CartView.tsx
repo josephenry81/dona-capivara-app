@@ -24,7 +24,7 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
     const [addressData, setAddressData] = useState({ nome: '', torre: '', apto: '', rua: '', numero: '', bairro: '', complemento: '', cep: '' });
     const [cepLoading, setCepLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
+
     // Debounce timer ref
     const cepTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -46,8 +46,8 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
         if (referralCode.length > 3) {
             const normalizedCode = referralCode.toUpperCase().trim();
             const userCode = user?.inviteCode?.toUpperCase().trim();
-            
-            if ((userCode && normalizedCode === userCode) || !/^[A-Z0-9]+$/.test(normalizedCode)) {
+
+            if ((userCode && normalizedCode === userCode) || !/^[A-Z0-9-]+$/.test(normalizedCode)) {
                 setBonusPoints(0);
             } else {
                 setBonusPoints(50);
@@ -73,13 +73,13 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                     const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
                     const data = await res.json();
                     if (!data.erro) {
-                        setAddressData(prev => ({ 
-                            ...prev, 
-                            rua: data.logradouro, 
-                            bairro: data.bairro 
+                        setAddressData(prev => ({
+                            ...prev,
+                            rua: data.logradouro,
+                            bairro: data.bairro
                         }));
                     }
-                } catch (e) { 
+                } catch (e) {
                     console.error('ViaCEP Error:', e);
                 } finally {
                     setCepLoading(false);
@@ -144,7 +144,7 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
 
     const handleFinalize = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!paymentMethod) {
             alert('⚠️ Selecione a forma de pagamento');
             return;
@@ -211,8 +211,8 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                 {/* Cart Items with Animation */}
                 <div className="space-y-3">
                     {cart.map((item, index) => (
-                        <div 
-                            key={item.id} 
+                        <div
+                            key={item.id}
                             className="bg-white p-4 rounded-2xl shadow-sm flex gap-4 items-center transition-all hover:shadow-md"
                             style={{ animationDelay: `${index * 50}ms` }}
                         >
@@ -222,15 +222,15 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                                 <p className="text-[#FF4B82] font-bold">R$ {item.price.toFixed(2)}</p>
                             </div>
                             <div className="flex items-center gap-3 bg-gray-50 rounded-lg px-2 py-1">
-                                <button 
-                                    onClick={() => removeFromCart(item.id)} 
+                                <button
+                                    onClick={() => removeFromCart(item.id)}
                                     className="text-gray-400 font-bold w-8 h-8 flex items-center justify-center hover:bg-red-50 hover:text-red-500 rounded transition"
                                 >
                                     -
                                 </button>
                                 <span className="text-sm font-bold min-w-[20px] text-center">{item.quantity}</span>
-                                <button 
-                                    onClick={() => addToCart(item)} 
+                                <button
+                                    onClick={() => addToCart(item)}
                                     className="text-[#FF4B82] font-bold w-8 h-8 flex items-center justify-center hover:bg-pink-50 rounded transition"
                                 >
                                     +
@@ -252,9 +252,9 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                                 </div>
                             </div>
                             {isGoldPlus ? (
-                                <button 
-                                    type="button" 
-                                    onClick={() => setUsePoints(!usePoints)} 
+                                <button
+                                    type="button"
+                                    onClick={() => setUsePoints(!usePoints)}
                                     className={`w-12 h-6 rounded-full p-1 transition-colors ${usePoints ? 'bg-green-500' : 'bg-gray-300'}`}
                                 >
                                     <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${usePoints ? 'translate-x-6' : ''}`} />
@@ -276,24 +276,24 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                 <div className="bg-white p-4 rounded-2xl shadow-sm">
                     <h3 className="font-bold text-gray-700 mb-2 text-sm">🎟️ Possui Cupom?</h3>
                     <div className="flex gap-2">
-                        <input 
-                            type="text" 
-                            placeholder="Digite seu cupom" 
-                            className="flex-1 p-2 bg-gray-50 border rounded-lg text-sm uppercase" 
-                            value={couponCode} 
-                            onChange={e => setCouponCode(e.target.value.toUpperCase())} 
-                            disabled={!!appliedCoupon} 
+                        <input
+                            type="text"
+                            placeholder="Digite seu cupom"
+                            className="flex-1 p-2 bg-gray-50 border rounded-lg text-sm uppercase"
+                            value={couponCode}
+                            onChange={e => setCouponCode(e.target.value.toUpperCase())}
+                            disabled={!!appliedCoupon}
                         />
                         {appliedCoupon ? (
-                            <button 
-                                onClick={() => { setAppliedCoupon(null); setCouponCode(''); }} 
+                            <button
+                                onClick={() => { setAppliedCoupon(null); setCouponCode(''); }}
                                 className="bg-red-100 text-red-500 px-4 rounded-lg text-xs font-bold hover:bg-red-200 transition"
                             >
                                 ✕
                             </button>
                         ) : (
-                            <button 
-                                onClick={handleApplyCoupon} 
+                            <button
+                                onClick={handleApplyCoupon}
                                 className="bg-[#FF4B82] text-white px-4 rounded-lg text-xs font-bold hover:opacity-90 transition"
                             >
                                 Aplicar
@@ -307,16 +307,16 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                 <div className="bg-white p-4 rounded-2xl shadow-sm">
                     <h3 className="font-bold text-gray-700 mb-3">⏰ Quando entregar?</h3>
                     <div className="flex bg-gray-100 p-1 rounded-xl mb-4">
-                        <button 
-                            type="button" 
-                            onClick={() => setIsScheduled(false)} 
+                        <button
+                            type="button"
+                            onClick={() => setIsScheduled(false)}
                             className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${!isScheduled ? 'bg-white text-[#FF4B82] shadow-sm' : 'text-gray-400'}`}
                         >
                             Agora ⚡
                         </button>
-                        <button 
-                            type="button" 
-                            onClick={() => setIsScheduled(true)} 
+                        <button
+                            type="button"
+                            onClick={() => setIsScheduled(true)}
                             className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${isScheduled ? 'bg-white text-[#FF4B82] shadow-sm' : 'text-gray-400'}`}
                         >
                             Agendar 📅
@@ -324,18 +324,18 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                     </div>
                     {isScheduled && (
                         <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2">
-                            <input 
-                                type="date" 
-                                className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition" 
-                                value={scheduleDate} 
-                                onChange={(e) => setScheduleDate(e.target.value)} 
-                                min={new Date().toISOString().split('T')[0]} 
+                            <input
+                                type="date"
+                                className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition"
+                                value={scheduleDate}
+                                onChange={(e) => setScheduleDate(e.target.value)}
+                                min={new Date().toISOString().split('T')[0]}
                             />
-                            <input 
-                                type="time" 
-                                className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition" 
-                                value={scheduleTime} 
-                                onChange={(e) => setScheduleTime(e.target.value)} 
+                            <input
+                                type="time"
+                                className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition"
+                                value={scheduleTime}
+                                onChange={(e) => setScheduleTime(e.target.value)}
                             />
                         </div>
                     )}
@@ -346,14 +346,14 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                     <h3 className="font-bold text-gray-700 mb-3">🚚 Entrega</h3>
                     <div className="grid gap-3">
                         {[
-                            { id: 'CONDO', icon: '🏢', label: 'Condomínio', sub: 'Grátis' }, 
-                            { id: 'NEIGHBOR', icon: '🏡', label: 'Vizinhança', sub: 'Grátis' }, 
+                            { id: 'CONDO', icon: '🏢', label: 'Condomínio', sub: 'Grátis' },
+                            { id: 'NEIGHBOR', icon: '🏡', label: 'Vizinhança', sub: 'Grátis' },
                             { id: 'FAR', icon: '🛵', label: 'Outros', sub: 'R$ 5,00' }
                         ].map((zone) => (
-                            <button 
-                                key={zone.id} 
-                                type="button" 
-                                onClick={() => setDeliveryType(zone.id as any)} 
+                            <button
+                                key={zone.id}
+                                type="button"
+                                onClick={() => setDeliveryType(zone.id as any)}
                                 className={`p-3 rounded-xl border text-left flex items-center gap-3 transition-all hover:shadow-md ${deliveryType === zone.id ? 'border-[#FF4B82] bg-[#FFF0F5] shadow-sm' : 'border-gray-200'}`}
                             >
                                 <span className="text-2xl">{zone.icon}</span>
@@ -372,47 +372,47 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                         <h3 className="font-bold text-gray-700">📋 Dados de Entrega</h3>
                         <div>
                             <label className="text-xs font-bold text-gray-400 ml-1 uppercase block mb-2">Como gostaria de ser chamado?</label>
-                            <input 
-                                required 
-                                name="nome" 
-                                value={addressData.nome} 
-                                onChange={handleInputChange} 
-                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition" 
+                            <input
+                                required
+                                name="nome"
+                                value={addressData.nome}
+                                onChange={handleInputChange}
+                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition"
                                 placeholder="Seu nome"
                             />
                         </div>
 
                         {deliveryType === 'CONDO' ? (
                             <div className="grid grid-cols-2 gap-3">
-                                <input 
-                                    required 
-                                    name="torre" 
-                                    placeholder="Torre" 
-                                    value={addressData.torre} 
-                                    onChange={handleInputChange} 
-                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition" 
+                                <input
+                                    required
+                                    name="torre"
+                                    placeholder="Torre"
+                                    value={addressData.torre}
+                                    onChange={handleInputChange}
+                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition"
                                 />
-                                <input 
-                                    required 
-                                    name="apto" 
-                                    placeholder="Apto" 
-                                    value={addressData.apto} 
-                                    onChange={handleInputChange} 
-                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition" 
+                                <input
+                                    required
+                                    name="apto"
+                                    placeholder="Apto"
+                                    value={addressData.apto}
+                                    onChange={handleInputChange}
+                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition"
                                 />
                             </div>
                         ) : (
                             <>
                                 <div className="relative">
-                                    <input 
-                                        name="cep" 
-                                        placeholder="CEP (ex: 12345678)" 
-                                        value={addressData.cep} 
+                                    <input
+                                        name="cep"
+                                        placeholder="CEP (ex: 12345678)"
+                                        value={addressData.cep}
                                         onChange={handleInputChange}
-                                        maxLength={8} 
+                                        maxLength={8}
                                         pattern="[0-9]{8}"
                                         title="Digite apenas números (8 dígitos)"
-                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition" 
+                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition"
                                     />
                                     {cepLoading && (
                                         <div className="absolute right-3 top-3">
@@ -424,30 +424,30 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                                     )}
                                 </div>
                                 <div className="grid grid-cols-3 gap-3">
-                                    <input 
-                                        required 
-                                        name="rua" 
-                                        placeholder="Rua" 
-                                        value={addressData.rua} 
-                                        onChange={handleInputChange} 
-                                        className="col-span-2 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition" 
+                                    <input
+                                        required
+                                        name="rua"
+                                        placeholder="Rua"
+                                        value={addressData.rua}
+                                        onChange={handleInputChange}
+                                        className="col-span-2 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition"
                                     />
-                                    <input 
-                                        required 
-                                        name="numero" 
-                                        placeholder="Nº" 
-                                        value={addressData.numero} 
-                                        onChange={handleInputChange} 
-                                        className="col-span-1 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition" 
+                                    <input
+                                        required
+                                        name="numero"
+                                        placeholder="Nº"
+                                        value={addressData.numero}
+                                        onChange={handleInputChange}
+                                        className="col-span-1 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition"
                                     />
                                 </div>
-                                <input 
-                                    required 
-                                    name="bairro" 
-                                    placeholder="Bairro" 
-                                    value={addressData.bairro} 
-                                    onChange={handleInputChange} 
-                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition" 
+                                <input
+                                    required
+                                    name="bairro"
+                                    placeholder="Bairro"
+                                    value={addressData.bairro}
+                                    onChange={handleInputChange}
+                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition"
                                 />
                             </>
                         )}
@@ -455,13 +455,13 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                         {/* Referral Code */}
                         <div className="mt-4 bg-[#FFF8E1] border border-[#FFE082] p-3 rounded-xl">
                             <label className="text-xs font-bold text-[#F57F17] mb-2 block">🎁 Código de Indicação (Opcional)</label>
-                            <input 
-                                type="text" 
-                                placeholder="Ex: ABC123" 
-                                value={referralCode} 
-                                onChange={(e) => setReferralCode(e.target.value.toUpperCase())} 
+                            <input
+                                type="text"
+                                placeholder="Ex: ABC123"
+                                value={referralCode}
+                                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
                                 maxLength={10}
-                                className="w-full bg-white border border-[#FFE082] rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-[#FFB300] transition" 
+                                className="w-full bg-white border border-[#FFE082] rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-[#FFB300] transition"
                             />
                             {bonusPoints > 0 && (
                                 <div className="text-[#F57F17] text-xs font-bold mt-2 flex items-center gap-1">
@@ -512,15 +512,14 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                     {/* Payment Method */}
                     <div className="grid grid-cols-3 gap-2">
                         {['PIX', 'Cartão', 'Dinheiro'].map((method) => (
-                            <button 
-                                key={method} 
-                                type="button" 
-                                onClick={() => setPaymentMethod(method)} 
-                                className={`py-3 rounded-xl text-sm font-bold border transition-all ${
-                                    paymentMethod === method 
-                                        ? 'bg-[#FF4B82] text-white border-[#FF4B82] shadow-lg scale-105' 
-                                        : 'bg-white text-gray-500 border-gray-200 hover:border-[#FF4B82]'
-                                }`}
+                            <button
+                                key={method}
+                                type="button"
+                                onClick={() => setPaymentMethod(method)}
+                                className={`py-3 rounded-xl text-sm font-bold border transition-all ${paymentMethod === method
+                                    ? 'bg-[#FF4B82] text-white border-[#FF4B82] shadow-lg scale-105'
+                                    : 'bg-white text-gray-500 border-gray-200 hover:border-[#FF4B82]'
+                                    }`}
                             >
                                 {method}
                             </button>
@@ -528,9 +527,9 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                     </div>
 
                     {/* Submit Button */}
-                    <button 
-                        type="submit" 
-                        disabled={!paymentMethod || isSubmitting} 
+                    <button
+                        type="submit"
+                        disabled={!paymentMethod || isSubmitting}
                         className="w-full bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white font-bold py-4 rounded-2xl mt-6 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]"
                     >
                         {isSubmitting ? (
