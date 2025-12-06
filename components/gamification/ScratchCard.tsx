@@ -12,14 +12,18 @@ interface ScratchCardProps {
 
 export default function ScratchCard({ user, hasPendingPrize, onScratchComplete, onClose, onNavigateToMenu }: ScratchCardProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [isScratching, setIsScratching] = useState(false);
     const [scratchNumber, setScratchNumber] = useState(1);
     const [scratchPercent, setScratchPercent] = useState(0);
     const [result, setResult] = useState<SpinResult | null>(null);
     const [showResult, setShowResult] = useState(false);
 
-    // ✅ FIX: Resetar canvas quando scratchNumber muda
+    const CANVAS_SIZE = 280;
+    const REVEAL_THRESHOLD = 60;
+
+    // ✅ Reset quando scratchNumber muda
     useEffect(() => {
-        console.log('🎴 [ScratchCard] Inicializando canvas para raspadinha', scratchNumber);
+        console.log('🎴 Inicializando canvas para raspadinha', scratchNumber);
         setScratchPercent(0);
         setShowResult(false);
         setResult(null);
@@ -33,103 +37,69 @@ export default function ScratchCard({ user, hasPendingPrize, onScratchComplete, 
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // ✅ FIX: Limpar canvas completamente antes de redesenhar
+        // ✅ Limpar canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Desenhar fundo "prateado" da raspadinha
+        // Desenhar camada prateada
         const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-        gradient.addColorStop(0, '#CCCCCC');
-        gradient.addColorStop(0.5, '#FFFFFF');
-        gradient.addColorStop(1, '#999999');
+        gradient.addColorStop(0, '#C0C0C0');
+        gradient.addColorStop(0.5, '#E8E8E8');
+        gradient.addColorStop(1, '#C0C0C0');
 
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Adicionar textura de "raspável"
-        ctx.fillStyle = 'rgba(119, 119, 119, 0.3)';
-        ctx.font = '20px Arial';
+        // Textura
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
         for (let i = 0; i < 50; i++) {
-            const x = Math.random() * canvas.width;
-            const y = Math.random() * canvas.height;
-            ctx.fillText('✨', x, y);
+            ctx.fillRect(
+                Math.random() * canvas.width,
+                Math.random() * canvas.height,
+                Math.random() * 3,
+                Math.random() * 3
+            );
         }
 
-        // Texto instrucional
-        ctx.fillStyle = '#555555';
+        // Texto "RASPE AQUI"
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.font = 'bold 28px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('RASPE AQUI!', canvas.width / 2, canvas.height / 2 - 20);
-        ctx.font = '16px Arial';
-        ctx.fillStyle = '#777777';
-        ctx.fillText('🖱️ Toque e arraste', canvas.width / 2, canvas.height / 2 + 20);
+        ctx.fillText('RASPE AQUI', canvas.width / 2, canvas.height / 2);
     };
 
-    const getCoordinates = (e: React.MouseEvent | React.TouchEvent) => {
-        const canvas = canvasRef.current;
-        if (!canvas) return { x: 0, y: 0 };
-
-        const rect = canvas.getBoundingClientRect();
-        let clientX, clientY;
-
-        if ('touches' in e) {
-            clientX = e.touches[0].clientX;
-            clientY = e.touches[0].clientY;
-        } else {
-            clientX = e.clientX;
-            clientY = e.clientY;
-        }
-
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-
-        return {
-            x: (clientX - rect.left) * scaleX,
-            y: (clientY - rect.top) * scaleY
-        };
-    };
-
-    const handleScratch = (e: React.MouseEvent | React.TouchEvent) => {
-        if (showResult) return;
-
+    const scratch = (x: number, y: number) => {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        const { x, y } = getCoordinates(e);
-
-        // Raspar área circular
-        const radius = 30;
         ctx.globalCompositeOperation = 'destination-out';
         ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.arc(x, y, 20, 0, Math.PI * 2);
         ctx.fill();
 
-        // Calcular percentual raspado
-        calculateScratchedPercentage(ctx);
+        calculateScratchPercent();
     };
 
-    const calculateScratchedPercentage = (ctx: CanvasRenderingContext2D) => {
+    const calculateScratchPercent = () => {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const pixels = imageData.data;
-        let transparentPixels = 0;
-        const totalPixels = pixels.length / 4;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
 
-        for (let i = 0; i < pixels.length; i += 4) {
-            if (pixels[i + 3] === 0) {
-                transparentPixels++;
-            }
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        let transparent = 0;
+
+        for (let i = 3; i < imageData.data.length; i += 4) {
+            if (imageData.data[i] === 0) transparent++;
         }
 
-        const percent = (transparentPixels / totalPixels) * 100;
+        const percent = (transparent / (imageData.data.length / 4)) * 100;
         setScratchPercent(percent);
 
-        // Revelar aos 60%
-        if (percent >= 60 && !showResult) {
+        if (percent > REVEAL_THRESHOLD && !showResult) {
             revealResult();
         }
     };
@@ -148,20 +118,54 @@ export default function ScratchCard({ user, hasPendingPrize, onScratchComplete, 
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // Limpar canvas completamente
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         setScratchPercent(100);
-
-        // Revelar resultado
         revealResult();
+    };
+
+    const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
+        e.preventDefault();
+        setIsScratching(true);
+        const pos = getPosition(e);
+        scratch(pos.x, pos.y);
+    };
+
+    const handleMove = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!isScratching) return;
+        e.preventDefault();
+        const pos = getPosition(e);
+        scratch(pos.x, pos.y);
+    };
+
+    const handleEnd = () => {
+        setIsScratching(false);
+    };
+
+    const getPosition = (e: React.MouseEvent | React.TouchEvent) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return { x: 0, y: 0 };
+
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        if ('touches' in e) {
+            return {
+                x: (e.touches[0].clientX - rect.left) * scaleX,
+                y: (e.touches[0].clientY - rect.top) * scaleY
+            };
+        }
+
+        return {
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY
+        };
     };
 
     const handleContinue = () => {
         if (scratchNumber < 3) {
-            // Próxima raspadinha
             setScratchNumber(prev => prev + 1);
         } else {
-            // Terminou as 3 chances
             onClose();
         }
     };
@@ -171,112 +175,54 @@ export default function ScratchCard({ user, hasPendingPrize, onScratchComplete, 
             case 1: return '🎴 Primeira Raspadinha';
             case 2: return '✨ Segunda Raspadinha';
             case 3: return '🌟 Terceira Raspadinha';
-            default: return '🎴 Raspadinha Mágica';
+            default: return '🎴 Raspadinha';
+        }
+    };
+
+    const getPrizeIcon = () => {
+        if (!result?.prize) return '🎯';
+        switch (result.prize.type) {
+            case 'discount': return '🎁';
+            case 'cookie': return '🍪';
+            case 'drink': return '🥤';
+            case 'side': return '🍟';
+            case 'burger': return '🍔';
+            case 'premium': return '🎉';
+            case 'combo': return '👑';
+            default: return '⭐';
         }
     };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Overlay de fundo */}
+            {/* Overlay */}
             <div
-                className="fixed inset-0 bg-black/60"
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm"
                 onClick={onClose}
             />
 
-            {/* Modal responsivo - TAMANHO FIXADO PARA MOBILE */}
+            {/* Modal */}
             <div className="relative z-10 w-full max-w-sm mx-auto">
-                {/* Cabeçalho */}
-                <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-t-2xl p-4">
-                    <h2 className="text-xl font-bold text-white text-center">
-                        {getScratchTitle()}
-                    </h2>
-                    <p className="text-white/80 text-sm text-center mt-1">
-                        {scratchNumber}/3 - Raspe para descobrir!
-                    </p>
-                </div>
+                <div className="bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 p-1 rounded-3xl shadow-2xl">
+                    <div className="bg-white rounded-3xl p-6">
+                        {/* Header */}
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-bold text-gray-800">
+                                {getScratchTitle()}
+                            </h2>
+                            <button
+                                onClick={onClose}
+                                className="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center"
+                            >
+                                ×
+                            </button>
+                        </div>
 
-                {/* Área da raspadinha - TAMANHO FIXO PARA MOBILE */}
-                <div className="bg-white p-4 rounded-b-2xl">
-                    <div className="relative mx-auto"
-                        style={{
-                            width: '280px',
-                            height: '280px'
-                        }}>
-
-                        {/* Canvas da raspadinha */}
+                        {/* Progress Indicator */}
                         {!showResult && (
-                            <canvas
-                                ref={canvasRef}
-                                width={280}
-                                height={280}
-                                className="absolute inset-0 w-full h-full rounded-xl border-4 border-yellow-400 shadow-lg"
-                                onMouseDown={handleScratch}
-                                onMouseMove={(e) => e.buttons === 1 && handleScratch(e)}
-                                onTouchStart={handleScratch}
-                                onTouchMove={handleScratch}
-                                style={{
-                                    touchAction: 'none',
-                                    cursor: 'pointer'
-                                }}
-                            />
-                        )}
-
-                        {/* Área Revelada (Resultado) */}
-                        {showResult && result && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-white to-yellow-50 rounded-xl border-4 border-yellow-400 p-4 animate-in zoom-in duration-500">
-                                {result.prize ? (
-                                    // ✅ PRÊMIO GANHO
-                                    <>
-                                        <div className="text-6xl mb-3 animate-bounce">
-                                            {result.prize.emoji}
-                                        </div>
-                                        <h3 className="text-lg font-bold text-gray-800 mb-1 text-center">
-                                            {result.prize.name}
-                                        </h3>
-                                        <p className="text-gray-600 text-center text-xs">
-                                            {result.prize.description}
-                                        </p>
-
-                                        {/* Confetti */}
-                                        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                                            {[...Array(10)].map((_, i) => (
-                                                <div
-                                                    key={i}
-                                                    className="absolute text-xl animate-ping"
-                                                    style={{
-                                                        left: `${Math.random() * 100}%`,
-                                                        top: `${Math.random() * 100}%`,
-                                                        animationDelay: `${Math.random() * 2}s`,
-                                                        animationDuration: `${1 + Math.random()}s`
-                                                    }}
-                                                >
-                                                    🎉
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </>
-                                ) : (
-                                    // ❌ GIRO VAZIO
-                                    <>
-                                        <div className="text-6xl mb-3">
-                                            {scratchNumber === 1 ? '🎯' : scratchNumber === 2 ? '✨' : '🌟'}
-                                        </div>
-                                        <h3 className="text-lg font-bold text-gray-600 mb-1 text-center">
-                                            {result.message}
-                                        </h3>
-                                        <p className="text-gray-500 text-center text-xs">
-                                            {scratchNumber < 3 ? 'Continue raspando!' : 'Você já tem um prêmio!'}
-                                        </p>
-                                    </>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Indicador de progresso */}
-                        {!showResult && (
-                            <div className="absolute -bottom-8 left-0 right-0 text-center">
-                                <div className="inline-flex items-center gap-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow">
-                                    <span className="text-sm font-medium text-gray-700">
+                            <div className="mb-4 flex justify-center">
+                                <div className="inline-flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-full">
+                                    <span className="text-sm font-bold text-gray-700">
                                         {Math.round(scratchPercent)}%
                                     </span>
                                     <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -288,73 +234,160 @@ export default function ScratchCard({ user, hasPendingPrize, onScratchComplete, 
                                 </div>
                             </div>
                         )}
-                    </div>
 
-                    {/* Instruções para mobile */}
-                    <div className="mt-10 text-center text-sm text-gray-600">
-                        {!showResult ? (
-                            <>
-                                <p className="mb-1">📱 <strong>Toque e arraste</strong> para raspar</p>
-                                <p className="text-xs">Precisa raspar pelo menos <strong>60%</strong> para revelar</p>
-                            </>
-                        ) : result?.prize ? (
-                            <p className="text-green-600 font-bold">
-                                🎉 Prêmio revelado! Use na sua próxima compra!
-                            </p>
-                        ) : (
-                            <p className="text-blue-600 font-bold">
-                                {scratchNumber < 3 ? 'Continue raspando as próximas!' : 'Você já tem um prêmio!'}
-                            </p>
+                        {/* Canvas Container */}
+                        <div className="flex justify-center mb-4">
+                            <div
+                                className="relative rounded-2xl overflow-hidden shadow-xl"
+                                style={{ width: `${CANVAS_SIZE}px`, height: `${CANVAS_SIZE}px` }}
+                            >
+                                {!showResult && (
+                                    <canvas
+                                        ref={canvasRef}
+                                        width={CANVAS_SIZE}
+                                        height={CANVAS_SIZE}
+                                        onMouseDown={handleStart}
+                                        onMouseMove={handleMove}
+                                        onMouseUp={handleEnd}
+                                        onMouseLeave={handleEnd}
+                                        onTouchStart={handleStart}
+                                        onTouchMove={handleMove}
+                                        onTouchEnd={handleEnd}
+                                        className="cursor-pointer"
+                                        style={{
+                                            touchAction: 'none',
+                                            width: '100%',
+                                            height: '100%'
+                                        }}
+                                    />
+                                )}
+
+                                {/* Result Display */}
+                                {showResult && result && (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-white to-yellow-50 rounded-xl p-4 animate-in zoom-in duration-500">
+                                        {result.prize ? (
+                                            <>
+                                                <div className="text-6xl mb-3 animate-bounce">
+                                                    {getPrizeIcon()}
+                                                </div>
+                                                <h3 className="text-lg font-bold text-gray-800 mb-1 text-center">
+                                                    {result.prize.name}
+                                                </h3>
+                                                <p className="text-gray-600 text-center text-xs">
+                                                    {result.prize.description}
+                                                </p>
+
+                                                {/* Confetti */}
+                                                <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                                                    {[...Array(10)].map((_, i) => (
+                                                        <div
+                                                            key={i}
+                                                            className="absolute text-xl animate-ping"
+                                                            style={{
+                                                                left: `${Math.random() * 100}%`,
+                                                                top: `${Math.random() * 100}%`,
+                                                                animationDelay: `${Math.random() * 2}s`,
+                                                                animationDuration: `${1 + Math.random()}s`
+                                                            }}
+                                                        >
+                                                            🎉
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="text-6xl mb-3">
+                                                    {scratchNumber === 1 ? '🎯' : scratchNumber === 2 ? '✨' : '🌟'}
+                                                </div>
+                                                <h3 className="text-lg font-bold text-gray-600 mb-1 text-center">
+                                                    {result.message}
+                                                </h3>
+                                                <p className="text-gray-500 text-center text-xs">
+                                                    {scratchNumber < 3 ? 'Continue raspando!' : 'Você já tem um prêmio!'}
+                                                </p>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Instructions */}
+                        {!showResult && (
+                            <div className="text-center space-y-2 mb-4">
+                                <p className="text-sm text-gray-600">
+                                    📱 <strong>Toque e arraste</strong> para raspar
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                    Precisa raspar pelo menos <strong>{REVEAL_THRESHOLD}%</strong> para revelar
+                                </p>
+                            </div>
                         )}
-                    </div>
 
-                    {/* Botões de ação */}
-                    <div className="mt-4 flex gap-2">
-                        <button
-                            onClick={onClose}
-                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition text-sm"
-                        >
-                            Fechar
-                        </button>
-
-                        {!showResult ? (
-                            <button
-                                onClick={autoScratch}
-                                className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-bold hover:opacity-90 transition text-sm"
-                            >
-                                🎴 Auto-Raspar
-                            </button>
-                        ) : scratchNumber < 3 ? (
-                            <button
-                                onClick={handleContinue}
-                                className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-bold hover:opacity-90 transition text-sm"
-                            >
-                                Próxima ({3 - scratchNumber})
-                            </button>
-                        ) : (
-                            <button
-                                onClick={() => {
-                                    console.log('🛒 [ScratchCard] Navegando para cardápio');
-                                    onClose();
-                                    if (onNavigateToMenu) {
-                                        onNavigateToMenu();
-                                    }
-                                }}
-                                className="flex-1 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-bold hover:opacity-90 transition text-sm"
-                            >
-                                🛒 Cardápio
-                            </button>
+                        {/* Result Message */}
+                        {showResult && result && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                                {result.prize && (
+                                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-2xl text-center">
+                                        <p className="text-lg font-bold text-gray-800 mb-1">
+                                            Parabéns!
+                                        </p>
+                                        <p className="text-sm text-green-600 font-bold">
+                                            🎉 Prêmio revelado! Use na sua próxima compra!
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
                         )}
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-2 mt-4">
+                            <button
+                                onClick={onClose}
+                                className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl text-sm hover:bg-gray-200 transition"
+                            >
+                                Fechar
+                            </button>
+
+                            {!showResult ? (
+                                <button
+                                    onClick={autoScratch}
+                                    className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold py-3 rounded-xl text-sm hover:opacity-90 transition"
+                                >
+                                    🎴 Auto-Raspar
+                                </button>
+                            ) : scratchNumber < 3 ? (
+                                <button
+                                    onClick={handleContinue}
+                                    className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 rounded-xl text-sm hover:shadow-lg transition"
+                                >
+                                    Próxima ({3 - scratchNumber})
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => {
+                                        console.log('🛒 [ScratchCard] Navegando para cardápio');
+                                        onClose();
+                                        if (onNavigateToMenu) {
+                                            onNavigateToMenu();
+                                        }
+                                    }}
+                                    className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-3 rounded-xl text-sm hover:shadow-lg transition"
+                                >
+                                    🛒 Cardápio
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Info Footer */}
+                        <div className="mt-4 pt-4 border-t border-gray-100">
+                            <p className="text-xs text-center text-gray-500">
+                                Raspadinha {scratchNumber} de 3 • Dona Capivara 🍹
+                            </p>
+                        </div>
                     </div>
                 </div>
-
-                {/* Close Button */}
-                <button
-                    onClick={onClose}
-                    className="absolute top-2 right-2 text-white hover:text-gray-200 text-2xl z-10 w-8 h-8 flex items-center justify-center"
-                >
-                    ✕
-                </button>
             </div>
         </div>
     );
