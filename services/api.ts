@@ -293,5 +293,36 @@ export const API = {
             console.error('💥 [API] getUserSpins error:', error);
             return { success: false, spins: 0 };
         }
+    },
+
+    /**
+     * Salvar prêmio ganho na raspadinha
+     */
+    async saveScratchPrize(userId: string, prize: any) {
+        console.log('🎁 [API] saveScratchPrize:', { userId, prize });
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'saveScratchPrize',
+                    userId: userId,
+                    prize: {
+                        name: prize.name,
+                        description: prize.description,
+                        value: prize.value || 0,
+                        type: prize.type || 'desconto',
+                        code: prize.code || '',
+                        timestamp: new Date().toISOString()
+                    }
+                })
+            });
+            const data = await response.json();
+            console.log('🎁 [API] saveScratchPrize response:', data);
+            return data;
+        } catch (error) {
+            console.error('💥 [API] saveScratchPrize error:', error);
+            return { success: false, error: String(error) };
+        }
     }
 };

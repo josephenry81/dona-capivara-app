@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import { getSpinResult, SpinResult } from '../../services/wheel';
+import { API } from '../../services/api';
 
 interface ScratchCardProps {
     user: any;
@@ -104,10 +105,22 @@ export default function ScratchCard({ user, hasPendingPrize, onScratchComplete, 
         }
     };
 
-    const revealResult = () => {
+    const revealResult = async () => {
         const spinResult = getSpinResult(user.id || user.phone, scratchNumber, hasPendingPrize);
         setResult(spinResult);
         setShowResult(true);
+
+        // ✅ Salvar prêmio no backend se ganhou
+        if (spinResult.prize && (user.id || user.phone)) {
+            console.log('🎁 [ScratchCard] Salvando prêmio no backend:', spinResult.prize);
+            try {
+                await API.saveScratchPrize(user.id || user.phone, spinResult.prize);
+                console.log('✅ [ScratchCard] Prêmio salvo com sucesso!');
+            } catch (error) {
+                console.error('💥 [ScratchCard] Erro ao salvar prêmio:', error);
+            }
+        }
+
         onScratchComplete(spinResult);
     };
 
