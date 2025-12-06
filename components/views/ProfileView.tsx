@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { API } from '../../services/api';
-import ScratchCard from '../gamification/ScratchCard';
-import { getAvailableSpins } from '../../services/wheel';
 
 interface ProfileViewProps {
     user: any;
@@ -11,15 +9,9 @@ interface ProfileViewProps {
 }
 
 export default function ProfileView({ user, onLogout, onNavigate, onUpdateUser }: ProfileViewProps) {
-    const [showScratchCard, setShowScratchCard] = useState(false);
-    const [pendingPrizes, setPendingPrizes] = useState(0);
-
-    const [hasPendingPrize, setHasPendingPrize] = useState(false);
-
     const currentUser = user || { name: 'Visitante', phone: '', points: 0 };
     const safePoints = isNaN(currentUser.points) ? 0 : currentUser.points;
     const inviteCode = currentUser.inviteCode || '---';
-    const scratchesAvailable = getAvailableSpins(currentUser);
 
     const getLevelInfo = (pts: number) => {
         if (pts >= 1000) return { name: '💎 Platina', color: 'from-cyan-400 to-blue-500', next: 10000, max: true };
@@ -107,24 +99,7 @@ export default function ProfileView({ user, onLogout, onNavigate, onUpdateUser }
                 </button>
             </div>
 
-            {/* Scratch Card Button */}
-            <div className="mx-6 mt-4">
-                <button
-                    onClick={() => setShowScratchCard(true)}
-                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl active:scale-95 transition relative"
-                >
-                    <span className="text-lg">🎴 Raspar Cartela Mágica</span>
-                    {hasPendingPrize ? (
-                        <span className="absolute top-2 right-2 bg-yellow-500 text-white text-xs font-bold rounded-full px-2 py-1 animate-pulse">
-                            1 prêmio 🎁
-                        </span>
-                    ) : (
-                        <span className="absolute top-2 right-2 bg-purple-500 text-white text-xs font-bold rounded-full px-2 py-1">
-                            3 chances
-                        </span>
-                    )}
-                </button>
-            </div>
+
 
             {/* Menu */}
             <div className="px-6 space-y-3 mt-6">
@@ -150,26 +125,7 @@ export default function ProfileView({ user, onLogout, onNavigate, onUpdateUser }
                 <p className="text-center text-[10px] text-gray-300 pb-4">Versão 1.5.0 • Dona Capivara</p>
             </div>
 
-            {/* Scratch Card Modal */}
-            {showScratchCard && (
-                <ScratchCard
-                    user={currentUser}
-                    hasPendingPrize={hasPendingPrize}
-                    onScratchComplete={(result) => {
-                        console.log('🎴 [Profile] Scratch result:', result);
-                        if (result.prize) {
-                            setHasPendingPrize(true);
-                            console.log('🎁 [Profile] Prêmio ganho:', result.prize.name);
-                        }
-                    }}
-                    onClose={() => setShowScratchCard(false)}
-                    onNavigateToMenu={() => {
-                        console.log('🛒 [Profile] Navegando para home');
-                        setShowScratchCard(false);
-                        onNavigate('home');
-                    }}
-                />
-            )}
+
         </div>
     );
 }
