@@ -57,16 +57,38 @@ export default function Page() {
         });
     }, []);
 
-    const addToCart = (product: any, qtyToAdd = 1) => {
+    const addToCart = (product: any, qtyToAdd = 1, additions?: any[]) => {
         setCart(prev => {
-            const existingItem = prev.find(item => item.id === product.id);
+            // If additions are present, treat as unique item even if same product
+            const hasAdditions = additions && additions.length > 0;
+
+            // For items with additions, always create new cart item (no merging)
+            if (hasAdditions) {
+                const additionsSubtotal = additions.reduce((sum: number, a: any) => sum + a.option_price, 0);
+                const unitPrice = product.price + additionsSubtotal;
+
+                const newItem = {
+                    ...product,
+                    quantity: qtyToAdd,
+                    selected_additions: additions,
+                    additions_subtotal: additionsSubtotal,
+                    unit_price: unitPrice,
+                    cart_item_id: `${product.id}-${Date.now()}` // Unique ID for items with additions
+                };
+
+                showToast(`Adicionado ao carrinho!`, 'success');
+                return [...prev, newItem];
+            }
+
+            // For items without additions, merge as before
+            const existingItem = prev.find(item => item.id === product.id && !item.selected_additions);
             const currentQty = existingItem ? existingItem.quantity : 0;
             if (currentQty + qtyToAdd > product.estoque) {
                 showToast(`Estoque insuficiente! Apenas ${product.estoque} disponíveis.`, 'error');
                 return prev;
             }
             let newCart;
-            if (existingItem) newCart = prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + qtyToAdd } : item);
+            if (existingItem) newCart = prev.map(item => item.id === product.id && !item.selected_additions ? { ...item, quantity: item.quantity + qtyToAdd } : item);
             else newCart = [...prev, { ...product, quantity: qtyToAdd }];
             showToast(`Adicionado ao carrinho!`, 'success');
             return newCart;
@@ -249,7 +271,7 @@ export default function Page() {
                 <ProductDetailView
                     product={selectedProduct}
                     onBack={() => setSelectedProduct(null)}
-                    onAddToCart={(p, q) => { addToCart(p, q); setSelectedProduct(null); }}
+                    onAddToCart={(p, q, additions) => { addToCart(p, q, additions); setSelectedProduct(null); }}
                     user={user}
                 />
             ) : (

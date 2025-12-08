@@ -3,7 +3,11 @@ import ShareButton from '../ui/ShareButton';
 import RatingStars from '../product/RatingStars';
 import ReviewForm from '../product/ReviewForm';
 import ReviewsList from '../product/ReviewsList';
+import AdditionGroup from '../product/AdditionGroup';
+import PriceCalculator from '../product/PriceCalculator';
 import { ReviewService, Review } from '../../services/reviews';
+import { API } from '../../services/api';
+import { ProductWithAdditions, SelectedAddition, AdditionGroup as AdditionGroupType } from '../../types/additions';
 
 interface Product {
     id: string;
@@ -21,7 +25,7 @@ interface Product {
 interface ProductDetailProps {
     product: Product;
     onBack: () => void;
-    onAddToCart: (product: Product, quantity: number) => void;
+    onAddToCart: (product: Product, quantity: number, additions?: SelectedAddition[]) => void;
     user?: any;
 }
 
@@ -31,6 +35,12 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
     const [showReviewForm, setShowReviewForm] = useState(false);
     const [averageRating, setAverageRating] = useState(0);
 
+    // Additions state
+    const [productWithAdditions, setProductWithAdditions] = useState<ProductWithAdditions | null>(null);
+    const [selectedAdditions, setSelectedAdditions] = useState<SelectedAddition[]>([]);
+    const [selectedOptionsByGroup, setSelectedOptionsByGroup] = useState<Record<string, string[]>>({});
+    const [loadingAdditions, setLoadingAdditions] = useState(false);
+
     const handleIncrement = () => {
         if (quantity < product.estoque) setQuantity(q => q + 1);
     };
@@ -39,17 +49,29 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
         if (quantity > 1) setQuantity(q => q - 1);
     };
 
+    // Fetch product with additions
     useEffect(() => {
-        if (product?.id) {
-            ReviewService.getProductReviews(product.id).then((data) => {
-                setReviews(data);
-                setAverageRating(ReviewService.calculateAverageRating(data));
-            });
+        async function fetchProductData() {
+            if (product?.id) {
+                // Fetch reviews
+                ReviewService.getProductReviews(product.id).then((data) => {
+                    setReviews(data);
+                    setAverageRating(ReviewService.calculateAverageRating(data));
+                });
+
+                // Fetch product with additions
+                setLoadingAdditions(true);
+                const productData = await API.getProductWithAdditions(product.id);
+                if (productData && !productData.error) {
+                    setProductWithAdditions(productData);
+                }
+                setLoadingAdditions(false);
+            }
         }
+        fetchProductData();
     }, [product]);
 
     const handleSubmitReview = async (rating: number, comment: string) => {
-        // FIX: Validação mais robusta
         if (!user || !user.id || user.isGuest) {
             alert('Você precisa estar logado para avaliar');
             return;
@@ -74,7 +96,6 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
         }
     };
 
-    // FIX: Detectar logout durante avaliação (race condition)
     useEffect(() => {
         if (showReviewForm && (!user || !user.id || user.isGuest)) {
             setShowReviewForm(false);
@@ -82,10 +103,62 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
         }
     }, [user, showReviewForm]);
 
+    // Handle addition selection
+    const handleAdditionSelection = (groupId: string, optionId: string, group: AdditionGroupType) => {
+        setSelectedOptionsByGroup(prev => {
+            const currentSelections = prev[groupId] || [];
+
+            if (group.type === 'single') {
+                // Radio button behavior: replace selection
+                const newSelections = currentSelections.includes(optionId) ? [] : [optionId];
+                return { ...prev, [groupId]: newSelections };
+            } else {
+                // Checkbox behavior: toggle selection
+                const newSelections = currentSelections.includes(optionId)
+                    ? currentSelections.filter(id => id !== optionId)
+                    : [...currentSelections, optionId];
+                return { ...prev, [groupId]: newSelections };
+            }
+        });
+    };
+
+    // Update selectedAdditions whenever selectedOptionsByGroup changes
+    useEffect(() => {
+        if (!productWithAdditions?.addition_groups) return;
+
+        const additions: SelectedAddition[] = [];
+
+        productWithAdditions.addition_groups.forEach(group => {
+            const selectedOptions = selectedOptionsByGroup[group.id] || [];
+            selectedOptions.forEach(optionId => {
+                const option = group.options.find(o => o.id === optionId);
+                if (option) {
+                    additions.push({
+                        group_id: group.id,
+                        group_name: group.name,
+                        option_id: option.id,
+                        option_sku: option.sku,
+                        option_name: option.name,
+                        option_price: option.price
+                    });
+                }
+            });
+        });
+
+        setSelectedAdditions(additions);
+    }, [selectedOptionsByGroup, productWithAdditions]);
+
+    const handleAddToCart = () => {
+        onAddToCart(product, quantity, selectedAdditions.length > 0 ? selectedAdditions : undefined);
+    };
+
+    const hasAdditions = productWithAdditions?.addition_groups && productWithAdditions.addition_groups.length > 0;
+    const basePrice = product.price;
+
     return (
         <div className="min-h-screen bg-white flex flex-col relative animate-in slide-in-from-right duration-300">
 
-            {/* --- FIXED NAVIGATION BUTTON (The Fix) --- */}
+            {/* Fixed Navigation Button */}
             <button
                 onClick={onBack}
                 className="fixed top-4 left-4 z-50 bg-white/90 backdrop-blur-md p-3 rounded-full shadow-lg border border-gray-100 hover:scale-110 transition active:scale-95"
@@ -114,7 +187,8 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
                 <div className="flex justify-between items-start mb-6">
                     <h1 className="text-2xl font-bold text-gray-800 w-3/4 leading-tight">{product.nome}</h1>
                     <div className="text-right">
-                        <span className="text-2xl font-bold text-[#FF4B82]">R$ {product.price.toFixed(2)}</span>
+                        <span className="text-2xl font-bold text-[#FF4B82]">R$ {basePrice.toFixed(2)}</span>
+                        {hasAdditions && <p className="text-xs text-gray-400">base</p>}
                     </div>
                 </div>
 
@@ -145,6 +219,42 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
                     {product.ingredientes || 'Informação não disponível.'}
                 </p>
 
+                {/* Additions Section - Loading Skeleton */}
+                {loadingAdditions && (
+                    <div className="space-y-4 mb-6">
+                        <h3 className="font-bold text-gray-800 mb-3">🎨 Personalize seu pedido</h3>
+                        <div className="bg-white p-4 rounded-2xl shadow-sm animate-pulse">
+                            <div className="h-4 bg-gray-200 rounded w-1/3 mb-3"></div>
+                            <div className="space-y-2">
+                                <div className="h-12 bg-gray-100 rounded-xl"></div>
+                                <div className="h-12 bg-gray-100 rounded-xl"></div>
+                                <div className="h-12 bg-gray-100 rounded-xl"></div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Additions Section - Loaded */}
+                {!loadingAdditions && hasAdditions && (
+                    <div className="space-y-4 mb-6">
+                        <h3 className="font-bold text-gray-800 mb-3">Personalize seu pedido</h3>
+                        {productWithAdditions!.addition_groups!.map(group => (
+                            <AdditionGroup
+                                key={group.id}
+                                group={group}
+                                selectedOptions={selectedOptionsByGroup[group.id] || []}
+                                onSelectionChange={(optionId) => handleAdditionSelection(group.id, optionId, group)}
+                            />
+                        ))}
+
+                        <PriceCalculator
+                            basePrice={basePrice}
+                            selectedAdditions={selectedAdditions}
+                            quantity={quantity}
+                        />
+                    </div>
+                )}
+
                 {/* Rating Summary */}
                 {averageRating > 0 && (
                     <div className="flex items-center gap-2 mb-4">
@@ -156,7 +266,6 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
                 )}
 
                 {/* Review Button */}
-                {/* FIX: Validação mais robusta com user.id */}
                 {user && user.id && !user.isGuest && (
                     <button
                         onClick={() => setShowReviewForm(true)}
@@ -197,11 +306,13 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
                     />
 
                     <button
-                        onClick={() => onAddToCart(product, quantity)}
+                        onClick={handleAddToCart}
                         className="flex-1 h-14 bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white font-bold rounded-xl shadow-lg shadow-orange-200 hover:opacity-90 transition flex justify-between items-center px-6 active:scale-95"
                     >
                         <span>Adicionar</span>
-                        <span className="bg-white/20 px-2 py-1 rounded text-sm">R$ {(product.price * quantity).toFixed(2)}</span>
+                        <span className="bg-white/20 px-2 py-1 rounded text-sm">
+                            R$ {((basePrice + selectedAdditions.reduce((sum, a) => sum + a.option_price, 0)) * quantity).toFixed(2)}
+                        </span>
                     </button>
                 </div>
             </div>

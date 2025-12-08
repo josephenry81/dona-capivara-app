@@ -324,5 +324,46 @@ export const API = {
             console.error('💥 [API] saveScratchPrize error:', error);
             return { success: false, error: String(error) };
         }
+    },
+
+    // ========================================
+    // ADDITIONS SYSTEM API FUNCTIONS
+    // ========================================
+
+    /**
+     * Get product with addition groups and options
+     */
+    async getProductWithAdditions(productId: string) {
+        try {
+            const response = await fetch(
+                `${API_URL}?action=getProductWithAdditions&productId=${productId}&_t=${Date.now()}`
+            );
+            const data = await response.json();
+            return data;
+        } catch (e) {
+            console.error('Error fetching product with additions:', e);
+            return null;
+        }
+    },
+
+    /**
+     * Server-side price calculation and validation
+     */
+    async calculateItemPrice(data: {
+        productId: string;
+        selectedAdditions: any[];
+        quantity: number;
+    }) {
+        try {
+            const response = await fetch(API_URL + '?action=calculateItemPrice', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            return result;
+        } catch (e) {
+            console.error('Error calculating price:', e);
+            return { success: false, error: 'Erro ao calcular preço' };
+        }
     }
 };

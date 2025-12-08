@@ -1,7 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { API } from '../../services/api';
+import CartItemAdditions from '../cart/CartItemAdditions';
 
-interface Product { id: string; nome: string; price: number; imagem?: string; quantity: number; }
+interface Product {
+    id: string;
+    nome: string;
+    price: number;
+    imagem?: string;
+    quantity: number;
+    // Additions support
+    cart_item_id?: string;
+    selected_additions?: any[];
+    additions_subtotal?: number;
+    unit_price?: number;
+}
 interface CartViewProps {
     cart: Product[];
     user: any;
@@ -96,7 +108,11 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
     }, []);
 
     // --- CALCULATIONS ---
-    const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    // Updated to account for items with additions
+    const subtotal = cart.reduce((acc, item) => {
+        const itemPrice = item.unit_price || item.price; // Use unit_price if has additions
+        return acc + (itemPrice * item.quantity);
+    }, 0);
     const deliveryFee = deliveryType === 'FAR' ? 5.00 : 0.00;
     const userPoints = user?.points || 0;
     const isGoldPlus = userPoints >= 500;
@@ -212,18 +228,31 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                 <div className="space-y-3">
                     {cart.map((item, index) => (
                         <div
-                            key={item.id}
-                            className="bg-white p-4 rounded-2xl shadow-sm flex gap-4 items-center transition-all hover:shadow-md"
+                            key={item.cart_item_id || item.id}
+                            className="bg-white p-4 rounded-2xl shadow-sm flex gap-4 items-start transition-all hover:shadow-md"
                             style={{ animationDelay: `${index * 50}ms` }}
                         >
                             <img src={item.imagem} className="w-16 h-16 rounded-xl object-cover bg-gray-100" alt={item.nome} loading="lazy" />
                             <div className="flex-1">
                                 <h3 className="font-bold text-gray-800 text-sm">{item.nome}</h3>
-                                <p className="text-[#FF4B82] font-bold">R$ {item.price.toFixed(2)}</p>
+                                <p className="text-[#FF4B82] font-bold">
+                                    R$ {item.price.toFixed(2)}
+                                    {item.selected_additions && item.selected_additions.length > 0 && (
+                                        <span className="text-xs text-gray-400 ml-1">(base)</span>
+                                    )}
+                                </p>
+                                {/* Show additions if present */}
+                                <CartItemAdditions additions={item.selected_additions || []} />
+                                {/* Show total if has additions */}
+                                {item.unit_price && item.unit_price !== item.price && (
+                                    <p className="text-sm text-gray-600 mt-1 font-semibold">
+                                        Unitário: R$ {item.unit_price.toFixed(2)}
+                                    </p>
+                                )}
                             </div>
                             <div className="flex items-center gap-3 bg-gray-50 rounded-lg px-2 py-1">
                                 <button
-                                    onClick={() => removeFromCart(item.id)}
+                                    onClick={() => removeFromCart(item.cart_item_id || item.id)}
                                     className="text-gray-400 font-bold w-8 h-8 flex items-center justify-center hover:bg-red-50 hover:text-red-500 rounded transition"
                                 >
                                     -
