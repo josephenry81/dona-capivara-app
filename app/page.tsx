@@ -158,6 +158,18 @@ export default function Page() {
                 // Itens do pedido
                 orderData.cart.forEach((item: any) => {
                     msg += `${item.quantity}x ${item.nome}%0A`;
+
+                    // Mostrar adicionais se existirem
+                    if (item.selected_additions && item.selected_additions.length > 0) {
+                        msg += `  • Base: R$ ${item.price.toFixed(2)}%0A`;
+                        item.selected_additions.forEach((add: any) => {
+                            msg += `  • ${add.option_name} (+R$ ${add.option_price.toFixed(2)})%0A`;
+                        });
+                        if (item.unit_price) {
+                            msg += `  Subtotal: R$ ${(item.unit_price * item.quantity).toFixed(2)}%0A`;
+                        }
+                    }
+                    msg += `%0A`;
                 });
 
                 // Total
