@@ -168,6 +168,10 @@ export default function Page() {
                         if (item.unit_price) {
                             msg += `  Subtotal: R$ ${(item.unit_price * item.quantity).toFixed(2)}%0A`;
                         }
+                    } else {
+                        // Produto sem adicionais: mostrar preço
+                        const itemTotal = item.price * item.quantity;
+                        msg += `  R$ ${itemTotal.toFixed(2)}%0A`;
                     }
                     msg += `%0A`;
                 });
