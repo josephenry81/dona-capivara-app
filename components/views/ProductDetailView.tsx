@@ -49,23 +49,38 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
         if (quantity > 1) setQuantity(q => q - 1);
     };
 
-    // Fetch product with additions
+    // ⚡ OPTIMIZED: Fetch product with additions (with caching and optimistic rendering)
     useEffect(() => {
         async function fetchProductData() {
             if (product?.id) {
-                // Fetch reviews
+                // Fetch reviews (parallel, non-blocking)
                 ReviewService.getProductReviews(product.id).then((data) => {
                     setReviews(data);
                     setAverageRating(ReviewService.calculateAverageRating(data));
                 });
 
-                // Fetch product with additions
+                // ✅ OPTIMISTIC: Set structure immediately to reduce perceived latency
+                setProductWithAdditions({
+                    ...product,
+                    addition_groups: [] // Empty but structure exists
+                } as any);
                 setLoadingAdditions(true);
-                const productData = await API.getProductWithAdditions(product.id);
-                if (productData && !productData.error) {
-                    setProductWithAdditions(productData);
+
+                // Fetch additions with cache support
+                try {
+                    const productData = await API.getProductWithAdditions(product.id);
+                    if (productData && !productData.error) {
+                        setProductWithAdditions(productData);
+                    } else {
+                        // Fallback: product without additions
+                        setProductWithAdditions(product as any);
+                    }
+                } catch (error) {
+                    console.error('Error loading additions:', error);
+                    setProductWithAdditions(product as any);
+                } finally {
+                    setLoadingAdditions(false);
                 }
-                setLoadingAdditions(false);
             }
         }
         fetchProductData();
@@ -154,6 +169,190 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
 
     const hasAdditions = productWithAdditions?.addition_groups && productWithAdditions.addition_groups.length > 0;
     const basePrice = product.price;
+
+    // ============================================
+    // MIX PRODUCT HANDLING (V16.0 Integration)
+    // ============================================
+    const isMix = product && (product as any).ID_Categoria === 'MIX';
+
+    if (isMix && productWithAdditions && productWithAdditions.addition_groups) {
+        // Separar grupo de sabores (GRP-003) dos outros
+        const flavorGroup = productWithAdditions.addition_groups.find(
+            (g: any) => g.id === 'GRP-003'
+        );
+
+        const otherGroups = productWithAdditions.addition_groups.filter(
+            (g: any) => g.id !== 'GRP-003'
+        );
+
+        const additionsTotal = selectedAdditions.reduce((sum, add) => sum + add.option_price, 0);
+        const unitPrice = basePrice + additionsTotal;
+        const totalPrice = unitPrice * quantity;
+
+        return (
+            <div className="min-h-screen bg-gradient-to-b from-pink-50 to-white flex flex-col relative animate-in slide-in-from-right duration-300">
+
+                {/* Fixed Navigation Button */}
+                <button
+                    onClick={onBack}
+                    className="fixed top-4 left-4 z-50 bg-white/90 backdrop-blur-md p-3 rounded-full shadow-lg border border-gray-100 hover:scale-110 transition active:scale-95"
+                    aria-label="Voltar"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                </button>
+
+                {/* Hero Section - Mix */}
+                <div className="relative h-[30vh] w-full bg-gradient-to-br from-pink-400 via-purple-400 to-orange-400 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/10"></div>
+                    <div className="relative text-center text-white z-10">
+                        <h1 className="text-4xl font-bold mb-2">🍦 {product.nome}</h1>
+                        <p className="text-sm opacity-90">Monte sua combinação perfeita!</p>
+                    </div>
+                </div>
+
+                {/* Content Body */}
+                <div className="flex-1 p-6 flex flex-col -mt-8 bg-white rounded-t-[35px] relative z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] pb-32">
+
+                    <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6 opacity-50"></div>
+
+                    {/* Mix Info Card */}
+                    <div className="bg-gradient-to-r from-pink-50 to-purple-50 p-5 rounded-2xl mb-6 border-2 border-pink-200">
+                        <div className="flex items-center gap-3 mb-3">
+                            <span className="text-3xl">🎨</span>
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-800">Monte seu Mix</h2>
+                                <p className="text-sm text-gray-600">{product.descricao || 'Personalize do seu jeito!'}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-baseline gap-2 bg-white p-3 rounded-xl">
+                            <span className="text-sm text-gray-600">Preço base:</span>
+                            <span className="text-2xl font-bold text-pink-600">R$ {basePrice.toFixed(2)}</span>
+                        </div>
+                    </div>
+
+                    {/* Flavors Section (GRP-003) */}
+                    {flavorGroup && (
+                        <div className="mb-6">
+                            <div className="flex items-center gap-2 mb-4">
+                                <span className="text-2xl">🍓</span>
+                                <h3 className="text-lg font-bold text-gray-800">
+                                    {flavorGroup.name}
+                                    <span className="text-sm font-normal text-gray-500 ml-2">
+                                        (Escolha {flavorGroup.min} a {flavorGroup.max})
+                                    </span>
+                                </h3>
+                            </div>
+
+                            <AdditionGroup
+                                group={flavorGroup}
+                                selectedOptions={selectedOptionsByGroup[flavorGroup.id] || []}
+                                onSelectionChange={(optionId) => handleAdditionSelection(flavorGroup.id, optionId, flavorGroup)}
+                            />
+                        </div>
+                    )}
+
+                    {/* Other Addition Groups (Caldas, Toppings, etc.) */}
+                    {otherGroups && otherGroups.length > 0 && (
+                        <div className="space-y-4 mb-6">
+                            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                <span>🎨</span> Personalize ainda mais
+                            </h3>
+                            {otherGroups.map((group: any) => (
+                                <AdditionGroup
+                                    key={group.id}
+                                    group={group}
+                                    selectedOptions={selectedOptionsByGroup[group.id] || []}
+                                    onSelectionChange={(optionId) => handleAdditionSelection(group.id, optionId, group)}
+                                />
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Price Breakdown */}
+                    <div className="bg-gray-50 p-5 rounded-2xl mb-6 space-y-3 border border-gray-200">
+                        <h3 className="font-bold text-gray-800 mb-3">💰 Resumo do Pedido</h3>
+
+                        <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Base Mix:</span>
+                            <span className="font-semibold">R$ {basePrice.toFixed(2)}</span>
+                        </div>
+
+                        {selectedAdditions.length > 0 && (
+                            <div className="space-y-2 border-t pt-2">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-gray-600">Selecionados ({selectedAdditions.length}):</span>
+                                    <span className="font-semibold">R$ {additionsTotal.toFixed(2)}</span>
+                                </div>
+                                {selectedAdditions.map((add, idx) => (
+                                    <div key={idx} className="flex justify-between text-xs text-gray-500 ml-2">
+                                        <span>• {add.option_name}</span>
+                                        <span>R$ {add.option_price.toFixed(2)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        <div className="border-t pt-3 flex justify-between items-center">
+                            <span className="font-bold text-gray-800">Preço Unitário:</span>
+                            <span className="text-xl font-bold text-pink-600">R$ {unitPrice.toFixed(2)}</span>
+                        </div>
+                    </div>
+
+                    {/* Reviews */}
+                    {averageRating > 0 && (
+                        <div className="mb-24">
+                            <div className="flex items-center gap-2 mb-4">
+                                <RatingStars rating={averageRating} size="md" />
+                                <span className="text-sm text-gray-600">
+                                    ({reviews.length} {reviews.length === 1 ? 'avaliação' : 'avaliações'})
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Footer Actions */}
+                    <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 p-4 pb-8 flex items-center gap-4 z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+
+                        {/* Quantity Selector */}
+                        <div className="flex items-center bg-gray-100 rounded-xl px-3 py-2 h-14">
+                            <button
+                                onClick={handleDecrement}
+                                className="w-8 text-xl font-bold text-gray-500 hover:text-pink-600 transition"
+                            >
+                                −
+                            </button>
+                            <span className="w-8 text-center font-bold text-gray-800 text-lg">{quantity}</span>
+                            <button
+                                onClick={handleIncrement}
+                                className="w-8 text-xl font-bold text-gray-500 hover:text-pink-600 transition"
+                            >
+                                +
+                            </button>
+                        </div>
+
+                        <ShareButton product={product} variant="icon" />
+
+                        {/* Add to Cart Button */}
+                        <button
+                            onClick={handleAddToCart}
+                            className="flex-1 h-14 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold rounded-xl shadow-lg shadow-pink-200 hover:opacity-90 transition flex justify-between items-center px-6 active:scale-95"
+                        >
+                            <span>🛒 Adicionar</span>
+                            <span className="bg-white/20 px-2 py-1 rounded text-sm">
+                                R$ {totalPrice.toFixed(2)}
+                            </span>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        );
+    }
+    // ============================================
+    // END MIX HANDLING - Continue with regular product flow
+    // ============================================
 
     return (
         <div className="min-h-screen bg-white flex flex-col relative animate-in slide-in-from-right duration-300">

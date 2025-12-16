@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { API } from '../../services/api';
 
 interface ProfileViewProps {
@@ -12,6 +12,37 @@ export default function ProfileView({ user, onLogout, onNavigate, onUpdateUser }
     const currentUser = user || { name: 'Visitante', phone: '', points: 0 };
     const safePoints = isNaN(currentUser.points) ? 0 : currentUser.points;
     const inviteCode = currentUser.inviteCode || '---';
+
+    // Raffle state
+    const [raffleData, setRaffleData] = useState<any>(null);
+    const [loadingRaffle, setLoadingRaffle] = useState(false);
+
+    // Resolve user ID consistently with page.tsx logic
+    const userId = currentUser?.isGuest ? 'GUEST' : (currentUser.id || currentUser.ID_Cliente || 'GUEST');
+
+    // Load raffle data
+    useEffect(() => {
+        console.log('🎬 [ProfileView] User ID:', userId, 'Full user:', currentUser);
+        if (userId && userId !== 'GUEST') {
+            loadRaffleData();
+        }
+    }, [userId]);
+
+    const loadRaffleData = async () => {
+        setLoadingRaffle(true);
+        try {
+            console.log('🎬 [ProfileView] Calling getMinhasChances with ID:', userId);
+            const data = await API.getMinhasChances(userId);
+            console.log('🎬 [ProfileView] API Response:', data);
+            if (data.success) {
+                setRaffleData(data);
+            }
+        } catch (error) {
+            console.error('Error loading raffle data:', error);
+        } finally {
+            setLoadingRaffle(false);
+        }
+    };
 
     const getLevelInfo = (pts: number) => {
         if (pts >= 1000) return { name: '💎 Platina', color: 'from-cyan-400 to-blue-500', next: 10000, max: true };
@@ -99,7 +130,72 @@ export default function ProfileView({ user, onLogout, onNavigate, onUpdateUser }
                 </button>
             </div>
 
+            {/* Raffle/Promotion Card */}
+            {currentUser.id && currentUser.id !== 'GUEST' && raffleData && raffleData.success && (
+                <div className="mx-6 mt-4 bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl p-5 shadow-lg">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-bold text-lg flex items-center gap-2">
+                            <span>🎬</span>
+                            <span>Promoção Cinema</span>
+                        </h3>
+                        {raffleData.numeros.length > 0 && (
+                            <span className="bg-yellow-400 text-purple-900 font-bold text-xs px-3 py-1 rounded-full">
+                                {raffleData.numeros.length} {raffleData.numeros.length === 1 ? 'número' : 'números'}
+                            </span>
+                        )}
+                    </div>
 
+                    {/* Progress */}
+                    <div className="bg-white/20 rounded-xl p-3 mb-3">
+                        <div className="flex justify-between text-sm mb-2">
+                            <span className="opacity-90">Gasto acumulado:</span>
+                            <span className="font-bold">R$ {raffleData.gastoAtual.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm mb-2">
+                            <span className="opacity-90">Faltam para próximo:</span>
+                            <span className="font-bold">R$ {raffleData.faltam.toFixed(2)}</span>
+                        </div>
+                        <div className="bg-white/30 rounded-full h-2.5 overflow-hidden mt-2">
+                            <div
+                                className="bg-yellow-400 h-full transition-all duration-500"
+                                style={{ width: `${((raffleData.gastoAtual % raffleData.metaAtual) / raffleData.metaAtual) * 100}%` }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Numbers */}
+                    {raffleData.numeros.length > 0 ? (
+                        <div>
+                            <p className="text-xs opacity-75 mb-2">Seus números da sorte:</p>
+                            <div className="grid grid-cols-4 gap-2">
+                                {raffleData.numeros.slice(0, 8).map((numero: any, index: number) => (
+                                    <div
+                                        key={index}
+                                        className={`
+                                            rounded-lg p-2 text-center font-bold text-sm
+                                            ${numero.ganhou
+                                                ? 'bg-yellow-400 text-purple-900'
+                                                : 'bg-white/20 text-white'
+                                            }
+                                        `}
+                                    >
+                                        {numero.numero}
+                                    </div>
+                                ))}
+                            </div>
+                            {raffleData.numeros.length > 8 && (
+                                <p className="text-xs opacity-75 mt-2 text-center">
+                                    +{raffleData.numeros.length - 8} mais
+                                </p>
+                            )}
+                        </div>
+                    ) : (
+                        <p className="text-sm opacity-90 text-center">
+                            Compre mais R$ 18,00 para ganhar sua primeira chance! 🎁
+                        </p>
+                    )}
+                </div>
+            )}
 
             {/* Menu */}
             <div className="px-6 space-y-3 mt-6">

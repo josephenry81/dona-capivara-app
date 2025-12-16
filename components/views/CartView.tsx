@@ -26,6 +26,8 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
     const [referralCode, setReferralCode] = useState('');
     const [couponCode, setCouponCode] = useState('');
     const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+    const [couponLoading, setCouponLoading] = useState(false);
+    const [couponFeedback, setCouponFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
     const [bonusPoints, setBonusPoints] = useState(0);
     const [paymentMethod, setPaymentMethod] = useState('');
     const [deliveryType, setDeliveryType] = useState<'CONDO' | 'NEIGHBOR' | 'FAR'>('CONDO');
@@ -138,14 +140,45 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
     const totalPointsEarned = Math.floor(total) + bonusPoints;
 
     const handleApplyCoupon = async () => {
-        if (!couponCode) return;
-        const res = await API.validateCoupon(couponCode);
-        if (res.success) {
-            setAppliedCoupon(res);
-            alert(`✅ Cupom aplicado: ${res.type === 'PORCENTAGEM' ? res.value + '%' : 'R$ ' + res.value}`);
-        } else {
+        if (!couponCode.trim()) {
+            setCouponFeedback({ type: 'error', message: 'Digite um código de cupom' });
+            setTimeout(() => setCouponFeedback(null), 3000);
+            return;
+        }
+
+        setCouponLoading(true);
+        setCouponFeedback(null);
+
+        try {
+            const res = await API.validateCoupon(couponCode);
+
+            if (res.success) {
+                setAppliedCoupon(res);
+                const discount = res.type === 'PORCENTAGEM' ? `${res.value}%` : `R$ ${res.value.toFixed(2)}`;
+                setCouponFeedback({
+                    type: 'success',
+                    message: `Cupom aplicado! Desconto de ${discount}`
+                });
+                // Clear success message after 5 seconds
+                setTimeout(() => setCouponFeedback(null), 5000);
+            } else {
+                setAppliedCoupon(null);
+                setCouponFeedback({
+                    type: 'error',
+                    message: res.message || 'Cupom inválido ou expirado'
+                });
+                // Clear error message after 4 seconds
+                setTimeout(() => setCouponFeedback(null), 4000);
+            }
+        } catch (error) {
             setAppliedCoupon(null);
-            alert(res.message || '❌ Cupom inválido');
+            setCouponFeedback({
+                type: 'error',
+                message: 'Erro ao validar cupom. Tente novamente.'
+            });
+            setTimeout(() => setCouponFeedback(null), 4000);
+        } finally {
+            setCouponLoading(false);
         }
     };
 
@@ -308,28 +341,67 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                         <input
                             type="text"
                             placeholder="Digite seu cupom"
-                            className="flex-1 p-2 bg-gray-50 border rounded-lg text-sm uppercase"
+                            className="flex-1 p-2 bg-gray-50 border rounded-lg text-sm uppercase disabled:opacity-50 disabled:cursor-not-allowed"
                             value={couponCode}
                             onChange={e => setCouponCode(e.target.value.toUpperCase())}
-                            disabled={!!appliedCoupon}
+                            disabled={!!appliedCoupon || couponLoading}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !appliedCoupon && !couponLoading) {
+                                    handleApplyCoupon();
+                                }
+                            }}
                         />
                         {appliedCoupon ? (
                             <button
-                                onClick={() => { setAppliedCoupon(null); setCouponCode(''); }}
+                                onClick={() => {
+                                    setAppliedCoupon(null);
+                                    setCouponCode('');
+                                    setCouponFeedback(null);
+                                    API.clearCouponCache(couponCode);
+                                }}
                                 className="bg-red-100 text-red-500 px-4 rounded-lg text-xs font-bold hover:bg-red-200 transition"
+                                disabled={couponLoading}
                             >
                                 ✕
                             </button>
                         ) : (
                             <button
                                 onClick={handleApplyCoupon}
-                                className="bg-[#FF4B82] text-white px-4 rounded-lg text-xs font-bold hover:opacity-90 transition"
+                                disabled={couponLoading || !couponCode.trim()}
+                                className="bg-[#FF4B82] text-white px-4 rounded-lg text-xs font-bold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed min-w-[80px] flex items-center justify-center gap-2"
                             >
-                                Aplicar
+                                {couponLoading ? (
+                                    <>
+                                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        <span>...</span>
+                                    </>
+                                ) : (
+                                    'Aplicar'
+                                )}
                             </button>
                         )}
                     </div>
-                    {appliedCoupon && <p className="text-green-500 text-xs mt-1 font-bold">✓ Cupom aplicado!</p>}
+
+                    {/* Inline Feedback Messages */}
+                    {couponFeedback && (
+                        <div
+                            className={`mt-2 p-2 rounded-lg text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1 ${couponFeedback.type === 'success'
+                                    ? 'bg-green-50 text-green-700 border border-green-200'
+                                    : 'bg-red-50 text-red-700 border border-red-200'
+                                }`}
+                        >
+                            <span className="text-base">
+                                {couponFeedback.type === 'success' ? '✓' : '⚠️'}
+                            </span>
+                            <span>{couponFeedback.message}</span>
+                        </div>
+                    )}
+
+                    {appliedCoupon && !couponFeedback && (
+                        <p className="text-green-500 text-xs mt-2 font-bold flex items-center gap-1">
+                            <span className="text-base">✓</span> Cupom aplicado!
+                        </p>
+                    )}
                 </div>
 
                 {/* Scheduling */}

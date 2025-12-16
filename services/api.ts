@@ -132,11 +132,83 @@ export const API = {
             return await response.json();
         } catch (e) { return { success: false }; }
     },
-    async validateCoupon(code: string) {
+    // ========================================
+    // COUPON VALIDATION WITH CACHE
+    // ========================================
+
+    _couponsCache: new Map<string, { data: any; timestamp: number }>(),
+    _couponCacheTTL: 5 * 60 * 1000, // 5 minutes
+
+    async validateCoupon(code: string, useCache = true) {
+        const normalizedCode = code.trim().toUpperCase();
+
+        // Check cache first
+        if (useCache) {
+            const cached = this._couponsCache.get(normalizedCode);
+            if (cached && Date.now() - cached.timestamp < this._couponCacheTTL) {
+                console.log(`⚡ [Cache HIT] Cupom ${normalizedCode} - Validação instantânea!`);
+                return cached.data;
+            }
+        }
+
+        // Fetch from server
+        console.log(`🌐 [Cache MISS] Validando cupom ${normalizedCode}`);
+
         try {
-            const response = await fetch(`${API_URL}?action=validateCoupon&code=${code}`);
-            return await response.json();
-        } catch (e) { return { success: false }; }
+            const response = await fetch(`${API_URL}?action=validateCoupon&code=${normalizedCode}`, {
+                signal: AbortSignal.timeout(10000) // 10 second timeout
+            });
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            const data = await response.json();
+
+            // Only cache successful validations
+            if (data.success) {
+                this._couponsCache.set(normalizedCode, {
+                    data,
+                    timestamp: Date.now()
+                });
+                console.log(`✅ [Cache STORE] Cupom ${normalizedCode} armazenado`);
+            }
+
+            return data;
+        } catch (e) {
+            console.error('❌ [Coupon Validation Error]:', e);
+            return {
+                success: false,
+                message: e instanceof Error && e.name === 'TimeoutError'
+                    ? 'Timeout ao validar cupom. Tente novamente.'
+                    : 'Erro ao validar cupom. Verifique sua conexão.'
+            };
+        }
+    },
+
+    /**
+     * Prefetch coupon validation (background, non-blocking)
+     * Use for optimistic validation
+     */
+    prefetchCoupon(code: string) {
+        this.validateCoupon(code, true).catch(() => {
+            // Silent fail - it's just a prefetch
+        });
+    },
+
+    /**
+     * Clear coupon cache
+     * @param code - Optional: clear specific coupon, or all if omitted
+     */
+    clearCouponCache(code?: string) {
+        if (code) {
+            const normalized = code.trim().toUpperCase();
+            this._couponsCache.delete(normalized);
+            console.log(`🗑️ [Cache CLEAR] Cupom ${normalized} removido`);
+        } else {
+            this._couponsCache.clear();
+            console.log('🗑️ [Cache CLEAR] Todos os cupons removidos');
+        }
     },
     async syncFavorites(phone: string, favorites: string[]) {
         try { await fetch(API_URL + '?action=updateFavorites', { method: 'POST', body: JSON.stringify({ phone, favorites: favorites.join(',') }) }); } catch (e) { }
@@ -331,21 +403,13 @@ export const API = {
     // ========================================
 
     /**
-     * Get product with addition groups and options
+     * OPTIMIZED: Get product with additions (now with cache - see line 426)
+     * This method has been moved below with caching support
      */
-    async getProductWithAdditions(productId: string) {
-        try {
-            const response = await fetch(
-                `${API_URL}?action=getProductWithAdditions&productId=${productId}&_t=${Date.now()}`
-            );
-            const data = await response.json();
-            return data;
-        } catch (e) {
-            console.error('Error fetching product with additions:', e);
-            return null;
-        }
-    },
 
+    /**
+     * Server-side price calculation and validation
+     */
     /**
      * Server-side price calculation and validation
      */
@@ -364,6 +428,223 @@ export const API = {
         } catch (e) {
             console.error('Error calculating price:', e);
             return { success: false, error: 'Erro ao calcular preço' };
+        }
+    },
+
+    // ========================================
+    // MIX DE GELADINHOS API FUNCTIONS
+    // ========================================
+
+    /**
+     * Get mix product with available flavors and addition groups
+     */
+    async getMixWithFlavorAndAdditions(mixId: string) {
+        try {
+            const response = await fetch(
+                `${API_URL}?action=getMixWithFlavorAndAdditions&mixId=${mixId}&_t=${Date.now()}`
+            );
+            const data = await response.json();
+            return data;
+        } catch (e) {
+            console.error('Error fetching mix:', e);
+            return null;
+        }
+    },
+
+    /**
+     * Validate and calculate mix price on backend
+     */
+    async calculateMixPrice(data: {
+        mixId: string;
+        selectedFlavors: string[];
+        selectedAdditions: any[];
+        quantity: number;
+    }) {
+        try {
+            const response = await fetch(API_URL + '?action=calculateMixPrice', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            return result;
+        } catch (e) {
+            console.error('Error calculating mix price:', e);
+            return { success: false, error: 'Erro ao calcular preço do mix' };
+        }
+    },
+
+    // ⚡ ========================================
+    // PERFORMANCE OPTIMIZATION - CACHE SYSTEM
+    // ========================================
+
+    _additionsCache: new Map<string, { data: any; timestamp: number }>(),
+    _cacheTTL: 5 * 60 * 1000, // 5 minutes
+
+    /**
+     * Get product with additions (OPTIMIZED with intelligent caching)
+     */
+    async getProductWithAdditions(productId: string, useCache = true) {
+        // Check cache first
+        if (useCache) {
+            const cached = this._additionsCache.get(productId);
+            if (cached && Date.now() - cached.timestamp < this._cacheTTL) {
+                console.log(`⚡ [Cache HIT] Product ${productId} - Instant load!`);
+                return cached.data;
+            }
+        }
+
+        // Fetch from server
+        console.log(`🌐 [Cache MISS] Fetching product ${productId}`);
+        const url = `${API_URL}?action=getProductWithAdditions&productId=${productId}&_t=${Date.now()}`;
+
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+
+            // Store in cache for future requests
+            this._additionsCache.set(productId, {
+                data,
+                timestamp: Date.now()
+            });
+
+            return data;
+        } catch (error) {
+            console.error('Error fetching product additions:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Prefetch product additions (background, non-blocking)
+     * Use for hover optimization
+     */
+    prefetchProductAdditions(productId: string) {
+        this.getProductWithAdditions(productId, true).catch(() => {
+            // Silent fail - it's just a prefetch
+        });
+    },
+
+    /**
+     * Clear additions cache
+     * @param productId - Optional: clear specific product, or all if omitted
+     */
+    clearAdditionsCache(productId?: string) {
+        if (productId) {
+            this._additionsCache.delete(productId);
+            console.log(`🗑️ [Cache CLEAR] Cleared ${productId}`);
+        } else {
+            this._additionsCache.clear();
+            console.log('🗑️ [Cache CLEAR] Cleared all cache');
+        }
+    },
+
+    // ========================================
+    // CINEMA PROMOTION / RAFFLE SYSTEM
+    // ========================================
+
+    /**
+     * Get customer's raffle numbers and promotion progress
+     */
+    async getMinhasChances(customerId: string) {
+        try {
+            const timestamp = Date.now();
+            const response = await fetch(
+                `${API_URL}?action=getMinhasChances&customerId=${customerId}&_t=${timestamp}`
+            );
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error fetching raffle chances:', error);
+            return {
+                success: false,
+                numeros: [],
+                gastoAtual: 0,
+                metaAtual: 18,
+                faltam: 18
+            };
+        }
+    },
+
+    /**
+     * [ADMIN] Get all participants in a promotion/raffle
+     */
+    async getParticipantesSorteio(promoId: string, adminKey: string) {
+        try {
+            const timestamp = Date.now();
+            const response = await fetch(
+                `${API_URL}?action=getParticipantesSorteio&promoId=${promoId}&adminKey=${adminKey}&_t=${timestamp}`,
+                { cache: 'no-store' }
+            );
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error fetching participants:', error);
+            return {
+                success: false,
+                message: 'Erro ao buscar participantes'
+            };
+        }
+    },
+
+    /**
+     * [ADMIN] Perform raffle draw and select winner
+     */
+    async realizarSorteio(promoId: string, adminKey: string) {
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'realizarSorteio',
+                    promoId,
+                    adminKey
+                })
+            });
+            const data = await response.json();
+            console.log('🎉 [API] Sorteio realizado:', data);
+            return data;
+        } catch (error) {
+            console.error('Error performing raffle:', error);
+            return {
+                success: false,
+                message: 'Erro ao realizar sorteio'
+            };
+        }
+    },
+
+    /**
+     * [ADMIN] Award prize to raffle winner
+     */
+    async concederPremio(
+        sorteioId: string,
+        tipoPremio: string,
+        adminKey: string,
+        valorPremio?: number,
+        codigoCupom?: string
+    ) {
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'concederPremio',
+                    sorteioId,
+                    tipoPremio,
+                    valorPremio: valorPremio || 0,
+                    codigoCupom: codigoCupom || '',
+                    adminKey
+                })
+            });
+            const data = await response.json();
+            console.log('🎁 [API] Prêmio concedido:', data);
+            return data;
+        } catch (error) {
+            console.error('Error awarding prize:', error);
+            return {
+                success: false,
+                message: 'Erro ao conceder prêmio'
+            };
         }
     }
 };
