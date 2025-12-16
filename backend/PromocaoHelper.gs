@@ -1,6 +1,63 @@
 // ======================================================
-// PROMOCAO HELPER - SISTEMA DE SORTEIOS CINEMA
+// PROMOCAO HELPER - SISTEMA DE SORTEIOS CONFIGURÁVEL
 // ======================================================
+
+/**
+ * Obtém a configuração ativa da promoção
+ * 
+ * @returns {object} Configuração da promoção ativa
+ */
+function getPromoConfig() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const configSheet = ss.getSheetByName('CONFIGURACAO_PROMO');
+  
+  // Se não encontrar a sheet, retorna configuração padrão
+  if (!configSheet) {
+    Logger.log('⚠️ Sheet CONFIGURACAO_PROMO não encontrada, usando valores padrão');
+    return {
+      id: 'PROMO_DEFAULT',
+      nome: 'Promoção Cinema',
+      icone: '🎬',
+      descricao: 'Ganhe ingressos comprando!',
+      valorMeta: 18,
+      mensagemProgresso: 'Faltam para próxima chance',
+      mensagemSemNumeros: 'Compre para ganhar sua primeira chance!',
+      ativa: true
+    };
+  }
+  
+  const configs = sheetToJSON(configSheet);
+  
+  // Procura a primeira promoção ativa
+  const promoAtiva = configs.find(c => 
+    String(c.Promocao_Ativa).toUpperCase() === 'TRUE'
+  );
+  
+  if (!promoAtiva) {
+    Logger.log('⚠️ Nenhuma promoção ativa encontrada, usando valores padrão');
+    return {
+      id: 'PROMO_DEFAULT',
+      nome: 'Promoção',
+      icone: '🎁',
+      descricao: 'Participe da promoção!',
+      valorMeta: 18,
+      mensagemProgresso: 'Faltam',
+      mensagemSemNumeros: 'Faça compras para participar!',
+      ativa: false
+    };
+  }
+  
+  return {
+    id: promoAtiva.ID_Config || 'PROMO_DEFAULT',
+    nome: promoAtiva.Nome_Promocao || 'Promoção',
+    icone: promoAtiva.Icone || '🎁',
+    descricao: promoAtiva.Descricao_Curta || '',
+    valorMeta: Number(promoAtiva.Valor_Meta || 18),
+    mensagemProgresso: promoAtiva.Mensagem_Progresso || 'Faltam',
+    mensagemSemNumeros: promoAtiva.Mensagem_Sem_Numeros || 'Participe!',
+    ativa: true
+  };
+}
 
 /**
  * Atualiza o gasto acumulado do cliente e registra número da sorte
@@ -34,8 +91,11 @@ function atualizarGastoPromoClienteComRegistroSorteio(customerId, valorCompra) {
   const gastoAtual = Number(cliente.Gasto_Acumulado_Promo || 0);
   const novoGasto = gastoAtual + valorCompra;
   
+  // Pega configuração da promoção para obter o valor da meta
+  const promoConfig = getPromoConfig();
+  const META_POR_NUMERO = promoConfig.valorMeta;
+  
   // Calcula quantos números da sorte o cliente ganhou
-  const META_POR_NUMERO = 18.00;
   const numerosGanhos = Math.floor(novoGasto / META_POR_NUMERO);
   const numerosAnteriores = Math.floor(gastoAtual / META_POR_NUMERO);
   const novosNumeros = numerosGanhos - numerosAnteriores;
@@ -60,7 +120,7 @@ function atualizarGastoPromoClienteComRegistroSorteio(customerId, valorCompra) {
   
   // Registra novos números da sorte
   const numerosRegistrados = [];
-  const promoId = 'PROMO_CINEMA_2025'; // ID da promoção atual
+  const promoId = promoConfig.id; // ID da promoção atual (dinâmico)
   
   for (let i = 0; i < novosNumeros; i++) {
     const numeroSorte = gerarNumeroSorte(promoId);
@@ -98,17 +158,18 @@ function atualizarGastoPromoClienteComRegistroSorteio(customerId, valorCompra) {
 }
 
 /**
- * Gera um número único de 6 dígitos para o sorteio
+ * Gera um código único de 5 caracteres alfanuméricos para o sorteio
+ * Formato: Mistura de letras e números, sem repetições, sem sequências
  * 
  * @param {string} promoId - ID da promoção
- * @returns {string} Número da sorte formatado
+ * @returns {string} Código da sorte formatado (ex: "A7K3M")
  */
 function gerarNumeroSorte(promoId) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sorteiosSheet = ss.getSheetByName('SORTEIOS');
   
   if (!sorteiosSheet) {
-    return String(Math.floor(100000 + Math.random() * 900000));
+    return gerarCodigoAleatorio();
   }
   
   const sorteios = sheetToJSON(sorteiosSheet);
@@ -116,22 +177,56 @@ function gerarNumeroSorte(promoId) {
     .filter(s => String(s.ID_Promo).trim() === String(promoId).trim())
     .map(s => String(s.Numero_Sorte));
   
-  // Tenta gerar um número único
+  // Tenta gerar um código único
   let tentativas = 0;
-  let numeroSorte;
+  let codigo;
   
   do {
-    numeroSorte = String(Math.floor(100000 + Math.random() * 900000));
+    codigo = gerarCodigoAleatorio();
     tentativas++;
     
-    if (tentativas > 100) {
-      // Fallback: adiciona timestamp
-      numeroSorte = String(Date.now()).slice(-6);
+    if (tentativas > 1000) {
+      // Fallback: adiciona timestamp no final
+      codigo = gerarCodigoAleatorio() + String(Date.now()).slice(-2);
       break;
     }
-  } while (numerosExistentes.includes(numeroSorte));
+  } while (numerosExistentes.includes(codigo));
   
-  return numeroSorte;
+  return codigo;
+}
+
+/**
+ * Gera código aleatório de 5 caracteres (letras + números)
+ * Sem repetições e sem sequências previsíveis
+ */
+function gerarCodigoAleatorio() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Remove I, O, 0, 1 para evitar confusão
+  const usados = new Set();
+  let codigo = '';
+  
+  while (codigo.length < 5) {
+    const idx = Math.floor(Math.random() * chars.length);
+    const char = chars[idx];
+    
+    if (!usados.has(char)) {
+      // Verifica se não forma sequência
+      if (codigo.length > 0) {
+        const ultimo = codigo[codigo.length - 1];
+        const indexUltimo = chars.indexOf(ultimo);
+        const indexAtual = chars.indexOf(char);
+        
+        // Evita sequências consecutivas (diferença de 1)
+        if (Math.abs(indexAtual - indexUltimo) === 1) {
+          continue;
+        }
+      }
+      
+      usados.add(char);
+      codigo += char;
+    }
+  }
+  
+  return codigo;
 }
 
 /**

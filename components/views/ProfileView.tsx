@@ -131,12 +131,12 @@ export default function ProfileView({ user, onLogout, onNavigate, onUpdateUser }
             </div>
 
             {/* Raffle/Promotion Card */}
-            {currentUser.id && currentUser.id !== 'GUEST' && raffleData && raffleData.success && (
+            {currentUser.id && currentUser.id !== 'GUEST' && raffleData && raffleData.success && raffleData.config?.ativa && (
                 <div className="mx-6 mt-4 bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl p-5 shadow-lg">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="font-bold text-lg flex items-center gap-2">
-                            <span>🎬</span>
-                            <span>Promoção Cinema</span>
+                            <span>{raffleData.config?.icone || '🎁'}</span>
+                            <span>{raffleData.config?.nome || 'Promoção'}</span>
                         </h3>
                         {raffleData.numeros.length > 0 && (
                             <span className="bg-yellow-400 text-purple-900 font-bold text-xs px-3 py-1 rounded-full">
@@ -145,6 +145,10 @@ export default function ProfileView({ user, onLogout, onNavigate, onUpdateUser }
                         )}
                     </div>
 
+                    {raffleData.config?.descricao && (
+                        <p className="text-xs opacity-90 mb-3">{raffleData.config.descricao}</p>
+                    )}
+
                     {/* Progress */}
                     <div className="bg-white/20 rounded-xl p-3 mb-3">
                         <div className="flex justify-between text-sm mb-2">
@@ -152,7 +156,7 @@ export default function ProfileView({ user, onLogout, onNavigate, onUpdateUser }
                             <span className="font-bold">R$ {raffleData.gastoAtual.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between text-sm mb-2">
-                            <span className="opacity-90">Faltam para próximo:</span>
+                            <span className="opacity-90">{raffleData.config?.mensagemProgresso || 'Faltam para próximo'}:</span>
                             <span className="font-bold">R$ {raffleData.faltam.toFixed(2)}</span>
                         </div>
                         <div className="bg-white/30 rounded-full h-2.5 overflow-hidden mt-2">
@@ -191,7 +195,7 @@ export default function ProfileView({ user, onLogout, onNavigate, onUpdateUser }
                         </div>
                     ) : (
                         <p className="text-sm opacity-90 text-center">
-                            Compre mais R$ 18,00 para ganhar sua primeira chance! 🎁
+                            {raffleData.config?.mensagemSemNumeros || `Compre mais R$ ${raffleData.metaAtual.toFixed(2)} para ganhar sua primeira chance! 🎁`}
                         </p>
                     )}
                 </div>
