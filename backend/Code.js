@@ -58,6 +58,9 @@ function handleRequest(e) {
       case 'getMixWithFlavorAndAdditions': result = getMixWithFlavorAndAdditions(e.parameter.mixId); break;
       case 'calculateMixPrice': result = calculateMixPrice(data); break;
 
+      // --- PROMOTION/RAFFLE SYSTEM ---
+      case 'getMinhasChances': result = getMinhasChances(e.parameter.customerId); break;
+
       default: result = { error: 'Ação inválida' };
     }
 
@@ -972,4 +975,73 @@ function gerarCodigoAleatorio() {
     }
   }
   return codigo;
+}
+
+function getMinhasChances(customerId) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const clientesSheet = ss.getSheetByName('CLIENTES');
+  const sorteiosSheet = ss.getSheetByName('SORTEIOS');
+
+  if (!clientesSheet || !sorteiosSheet) {
+    return {
+      success: false,
+      message: 'Sistema de promoção não configurado'
+    };
+  }
+
+  const promoConfig = getPromoConfig();
+
+  // Se a promoção não está ativa, retornar early
+  if (!promoConfig.ativa) {
+    return {
+      success: true,
+      promocao: promoConfig,
+      numeros: [],
+      gastoAtual: 0,
+      metaAtual: promoConfig.valorMeta,
+      faltam: promoConfig.valorMeta
+    };
+  }
+
+  // Buscar dados do cliente
+  const clientes = sheetToJSON(clientesSheet);
+  const cliente = clientes.find(c => String(c.ID_Cliente).trim() === String(customerId).trim());
+
+  if (!cliente) {
+    return {
+      success: false,
+      message: 'Cliente não encontrado'
+    };
+  }
+
+  const gastoAtual = Number(cliente.Gasto_Acumulado_Promo || 0);
+  const META_POR_NUMERO = promoConfig.valorMeta;
+  const numerosTotais = Math.floor(gastoAtual / META_POR_NUMERO);
+  const proximaMeta = (numerosTotais + 1) * META_POR_NUMERO;
+  const faltam = proximaMeta - gastoAtual;
+
+  // Buscar números do sorteio do cliente
+  const sorteios = sheetToJSON(sorteiosSheet);
+  const numeros = sorteios
+    .filter(s =>
+      String(s.ID_Cliente).trim() === String(customerId).trim() &&
+      String(s.ID_Promo).trim() === String(promoConfig.id).trim() &&
+      String(s.Status).toUpperCase() === 'ATIVO'
+    )
+    .map(s => ({
+      id: s.ID_Sorteio,
+      numero: s.Numero_Sorte,
+      data: s.Data_Registro
+    }))
+    .sort((a, b) => new Date(b.data) - new Date(a.data));
+
+  return {
+    success: true,
+    promocao: promoConfig,
+    numeros: numeros,
+    gastoAtual: gastoAtual,
+    metaAtual: META_POR_NUMERO,
+    faltam: Math.max(0, faltam),
+    proximoNumero: numerosTotais + 1
+  };
 }
