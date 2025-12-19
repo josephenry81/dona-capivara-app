@@ -1,4 +1,39 @@
+# Dependencies
 node_modules
+
+# Next.js build
 .next
+out
+
+# Environment variables
 .env
+.env.local
+.env.production
+
+# PWA Service Workers (auto-generated)
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+public/workbox-*.js.map
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+build_log.txt
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

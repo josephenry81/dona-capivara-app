@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import Image from 'next/image';
 import { API } from '../../services/api';
 import CartItemAdditions from '../cart/CartItemAdditions';
 import { useModal } from '../ui/Modal';
@@ -20,11 +21,12 @@ interface CartViewProps {
     cart: Product[];
     user: any;
     addToCart: (product: any) => void;
+    decreaseQuantity: (item: any) => void;
     removeFromCart: (productId: string) => void;
     onSubmitOrder: (orderData: any) => void;
 }
 
-export default function CartView({ cart, user, addToCart, removeFromCart, onSubmitOrder }: CartViewProps) {
+export default function CartView({ cart, user, addToCart, decreaseQuantity, removeFromCart, onSubmitOrder }: CartViewProps) {
     const [referralCode, setReferralCode] = useState('');
     const [couponCode, setCouponCode] = useState('');
     const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
@@ -113,36 +115,46 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
     }, []);
 
     // --- CALCULATIONS ---
+    // ⚡ MEMOIZED: Expensive calculations only run when dependencies change
     // Updated to account for items with additions
-    const subtotal = cart.reduce((acc, item) => {
-        const itemPrice = item.unit_price || item.price; // Use unit_price if has additions
-        return acc + (itemPrice * item.quantity);
-    }, 0);
+    const subtotal = useMemo(() => {
+        return cart.reduce((acc, item) => {
+            const itemPrice = item.unit_price || item.price; // Use unit_price if has additions
+            return acc + (itemPrice * item.quantity);
+        }, 0);
+    }, [cart]);
+
     const deliveryFee = deliveryType === 'FAR' ? 5.00 : 0.00;
     const userPoints = user?.points || 0;
     const isGoldPlus = userPoints >= 500;
 
-    let couponDiscount = 0;
-    if (appliedCoupon) {
-        couponDiscount = appliedCoupon.type === 'PORCENTAGEM' ? subtotal * (appliedCoupon.value / 100) : appliedCoupon.value;
-    }
+    const couponDiscount = useMemo(() => {
+        if (!appliedCoupon) return 0;
+        return appliedCoupon.type === 'PORCENTAGEM'
+            ? subtotal * (appliedCoupon.value / 100)
+            : appliedCoupon.value;
+    }, [appliedCoupon, subtotal]);
 
-    let discountValue = 0;
-    let pointsRedeemed = 0;
-    if (usePoints && isGoldPlus) {
+    const { discountValue, pointsRedeemed } = useMemo(() => {
+        if (!usePoints || !isGoldPlus) return { discountValue: 0, pointsRedeemed: 0 };
+
         const maxDiscount = (subtotal - couponDiscount) * 0.5;
         const ptsDiscount = Math.floor(Math.min(maxDiscount, userPoints / 20));
+
         if (ptsDiscount > 0) {
-            discountValue = ptsDiscount;
-            pointsRedeemed = ptsDiscount * 20;
+            return { discountValue: ptsDiscount, pointsRedeemed: ptsDiscount * 20 };
         }
-    }
+        return { discountValue: 0, pointsRedeemed: 0 };
+    }, [usePoints, isGoldPlus, subtotal, couponDiscount, userPoints]);
 
-    const totalDiscount = couponDiscount + discountValue;
-    const total = Math.max(0, subtotal + deliveryFee - totalDiscount);
-    const totalPointsEarned = Math.floor(total) + bonusPoints;
+    const totalDiscount = useMemo(() => couponDiscount + discountValue, [couponDiscount, discountValue]);
 
-    const handleApplyCoupon = async () => {
+    const total = useMemo(() => Math.max(0, subtotal + deliveryFee - totalDiscount), [subtotal, deliveryFee, totalDiscount]);
+
+    const totalPointsEarned = useMemo(() => Math.floor(total) + bonusPoints, [total, bonusPoints]);
+
+    // ⚡ MEMOIZED: Coupon validation
+    const handleApplyCoupon = useCallback(async () => {
         if (!couponCode.trim()) {
             setCouponFeedback({ type: 'error', message: 'Digite um código de cupom' });
             setTimeout(() => setCouponFeedback(null), 3000);
@@ -183,7 +195,7 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
         } finally {
             setCouponLoading(false);
         }
-    };
+    }, [couponCode, API, setAppliedCoupon, setCouponFeedback, setCouponLoading]);
 
     const handleInputChange = (e: any) => {
         const { name, value } = e.target;
@@ -281,7 +293,16 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                             className="bg-white p-4 rounded-2xl shadow-sm flex gap-4 items-start transition-all hover:shadow-md"
                             style={{ animationDelay: `${index * 50}ms` }}
                         >
-                            <img src={item.imagem} className="w-16 h-16 rounded-xl object-cover bg-gray-100" alt={item.nome} loading="lazy" />
+                            <div className="relative w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100">
+                                <Image
+                                    src={item.imagem || 'https://via.placeholder.com/150'}
+                                    alt={item.nome}
+                                    fill
+                                    sizes="64px"
+                                    className="object-cover"
+                                    quality={75}
+                                />
+                            </div>
                             <div className="flex-1">
                                 <h3 className="font-bold text-gray-800 text-sm">{item.nome}</h3>
                                 <p className="text-[#FF4B82] font-bold">
@@ -301,7 +322,7 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                             </div>
                             <div className="flex items-center gap-3 bg-gray-50 rounded-lg px-2 py-1">
                                 <button
-                                    onClick={() => removeFromCart(item.cart_item_id || item.id)}
+                                    onClick={() => decreaseQuantity(item)}
                                     className="text-gray-400 font-bold w-8 h-8 flex items-center justify-center hover:bg-red-50 hover:text-red-500 rounded transition"
                                 >
                                     -

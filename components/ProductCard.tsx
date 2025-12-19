@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { useModal } from './ui/Modal';
 
 
@@ -82,10 +83,13 @@ export default function ProductCard({ product, isFavorite, onToggleFavorite, onA
                 onClick={() => onProductClick?.(product)}
                 className="w-full h-40 bg-gray-100 relative cursor-pointer overflow-hidden"
             >
-                <img
+                <Image
                     src={product.imagem || 'https://via.placeholder.com/150'}
                     alt={product.nome}
-                    className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${!hasStock ? 'grayscale' : ''}`}
+                    fill
+                    sizes="(max-width: 768px) 50vw, 300px"
+                    className={`object-cover transition-transform duration-500 group-hover:scale-110 ${!hasStock ? 'grayscale' : ''}`}
+                    quality={75}
                 />
             </div>
 

@@ -3,7 +3,26 @@ const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || '';
 
 export const API = {
 
-    async fetchCatalogData() {
+    // ========================================
+    // CATALOG CACHE (10 min TTL)
+    // ========================================
+    _catalogCache: null as { data: any; timestamp: number } | null,
+    _catalogTTL: 10 * 60 * 1000, // 10 minutes
+
+    async fetchCatalogData(useCache = true) {
+        // Check cache first
+        if (useCache && this._catalogCache) {
+            const age = Date.now() - this._catalogCache.timestamp;
+            if (age < this._catalogTTL) {
+                console.log(`⚡ [Catalog Cache HIT] Age: ${Math.round(age/1000)}s - Instant load!`);
+                return this._catalogCache.data;
+            } else {
+                console.log(`🕒 [Catalog Cache EXPIRED] Age: ${Math.round(age/1000)}s - Refetching...`);
+            }
+        }
+
+        // Fetch from API
+        console.log('🌐 [Catalog Cache MISS] Fetching from Google Sheets...');
         try {
             if (!API_URL) throw new Error("API URL missing");
             const timestamp = Date.now();
@@ -48,7 +67,16 @@ export const API = {
 
             console.log(`✅ [API] ${banners.length} banners carregados:`, banners);
 
-            return { products, categories, banners };
+            const catalogData = { products, categories, banners };
+
+            // Store in cache
+            this._catalogCache = {
+                data: catalogData,
+                timestamp: Date.now()
+            };
+            console.log('✅ [Catalog Cache STORED] Valid for 10 minutes');
+
+            return catalogData;
         } catch (error) {
             console.error('❌ [API] Error fetching catalog:', error);
             return { products: [], categories: [], banners: [] };
@@ -564,6 +592,26 @@ export const API = {
             this._additionsCache.clear();
             console.log('🗑️ [Cache CLEAR] Cleared all cache');
         }
+    },
+
+    /**
+     * Clear catalog cache
+     * Used by Force Update button in ProfileView
+     */
+    clearCatalogCache() {
+        this._catalogCache = null;
+        console.log('🗑️ [Catalog Cache CLEAR] Cache invalidated');
+    },
+
+    /**
+     * Clear all caches (catalog + coupons + additions)
+     * Nuclear option for troubleshooting
+     */
+    clearAllCaches() {
+        this._catalogCache = null;
+        this._couponsCache.clear();
+        this._additionsCache.clear();
+        console.log('🗑️ [ALL CACHES CLEARED] Complete cache flush');
     },
 
     // ========================================

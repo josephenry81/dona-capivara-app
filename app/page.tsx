@@ -1,19 +1,42 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import HomeView from '../components/views/HomeView';
-import CartView from '../components/views/CartView';
-import ProfileView from '../components/views/ProfileView';
 import FavoritesView from '../components/views/FavoritesView';
 import AuthView from '../components/views/AuthView';
 import OrderHistoryView from '../components/views/OrderHistoryView';
-import ProductDetailView from '../components/views/ProductDetailView';
-import MixGourmetView from '../components/views/MixGourmetView';
-import AdminView from '../components/views/AdminView';
 import BottomNav from '../components/navigation/BottomNav';
 import Toast from '../components/ui/Toast';
 import InstallPrompt from '../components/ui/InstallPrompt';
+import LoadingCapybara from '../components/ui/LoadingCapybara';
 import { API } from '../services/api';
 import { useModal } from '../components/ui/Modal';
+
+// ⚡ DYNAMIC IMPORTS - Lazy load heavy components
+const CartView = dynamic(() => import('../components/views/CartView'), {
+    loading: () => <LoadingCapybara />,
+    ssr: false
+});
+
+const ProductDetailView = dynamic(() => import('../components/views/ProductDetailView'), {
+    loading: () => <LoadingCapybara />,
+    ssr: false
+});
+
+const MixGourmetView = dynamic(() => import('../components/views/MixGourmetView'), {
+    loading: () => <LoadingCapybara />,
+    ssr: false
+});
+
+const AdminView = dynamic(() => import('../components/views/AdminView'), {
+    loading: () => <LoadingCapybara />,
+    ssr: false
+});
+
+const ProfileView = dynamic(() => import('../components/views/ProfileView'), {
+    loading: () => <LoadingCapybara />,
+    ssr: false
+});
 
 
 export default function Page() {
@@ -62,7 +85,8 @@ export default function Page() {
         });
     }, []);
 
-    const addToCart = (product: any, qtyToAdd = 1, additions?: any[]) => {
+    // ⚡ MEMOIZED: Add to cart function
+    const addToCart = useCallback((product: any, qtyToAdd = 1, additions?: any[]) => {
         setCart(prev => {
             // If additions are present, treat as unique item even if same product
             const hasAdditions = additions && additions.length > 0;
@@ -98,11 +122,36 @@ export default function Page() {
             showToast(`Adicionado ao carrinho!`, 'success');
             return newCart;
         });
+    }, [showToast]);
+
+    const decreaseQuantity = (itemToDecrease: any) => {
+        setCart(prev => {
+            const itemId = itemToDecrease.cart_item_id || itemToDecrease.id;
+
+            return prev.map(item => {
+                const currentId = item.cart_item_id || item.id;
+
+                if (currentId === itemId) {
+                    const newQuantity = item.quantity - 1;
+
+                    // If quantity would be 0, filter it out
+                    if (newQuantity <= 0) {
+                        return null; // Mark for removal
+                    }
+
+                    // Return item with decreased quantity
+                    return { ...item, quantity: newQuantity };
+                }
+
+                return item;
+            }).filter(item => item !== null) as any[]; // Remove null entries
+        });
     };
 
-    const removeFromCart = (id: string) => setCart(prev => prev.filter(i => i.id !== id));
+    const removeFromCart = (id: string) => setCart(prev => prev.filter(i => (i.cart_item_id || i.id) !== id));
 
-    const toggleFavorite = (productId: string) => {
+    // ⚡ MEMOIZED: Toggle favorite function
+    const toggleFavorite = useCallback((productId: string) => {
         setFavorites(prev => {
             let newFavs;
             if (prev.includes(productId)) {
@@ -120,10 +169,11 @@ export default function Page() {
             }
             return newFavs;
         });
-    };
+    }, [user, showToast]);
 
     // 🍦 HANDLE PRODUCT CLICK - Detects Mix products
-    const handleProductClick = (product: any) => {
+    // ⚡ MEMOIZED
+    const handleProductClick = useCallback((product: any) => {
         const isMix = product.ID_Tipo_Produto === 'TP-003' ||
             product.id?.includes('MIX') ||
             product.nome?.toLowerCase().includes('mix') ||
@@ -139,7 +189,7 @@ export default function Page() {
         } else {
             setSelectedProduct(product);
         }
-    };
+    }, []);
 
     // 🍦 ADD MIX TO CART
     const addMixToCart = (mixData: any) => {
@@ -363,7 +413,7 @@ export default function Page() {
                 <>
                     {activeTab === 'home' && <HomeView user={user} products={products} categories={categories} banners={banners} favorites={favorites} onAddToCart={addToCart} onToggleFavorite={toggleFavorite} onProductClick={handleProductClick} onHeaderAction={handleHeaderAction} />}
                     {activeTab === 'favorites' && <FavoritesView products={products} favorites={favorites} onAddToCart={addToCart} onToggleFavorite={toggleFavorite} onProductClick={handleProductClick} />}
-                    {activeTab === 'cart' && <CartView cart={cart} user={user} addToCart={addToCart} removeFromCart={removeFromCart} onSubmitOrder={handleSubmitOrder} />}
+                    {activeTab === 'cart' && <CartView cart={cart} user={user} addToCart={addToCart} decreaseQuantity={decreaseQuantity} removeFromCart={removeFromCart} onSubmitOrder={handleSubmitOrder} />}
                     {activeTab === 'profile' && !user.isGuest && <ProfileView user={user} onLogout={() => { localStorage.removeItem('donaCapivaraUser'); setUser(null); setFavorites([]); }} onNavigate={setActiveTab} onUpdateUser={setUser} />}
                     {activeTab === 'orders' && !user.isGuest && <OrderHistoryView user={user} onBack={() => setActiveTab('profile')} />}
                     {activeTab !== 'orders' && <BottomNav activeTab={activeTab} onTabChange={setActiveTab} cartCount={cart.length} favoriteCount={favorites.length} isGuest={user.isGuest} />}

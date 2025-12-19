@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 
 interface Banner {
     id?: string;
@@ -103,14 +104,20 @@ export default function BannerCarousel({
                 {/* Background Image with Fade Animation */}
                 <div className="absolute inset-0">
                     {banners.map((banner, index) => (
-                        <img
+                        <div
                             key={banner.id || index}
-                            src={banner.image}
-                            alt={banner.title}
-                            loading={priority && index === 0 ? 'eager' : 'lazy'}
-                            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${index === currentIndex ? 'opacity-100' : 'opacity-0'
-                                }`}
-                        />
+                            className={`absolute inset-0 transition-opacity duration-700 ${index === currentIndex ? 'opacity-100' : 'opacity-0'}`}
+                        >
+                            <Image
+                                src={banner.image}
+                                alt={banner.title}
+                                fill
+                                priority={priority && index === 0}
+                                sizes="(max-width: 768px) 100vw, 80vw"
+                                className="object-cover"
+                                quality={80}
+                            />
+                        </div>
                     ))}
                 </div>
 
