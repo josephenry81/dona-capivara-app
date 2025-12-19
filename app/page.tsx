@@ -13,6 +13,8 @@ import BottomNav from '../components/navigation/BottomNav';
 import Toast from '../components/ui/Toast';
 import InstallPrompt from '../components/ui/InstallPrompt';
 import { API } from '../services/api';
+import { useModal } from '../components/ui/Modal';
+
 
 export default function Page() {
     const [user, setUser] = useState<any>(null);
@@ -25,6 +27,7 @@ export default function Page() {
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
     const [activeMixId, setActiveMixId] = useState<string | null>(null);
     const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as any, ts: 0 });
+    const { modalState, hideModal, confirm, alert, Modal: CustomModal } = useModal();
 
     const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
         setToast({ visible: true, message, type, ts: Date.now() });
@@ -159,8 +162,15 @@ export default function Page() {
         setActiveMixId(null);
     };
 
-    const handleHeaderAction = () => {
-        if (confirm(`Deseja ${user?.isGuest ? 'fazer login' : 'sair'}?`)) {
+    const handleHeaderAction = async () => {
+        const confirmed = await confirm(
+            user?.isGuest ? '🔓 Fazer Login?' : '🚪 Sair da Conta?',
+            user?.isGuest
+                ? 'Você está navegando como visitante. Deseja fazer login para salvar seus favoritos?'
+                : 'Tem certeza que deseja sair da sua conta?'
+        );
+
+        if (confirmed) {
             localStorage.removeItem('donaCapivaraUser');
             setUser(null);
             setFavorites([]);
@@ -274,7 +284,11 @@ export default function Page() {
                     window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
                 }
 
-                showToast(`Pedido ${shortId} enviado!`, 'success');
+                alert(
+                    '🎉 Pedido Enviado!',
+                    `Seu pedido ${shortId} foi enviado com sucesso! Você será redirecionado para o WhatsApp.`,
+                    'success'
+                );
                 setCart([]);
                 setActiveTab('home');
 
@@ -310,6 +324,7 @@ export default function Page() {
     if (!user) {
         return (
             <>
+                <CustomModal />
                 <Toast message={toast.message} type={toast.type} isVisible={toast.visible} onClose={() => setToast({ ...toast, visible: false })} />
                 <AuthView onLogin={handleLogin} onGuest={() => setUser({ isGuest: true })} />
             </>
@@ -317,11 +332,17 @@ export default function Page() {
     }
 
     if (user.isAdmin) {
-        return <AdminView onLogout={() => { localStorage.removeItem('donaCapivaraUser'); setUser(null); }} adminKey={user.adminKey} />;
+        return (
+            <>
+                <CustomModal />
+                <AdminView onLogout={() => { localStorage.removeItem('donaCapivaraUser'); setUser(null); }} adminKey={user.adminKey} />
+            </>
+        );
     }
 
     return (
         <main className="min-h-screen bg-[#F5F6FA] relative">
+            <CustomModal />
             <Toast message={toast.message} type={toast.type} isVisible={toast.visible} onClose={() => setToast({ ...toast, visible: false })} />
             <InstallPrompt />
 

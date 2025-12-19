@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { API } from '../../services/api';
+import { useModal } from '../ui/Modal';
+
 
 interface ProfileViewProps {
     user: any;
@@ -12,6 +14,8 @@ export default function ProfileView({ user, onLogout, onNavigate, onUpdateUser }
     const currentUser = user || { name: 'Visitante', phone: '', points: 0 };
     const safePoints = isNaN(currentUser.points) ? 0 : currentUser.points;
     const inviteCode = currentUser.inviteCode || '---';
+    const { confirm, alert, Modal: CustomModal } = useModal();
+
 
     // Raffle state
     const [raffleData, setRaffleData] = useState<any>(null);
@@ -57,7 +61,11 @@ export default function ProfileView({ user, onLogout, onNavigate, onUpdateUser }
     const copyCode = () => {
         if (navigator.clipboard) {
             navigator.clipboard.writeText(inviteCode);
-            alert('Código copiado!');
+            alert(
+                '📋 Código Copiado',
+                'O código de indicação foi copiado para sua área de transferência.',
+                'success'
+            );
         }
     };
 
@@ -77,7 +85,11 @@ export default function ProfileView({ user, onLogout, onNavigate, onUpdateUser }
         } else {
             if (navigator.clipboard) {
                 await navigator.clipboard.writeText(link);
-                alert('Link copiado! Compartilhe com seus amigos.');
+                alert(
+                    '🔗 Link Copiado',
+                    'O link de indicação foi copiado. Compartilhe com seus amigos para ganharem pontos!',
+                    'success'
+                );
             }
         }
     };
@@ -93,6 +105,7 @@ export default function ProfileView({ user, onLogout, onNavigate, onUpdateUser }
 
     return (
         <div className="min-h-screen bg-[#F5F6FA] pb-24">
+            <CustomModal />
             {/* Header */}
             <div className="bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white pt-10 pb-24 px-6 rounded-b-[40px] shadow-lg">
                 <div className="flex justify-between items-start">
@@ -218,7 +231,13 @@ export default function ProfileView({ user, onLogout, onNavigate, onUpdateUser }
                     <span className="text-gray-300">›</span>
                 </button>
 
-                <button onClick={onLogout} className="w-full bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center hover:bg-red-50 mt-4 mb-8">
+                <button
+                    onClick={async () => {
+                        const confirmed = await confirm('🚪 Sair da Conta?', 'Tem certeza que deseja sair da sua conta?');
+                        if (confirmed) onLogout();
+                    }}
+                    className="w-full bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center hover:bg-red-50 mt-4 mb-8"
+                >
                     <div className="flex items-center gap-3"><span className="text-red-400">🚪</span><span className="text-red-500 font-medium text-sm">Sair da Conta</span></div>
                 </button>
 

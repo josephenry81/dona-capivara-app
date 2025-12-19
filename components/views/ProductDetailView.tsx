@@ -8,6 +8,8 @@ import PriceCalculator from '../product/PriceCalculator';
 import { ReviewService, Review } from '../../services/reviews';
 import { API } from '../../services/api';
 import { ProductWithAdditions, SelectedAddition, AdditionGroup as AdditionGroupType } from '../../types/additions';
+import { useModal } from '../ui/Modal';
+
 
 interface Product {
     id: string;
@@ -40,6 +42,8 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
     const [selectedAdditions, setSelectedAdditions] = useState<SelectedAddition[]>([]);
     const [selectedOptionsByGroup, setSelectedOptionsByGroup] = useState<Record<string, string[]>>({});
     const [loadingAdditions, setLoadingAdditions] = useState(false);
+    const { alert, Modal: CustomModal } = useModal();
+
 
     const handleIncrement = () => {
         if (quantity < product.estoque) setQuantity(q => q + 1);
@@ -88,7 +92,11 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
 
     const handleSubmitReview = async (rating: number, comment: string) => {
         if (!user || !user.id || user.isGuest) {
-            alert('Você precisa estar logado para avaliar');
+            alert(
+                '🔐 Login Necessário',
+                'Você precisa estar logado na sua conta para avaliar nossos produtos.',
+                'info'
+            );
             return;
         }
 
@@ -101,20 +109,32 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
         );
 
         if (result.success) {
-            alert('✅ Avaliação enviada! Aguarde aprovação do admin.');
+            alert(
+                '✅ Avaliação Enviada!',
+                'Sua avaliação foi enviada com sucesso e está aguardando aprovação pelo administrador.',
+                'success'
+            );
             setShowReviewForm(false);
             const updatedReviews = await ReviewService.getProductReviews(product.id);
             setReviews(updatedReviews);
             setAverageRating(ReviewService.calculateAverageRating(updatedReviews));
         } else {
-            alert(result.message || 'Erro ao enviar avaliação');
+            alert(
+                '⚠️ Erro ao Avaliar',
+                result.message || 'Não foi possível enviar sua avaliação no momento.',
+                'error'
+            );
         }
     };
 
     useEffect(() => {
         if (showReviewForm && (!user || !user.id || user.isGuest)) {
             setShowReviewForm(false);
-            alert('Sessão expirada. Faça login novamente para avaliar.');
+            alert(
+                '⚠️ Sessão Expirada',
+                'Sua sessão expirou. Por favor, faça login novamente para poder avaliar.',
+                'warning'
+            );
         }
     }, [user, showReviewForm]);
 
@@ -191,6 +211,7 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
 
         return (
             <div className="min-h-screen bg-gradient-to-b from-pink-50 to-white flex flex-col relative animate-in slide-in-from-right duration-300">
+                <CustomModal />
 
                 {/* Fixed Navigation Button */}
                 <button
@@ -356,6 +377,7 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
 
     return (
         <div className="min-h-screen bg-white flex flex-col relative animate-in slide-in-from-right duration-300">
+            <CustomModal />
 
             {/* Fixed Navigation Button */}
             <button

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { API } from '../../services/api';
 import CartItemAdditions from '../cart/CartItemAdditions';
+import { useModal } from '../ui/Modal';
+
 
 interface Product {
     id: string;
@@ -38,6 +40,7 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
     const [addressData, setAddressData] = useState({ nome: '', torre: '', apto: '', rua: '', numero: '', bairro: '', complemento: '', cep: '' });
     const [cepLoading, setCepLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const { confirm, alert, Modal: CustomModal } = useModal();
 
     // Debounce timer ref
     const cepTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -195,12 +198,19 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
         e.preventDefault();
 
         if (!paymentMethod) {
-            alert('⚠️ Selecione a forma de pagamento');
+            alert(
+                '⚠️ Forma de Pagamento',
+                'Por favor, selecione uma forma de pagamento para continuar com seu pedido.',
+                'warning'
+            );
             return;
         }
 
-        // Confirmation dialog
-        if (!confirm(`🛒 Confirmar pedido de R$ ${total.toFixed(2)}?`)) return;
+        const confirmed = await confirm(
+            '🛒 Confirmar Pedido?',
+            `Você está prestes a finalizar um pedido no valor de R$ ${total.toFixed(2)}. Deseja continuar?`
+        );
+        if (!confirmed) return;
 
         setIsSubmitting(true);
 
@@ -208,7 +218,11 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
             let schedulingInfo = 'Imediata';
             if (isScheduled) {
                 if (!scheduleDate || !scheduleTime) {
-                    alert('⚠️ Preencha data e horário do agendamento');
+                    alert(
+                        '📅 Agendamento Incompleto',
+                        'Por favor, preencha a data e o horário desejados para a entrega.',
+                        'warning'
+                    );
                     setIsSubmitting(false);
                     return;
                 }
@@ -237,6 +251,7 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
     if (cart.length === 0) {
         return (
             <div className="min-h-screen bg-[#F5F6FA] flex items-center justify-center p-6">
+                <CustomModal />
                 <div className="text-center">
                     <div className="text-6xl mb-4">🛒</div>
                     <h2 className="text-2xl font-bold text-gray-800 mb-2">Carrinho Vazio</h2>
@@ -251,6 +266,7 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
 
     return (
         <div className="min-h-screen bg-[#F5F6FA] pb-32">
+            <CustomModal />
             <div className="bg-white p-6 shadow-sm sticky top-0 z-10">
                 <h2 className="text-2xl font-bold text-[#2D3436]">Meu Carrinho</h2>
                 <p className="text-sm text-gray-500 mt-1">{cart.length} {cart.length === 1 ? 'item' : 'itens'}</p>
@@ -386,8 +402,8 @@ export default function CartView({ cart, user, addToCart, removeFromCart, onSubm
                     {couponFeedback && (
                         <div
                             className={`mt-2 p-2 rounded-lg text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1 ${couponFeedback.type === 'success'
-                                    ? 'bg-green-50 text-green-700 border border-green-200'
-                                    : 'bg-red-50 text-red-700 border border-red-200'
+                                ? 'bg-green-50 text-green-700 border border-green-200'
+                                : 'bg-red-50 text-red-700 border border-red-200'
                                 }`}
                         >
                             <span className="text-base">

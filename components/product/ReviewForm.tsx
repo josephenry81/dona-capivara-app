@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import RatingStars from './RatingStars';
+import { useModal } from '../ui/Modal';
+
 
 interface ReviewFormProps {
     productId: string;
@@ -21,6 +23,8 @@ export default function ReviewForm({
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const { alert, Modal: CustomModal } = useModal();
+
 
     // FIX: Validação interna de segurança
     useEffect(() => {
@@ -34,7 +38,11 @@ export default function ReviewForm({
         e.preventDefault();
 
         if (rating === 0) {
-            alert('⭐️ Selecione uma avaliação de 1 a 5 estrelas');
+            alert(
+                '⭐ Avaliação Necessária',
+                'Por favor, selecione uma nota de 1 a 5 estrelas antes de enviar sua avaliação.',
+                'warning'
+            );
             return;
         }
 
@@ -48,6 +56,7 @@ export default function ReviewForm({
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+            <CustomModal />
             <div className="bg-white rounded-2xl p-6 max-w-md w-full animate-in slide-in-from-bottom duration-300">
                 <h2 className="text-xl font-bold text-gray-800 mb-4">
                     Avaliar Produto

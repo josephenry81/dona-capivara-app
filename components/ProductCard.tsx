@@ -1,4 +1,6 @@
 import React from 'react';
+import { useModal } from './ui/Modal';
+
 
 interface Product {
     id: string;
@@ -18,7 +20,9 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, isFavorite, onToggleFavorite, onAddToCart, onProductClick }: ProductCardProps) {
+    const { alert, Modal: CustomModal } = useModal();
     const price = Number(product.price || 0);
+
     const stock = Number(product.estoque || 0);
     const hasStock = stock > 0;
 
@@ -37,12 +41,17 @@ export default function ProductCard({ product, isFavorite, onToggleFavorite, onA
             onAddToCart(product);
         } else {
             console.error("onAddToCart function is missing!");
-            alert("Erro interno: Função de carrinho indisponível.");
+            alert(
+                '❌ Erro no Carrinho',
+                'Ocorreu um erro interno ao tentar adicionar este produto. Por favor, tente novamente mais tarde.',
+                'error'
+            );
         }
     };
 
     return (
         <div className="flex flex-col bg-white rounded-2xl shadow-md overflow-hidden relative h-full hover:shadow-lg transition-shadow group">
+            <CustomModal />
             {/* Badges */}
             <div className="absolute top-2 left-2 z-20 flex flex-col gap-1 pointer-events-none">
                 {!hasStock && <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full">Esgotado</span>}

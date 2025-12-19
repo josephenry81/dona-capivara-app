@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { API } from '../../services/api';
 import Toast from '../ui/Toast';
+import { useModal } from '../ui/Modal';
+
 import Receipt from '../Receipt';
 import html2canvas from 'html2canvas';
 import StatCard from '../admin/StatCard';
@@ -23,6 +25,8 @@ export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
     const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as any });
     // FIX Bug #7: Estado para rastrear pedidos sendo atualizados
     const [updatingOrderIds, setUpdatingOrderIds] = useState<Set<string>>(new Set());
+    const { confirm, alert, Modal: CustomModal } = useModal();
+
 
     const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
         setToast({ visible: true, message: msg, type });
@@ -97,6 +101,23 @@ export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
         setUpdatingOrderIds(prev => new Set(prev).add(orderId));
 
         const newStatus = currentStatus === 'Pendente' ? 'Entregue' : 'Pendente';
+
+        // Custom confirmation for delivery
+        if (newStatus === 'Entregue') {
+            const confirmed = await confirm(
+                '✅ Marcar como Entregue?',
+                `Tem certeza que o pedido de ${orders.find(o => o.id === orderId)?.customerName} foi entregue?`
+            );
+            if (!confirmed) {
+                setUpdatingOrderIds(prev => {
+                    const next = new Set(prev);
+                    next.delete(orderId);
+                    return next;
+                });
+                return;
+            }
+        }
+
         setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
 
         const success = await API.updateOrderStatus(adminKey, orderId, newStatus);
@@ -150,6 +171,7 @@ export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
 
     return (
         <div className="min-h-screen bg-gray-100 p-4 pb-24">
+            <CustomModal />
             <Toast message={toast.message} type={toast.type} isVisible={toast.visible} onClose={() => setToast({ ...toast, visible: false })} />
 
             <div className="max-w-4xl mx-auto">

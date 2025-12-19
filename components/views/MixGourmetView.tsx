@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { API } from '../../services/api';
+import { useModal } from '../ui/Modal';
+
 
 interface Flavor {
     id: string;
@@ -42,6 +44,8 @@ export default function MixGourmetView({ mixId, onBack, onAddToCart }: MixGourme
     const [selectedFlavors, setSelectedFlavors] = useState<string[]>([]);
     const [selectedAdditions, setSelectedAdditions] = useState<any[]>([]);
     const [quantity, setQuantity] = useState(1);
+    const { alert, Modal: CustomModal } = useModal();
+
 
     useEffect(() => {
         loadMixData();
@@ -118,7 +122,11 @@ export default function MixGourmetView({ mixId, onBack, onAddToCart }: MixGourme
     // Handle add to cart
     const handleAddToCart = async () => {
         if (selectedFlavors.length === 0) {
-            alert('⚠️ Escolha pelo menos 1 sabor!');
+            alert(
+                '⚠️ Escolha um Sabor',
+                'Por favor, selecione pelo menos 1 sabor para o seu Mix antes de adicionar ao carrinho.',
+                'warning'
+            );
             return;
         }
 
@@ -146,6 +154,7 @@ export default function MixGourmetView({ mixId, onBack, onAddToCart }: MixGourme
     if (loading) {
         return (
             <div className="min-h-screen bg-[#F5F6FA] flex items-center justify-center">
+                <CustomModal />
                 <div className="text-center">
                     <div className="w-20 h-20 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                     <p className="text-gray-600 font-bold">Carregando sabores deliciosos...</p>
@@ -157,6 +166,7 @@ export default function MixGourmetView({ mixId, onBack, onAddToCart }: MixGourme
     if (!mix) {
         return (
             <div className="min-h-screen bg-[#F5F6FA] flex items-center justify-center p-6">
+                <CustomModal />
                 <div className="text-center">
                     <p className="text-6xl mb-4">😢</p>
                     <p className="text-gray-600 font-bold">Mix não encontrado</p>
@@ -170,6 +180,7 @@ export default function MixGourmetView({ mixId, onBack, onAddToCart }: MixGourme
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-pink-50 to-white flex flex-col relative">
+            <CustomModal />
             {/* Header */}
             <div className="relative h-[18vh] w-full bg-gradient-to-br from-pink-400 via-purple-400 to-orange-400 flex items-center justify-center">
                 <div className="absolute inset-0 bg-black/10"></div>
