@@ -1,6 +1,8 @@
 // ======================================================
 // PROMOCAO HELPER - SISTEMA DE SORTEIOS CONFIGURÁVEL
 // ======================================================
+// ⚠️ CORREÇÃO: Ordem das colunas no appendRow ajustada para
+// corresponder à estrutura da planilha SORTEIOS
 
 /**
  * Obtém a configuração ativa da promoção
@@ -126,20 +128,26 @@ function atualizarGastoPromoClienteComRegistroSorteio(customerId, valorCompra) {
     const numeroSorte = gerarNumeroSorte(promoId);
     const idSorteio = Utilities.getUuid();
     
+    // ✅ CORREÇÃO: Ordem correta das colunas conforme a planilha SORTEIOS
+    // A: ID_Sorteio | B: ID_Promo | C: ID_Cliente | D: Nome_Cliente | E: Numero_Sorte
+    // F: Data_Ganho | G: Email_Cliente | H: Telefone_Cliente | I: Status_Sorteio
+    // J: Data_Sorteio | K: Numero_Sorteado | L: Ganhou | M: Tipo_Premio | N: Valor_Premio | O: Cupom_Premio
     sorteiosSheet.appendRow([
-      idSorteio,
-      customerId,
-      cliente.Nome || 'Cliente',
-      cliente.Telefone || '',
-      numeroSorte,
-      promoId,
-      new Date(),
-      'Ativo',
-      false, // Ganhou
-      '', // Numero_Sorteado
-      '', // Tipo_Premio
-      '', // Valor_Premio
-      ''  // Codigo_Cupom
+      idSorteio,                 // A: ID_Sorteio
+      promoId,                   // B: ID_Promo
+      customerId,                // C: ID_Cliente
+      cliente.Nome || 'Cliente', // D: Nome_Cliente
+      numeroSorte,               // E: Numero_Sorte
+      '',                        // F: Data_Ganho (preenchido quando ganhar)
+      cliente.Email || '',       // G: Email_Cliente
+      cliente.Telefone || '',    // H: Telefone_Cliente
+      'Ativo',                   // I: Status_Sorteio
+      new Date(),                // J: Data_Sorteio (data de registro)
+      '',                        // K: Numero_Sorteado (preenchido no sorteio)
+      false,                     // L: Ganhou
+      '',                        // M: Tipo_Premio
+      '',                        // N: Valor_Premio
+      ''                         // O: Cupom_Premio
     ]);
     
     numerosRegistrados.push(numeroSorte);

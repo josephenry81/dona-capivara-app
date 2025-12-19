@@ -16,6 +16,8 @@ export const API = {
             const categoriesRaw = await categoriesRes.json();
             const bannersRaw = await bannersRes.json();
 
+            console.log('🔍 [API] Raw banners response:', bannersRaw);
+
             const products = productsRaw.map((p: any) => ({
                 id: p.ID_Geladinho,
                 nome: p.Nome_Geladinho || 'Produto sem nome',
@@ -30,10 +32,27 @@ export const API = {
                 tempo: p.Tempo_Preparo || 'N/A'
             }));
             const categories = categoriesRaw.map((c: any) => ({ id: c.ID_Categoria, nome: c.Nome_Categoria }));
-            const banners = Array.isArray(bannersRaw) ? bannersRaw.map((b: any) => ({ id: b.ID_Banner, image: b.Imagem_URL, title: b.Titulo || '', subtitle: b.Subtitulo || '', ctaText: b.Texto_Botao || '' })) : [];
+
+            // ✅ BACKEND V18.0 retorna { success: true, banners: [...] }
+            const bannersArray = bannersRaw.success && Array.isArray(bannersRaw.banners)
+                ? bannersRaw.banners
+                : (Array.isArray(bannersRaw) ? bannersRaw : []);
+
+            const banners = bannersArray.map((b: any) => ({
+                id: b.id || b.ID_Banner || '',
+                image: b.image || b.URL_Imagem || '',
+                title: b.title || b.Titulo || '',
+                subtitle: b.subtitle || b.Subtitulo || '',
+                ctaText: b.ctaText || b.Texto_CTA || ''
+            }));
+
+            console.log(`✅ [API] ${banners.length} banners carregados:`, banners);
 
             return { products, categories, banners };
-        } catch (error) { return { products: [], categories: [], banners: [] }; }
+        } catch (error) {
+            console.error('❌ [API] Error fetching catalog:', error);
+            return { products: [], categories: [], banners: [] };
+        }
     },
 
     async login(phone: string, password: string) {

@@ -77,6 +77,10 @@ function handleRequest(e) {
       case 'createReview': result = createReview(data); break;
       case 'updateReviewStatus': result = updateReviewStatus(data); break;
 
+      // --- MIX GOURMET ---
+      case 'getMixWithFlavorAndAdditions': result = getMixWithFlavorAndAdditions(e.parameter.mixId); break;
+      case 'calculateMixPrice': result = calculateMixPrice(data); break;
+
       default: result = { error: 'Ação inválida' };
     }
 
@@ -103,8 +107,60 @@ function getCategories() {
   return sheetToJSON(SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CATEGORIAS_GELADINHO'));
 }
 
+/**
+ * Busca todos os banners ativos do Google Sheets
+ * Retorna array de banners ordenados pela coluna "Ordem"
+ */
 function getBanners() {
-  return sheetToJSON(SpreadsheetApp.getActiveSpreadsheet().getSheetByName('BANNERS')).filter(i => String(i.Ativo).toUpperCase() === 'TRUE');
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('BANNERS');
+    
+    // Se não encontrar a aba, retorna array vazio (frontend usará fallback)
+    if (!sheet) {
+      Logger.log('⚠️ Aba BANNERS não encontrada. Retornando array vazio.');
+      return { 
+        success: true, 
+        banners: [] 
+      };
+    }
+    
+    const data = sheetToJSON(sheet);
+    
+    // Filtra apenas banners ativos e ordena
+    const banners = data
+      .filter(b => {
+        const ativo = String(b.Ativo || '').toUpperCase();
+        return ativo === 'TRUE' || ativo === 'VERDADEIRO' || ativo === '1';
+      })
+      .sort((a, b) => {
+        const ordemA = Number(a.Ordem) || 0;
+        const ordemB = Number(b.Ordem) || 0;
+        return ordemA - ordemB;
+      })
+      .map(b => ({
+        id: b.ID_Banner || '',
+        image: b.URL_Imagem || '',
+        title: b.Titulo || '',
+        subtitle: b.Subtitulo || '',
+        ctaText: b.Texto_CTA || ''
+      }));
+    
+    Logger.log(`✅ getBanners: ${banners.length} banners ativos encontrados`);
+    
+    return { 
+      success: true, 
+      banners: banners
+    };
+    
+  } catch (err) {
+    Logger.log(`❌ Erro em getBanners: ${err.message}`);
+    return { 
+      success: false, 
+      error: err.message,
+      banners: []
+    };
+  }
 }
 
 function getConfig() {
@@ -1014,4 +1070,211 @@ function sheetToJSON(s) {
     r.push(o);
   }
   return r;
+}
+
+// ======================================================
+// MIX GOURMET SYSTEM
+// ======================================================
+
+/**
+ * Get mix product with available flavors and addition groups
+ * @param {string} mixId - ID do produto mix
+ * @returns {object} Mix completo com sabores e adicionais
+ */
+function getMixWithFlavorAndAdditions(mixId) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const mixSheet = ss.getSheetByName('MIX_PRODUTOS');
+  const saboresSheet = ss.getSheetByName('MIX_SABORES');
+  const gruposSheet = ss.getSheetByName('GRUPOS_ADICIONAIS');
+  const adicionaisSheet = ss.getSheetByName('ADICIONAIS');
+  
+  if (!mixSheet || !saboresSheet) {
+    return { error: 'Sheets MIX_PRODUTOS ou MIX_SABORES não encontradas' };
+  }
+  
+  // Get mix product
+  const mixes = sheetToJSON(mixSheet);
+  const mix = mixes.find(m => String(m.ID_Mix).trim() === String(mixId).trim());
+  
+  if (!mix) {
+    return { error: 'Mix não encontrado' };
+  }
+  
+  // Get available flavors
+  const sabores = sheetToJSON(saboresSheet);
+  const availableFlavors = sabores
+    .filter(s => String(s.Ativo).toUpperCase() === 'TRUE')
+    .map(s => ({
+      id: s.ID_Sabor,
+      name: s.Nome_Sabor,
+      category: s.Categoria || 'Geral',
+      price: Number(s.Preco_Adicional || 0),
+      stock_status: String(s.Status_Estoque).toLowerCase() === 'disponivel' ? 'available' : 'out_of_stock',
+      image_url: s.Imagem_URL || null
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  
+  // Get addition groups if configured
+  let additionGroups = [];
+  if (mix.IDs_Grupos_Adicionais) {
+    const grupoIds = String(mix.IDs_Grupos_Adicionais).split(',').map(id => id.trim()).filter(id => id);
+    
+    if (grupoIds.length > 0 && gruposSheet && adicionaisSheet) {
+      const grupos = sheetToJSON(gruposSheet);
+      const adicionais = sheetToJSON(adicionaisSheet);
+      
+      additionGroups = grupos
+        .filter(g => grupoIds.includes(String(g.ID_Grupo).trim()) && String(g.Ativo).toUpperCase() === 'TRUE')
+        .map(grupo => ({
+          id: grupo.ID_Grupo,
+          name: grupo.Nome_Grupo,
+          type: grupo.Tipo,
+          required: Number(grupo.Min) > 0,
+          min: Number(grupo.Min),
+          max: Number(grupo.Max),
+          order: Number(grupo.Ordem),
+          options: adicionais
+            .filter(a => String(a.ID_Grupo).trim() === String(grupo.ID_Grupo).trim())
+            .map(a => ({
+              id: a.ID_Adicional,
+              sku: a.SKU,
+              name: a.Nome,
+              price: Number(a.Preco),
+              stock_status: a.Status_Estoque,
+              image_url: a.Imagem_URL || null,
+              order: Number(a.Ordem)
+            }))
+            .sort((a, b) => a.order - b.order)
+        }))
+        .sort((a, b) => a.order - b.order);
+    }
+  }
+  
+  Logger.log(`✅ Mix ${mixId} carregado: ${availableFlavors.length} sabores, ${additionGroups.length} grupos`);
+  
+  return {
+    id: mix.ID_Mix,
+    name: mix.Nome_Mix,
+    type: 'mix',
+    base_price: Number(mix.Preco_Base || 0),
+    price_per_flavor: Number(mix.Preco_Por_Sabor || 0),
+    max_flavors: Number(mix.Max_Sabores || 2),
+    category_id: mix.ID_Categoria,
+    category_name: mix.Nome_Categoria || 'Mix',
+    stock: Number(mix.Estoque || 0),
+    flavors: availableFlavors,
+    addition_groups: additionGroups
+  };
+}
+
+/**
+ * Validate and calculate mix price
+ * @param {object} data - Dados do mix selecionado
+ * @returns {object} Validação e cálculo de preço
+ */
+function calculateMixPrice(data) {
+  const { mixId, selectedFlavors, selectedAdditions, quantity } = data;
+  
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const mixSheet = ss.getSheetByName('MIX_PRODUTOS');
+  const saboresSheet = ss.getSheetByName('MIX_SABORES');
+  
+  if (!mixSheet || !saboresSheet) {
+    return { success: false, error: 'Configuração incompleta' };
+  }
+  
+  // Get mix
+  const mixes = sheetToJSON(mixSheet);
+  const mix = mixes.find(m => String(m.ID_Mix).trim() === String(mixId).trim());
+  
+  if (!mix) {
+    return { success: false, error: 'Mix não encontrado' };
+  }
+  
+  const basePrice = Number(mix.Preco_Base || 0);
+  const pricePerFlavor = Number(mix.Preco_Por_Sabor || 0);
+  const maxFlavors = Number(mix.Max_Sabores || 2);
+  
+  // Validate flavor count
+  if (!selectedFlavors || selectedFlavors.length === 0) {
+    return { success: false, error: 'Selecione pelo menos 1 sabor' };
+  }
+  
+  if (selectedFlavors.length > maxFlavors) {
+    return { success: false, error: `Máximo de ${maxFlavors} sabores permitidos` };
+  }
+  
+  // Validate flavors exist and are available
+  const sabores = sheetToJSON(saboresSheet);
+  const validatedFlavors = [];
+  
+  for (const flavorId of selectedFlavors) {
+    const sabor = sabores.find(s => String(s.ID_Sabor).trim() === String(flavorId).trim());
+    
+    if (!sabor) {
+      return { success: false, error: `Sabor ${flavorId} não encontrado` };
+    }
+    
+    if (String(sabor.Ativo).toUpperCase() !== 'TRUE') {
+      return { success: false, error: `Sabor ${sabor.Nome_Sabor} está inativo` };
+    }
+    
+    if (String(sabor.Status_Estoque).toLowerCase() !== 'disponivel') {
+      return { success: false, error: `Sabor ${sabor.Nome_Sabor} indisponível` };
+    }
+    
+    validatedFlavors.push({
+      flavor_id: sabor.ID_Sabor,
+      flavor_name: sabor.Nome_Sabor,
+      flavor_price: pricePerFlavor
+    });
+  }
+  
+  // Calculate flavors total
+  const flavorsSubtotal = selectedFlavors.length * pricePerFlavor;
+  
+  // Validate additions (if any)
+  let additionsSubtotal = 0;
+  const validatedAdditions = [];
+  
+  if (selectedAdditions && selectedAdditions.length > 0) {
+    const adicionaisSheet = ss.getSheetByName('ADICIONAIS');
+    if (adicionaisSheet) {
+      const adicionais = sheetToJSON(adicionaisSheet);
+      
+      for (const addition of selectedAdditions) {
+        const adicional = adicionais.find(a => String(a.ID_Adicional).trim() === String(addition.option_id).trim());
+        
+        if (adicional) {
+          additionsSubtotal += Number(adicional.Preco);
+          validatedAdditions.push({
+            group_id: addition.group_id,
+            group_name: addition.group_name,
+            option_id: adicional.ID_Adicional,
+            option_name: adicional.Nome,
+            option_price: Number(adicional.Preco)
+          });
+        }
+      }
+    }
+  }
+  
+  // Calculate totals
+  const unitPrice = basePrice + flavorsSubtotal + additionsSubtotal;
+  const totalPrice = unitPrice * quantity;
+  
+  Logger.log(`✅ Mix price calculated: Base=${basePrice}, Flavors=${flavorsSubtotal}, Additions=${additionsSubtotal}, Total=${totalPrice}`);
+  
+  return {
+    success: true,
+    base_price: basePrice,
+    flavors_count: selectedFlavors.length,
+    flavors_subtotal: flavorsSubtotal,
+    additions_subtotal: additionsSubtotal,
+    unit_price: unitPrice,
+    quantity: quantity,
+    total_price: totalPrice,
+    validated_flavors: validatedFlavors,
+    validated_additions: validatedAdditions
+  };
 }

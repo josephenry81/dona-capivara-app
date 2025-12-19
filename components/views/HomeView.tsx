@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ProductCard from '../ProductCard';
 import LoadingCapybara from '../ui/LoadingCapybara';
-import Banner from '../common/Banner';
+import BannerCarousel from '../common/BannerCarousel';
 
 interface HomeViewProps {
     user: any;
@@ -81,28 +81,22 @@ export default function HomeView({
                 </div>
             </div>
 
-            {/* Banner */}
+            {/* Banner Carousel */}
             <div className="mx-6">
-                {banners && banners.length > 0 ? (
-                    <Banner
-                        imageUrl={banners[0].image}
-                        altText={banners[0].title}
-                        title={banners[0].title}
-                        subtitle={banners[0].subtitle}
-                        ctaText={banners[0].ctaText}
-                        onCtaClick={handleBannerClick}
-                        priority={true}
-                    />
-                ) : (
-                    <Banner
-                        imageUrl="https://img.freepik.com/free-vector/flat-design-food-sale-banner_23-2149137947.jpg"
-                        altText="Banner Padrão"
-                        title="Bem-vindo à Dona Capivara"
-                        subtitle="Os melhores geladinhos da cidade!"
-                        ctaText="Ver Cardápio"
-                        onCtaClick={handleBannerClick}
-                    />
-                )}
+                <BannerCarousel
+                    banners={banners && banners.length > 0 ? banners : [
+                        {
+                            id: 'default',
+                            image: 'https://img.freepik.com/free-vector/flat-design-food-sale-banner_23-2149137947.jpg',
+                            title: 'Bem-vindo à Dona Capivara',
+                            subtitle: 'Os melhores geladinhos da cidade!',
+                            ctaText: 'Ver Cardápio'
+                        }
+                    ]}
+                    onCtaClick={handleBannerClick}
+                    autoPlayInterval={5000}
+                    priority={true}
+                />
             </div>
 
             {/* Points Banner (Registered Only) */}
@@ -130,7 +124,7 @@ export default function HomeView({
                         key={product.id}
                         product={product}
                         isFavorite={favorites.includes(product.id)}
-                        onToggleFavorite={onToggleFavorite}
+                        onToggleFavorite={!user?.isGuest ? onToggleFavorite : undefined}
                         onAddToCart={onAddToCart}
                         onProductClick={onProductClick}
                     />

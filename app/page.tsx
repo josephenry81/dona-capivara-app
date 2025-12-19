@@ -7,6 +7,7 @@ import FavoritesView from '../components/views/FavoritesView';
 import AuthView from '../components/views/AuthView';
 import OrderHistoryView from '../components/views/OrderHistoryView';
 import ProductDetailView from '../components/views/ProductDetailView';
+import MixGourmetView from '../components/views/MixGourmetView';
 import AdminView from '../components/views/AdminView';
 import BottomNav from '../components/navigation/BottomNav';
 import Toast from '../components/ui/Toast';
@@ -22,6 +23,7 @@ export default function Page() {
     const [cart, setCart] = useState<any[]>([]);
     const [favorites, setFavorites] = useState<string[]>([]);
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
+    const [activeMixId, setActiveMixId] = useState<string | null>(null);
     const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as any, ts: 0 });
 
     const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -115,6 +117,46 @@ export default function Page() {
             }
             return newFavs;
         });
+    };
+
+    // 🍦 HANDLE PRODUCT CLICK - Detects Mix products
+    const handleProductClick = (product: any) => {
+        const isMix = product.ID_Tipo_Produto === 'TP-003' ||
+            product.id?.includes('MIX') ||
+            product.nome?.toLowerCase().includes('mix') ||
+            product.type === 'mix';
+
+        if (isMix) {
+            let mixId = product.ID_Mix || product.id || 'MIX-001';
+            if (mixId === 'MIX-GOURMET') {
+                mixId = 'MIX-001';
+            }
+            console.log('🍦 Opening Mix Gourmet with ID:', mixId);
+            setActiveMixId(mixId);
+        } else {
+            setSelectedProduct(product);
+        }
+    };
+
+    // 🍦 ADD MIX TO CART
+    const addMixToCart = (mixData: any) => {
+        console.log('🛒 Adding mix to cart:', mixData);
+        const cartItem = {
+            id: mixData.id,
+            nome: mixData.nome,
+            price: mixData.price,
+            quantity: mixData.quantity,
+            imagem: mixData.imagem || 'https://via.placeholder.com/300x300?text=Mix+Gourmet',
+            selected_flavors: mixData.selected_flavors,
+            selected_additions: mixData.selected_additions,
+            unit_price: mixData.unit_price,
+            cart_item_id: mixData.cart_item_id || `mix-${Date.now()}`,
+            isMix: true,
+            isReadyMade: mixData.isReadyMade || false
+        };
+        setCart(prev => [...prev, cartItem]);
+        showToast(`🍦 Mix adicionado ao carrinho!`, 'success');
+        setActiveMixId(null);
     };
 
     const handleHeaderAction = () => {
@@ -283,7 +325,13 @@ export default function Page() {
             <Toast message={toast.message} type={toast.type} isVisible={toast.visible} onClose={() => setToast({ ...toast, visible: false })} />
             <InstallPrompt />
 
-            {selectedProduct ? (
+            {activeMixId ? (
+                <MixGourmetView
+                    mixId={activeMixId}
+                    onBack={() => setActiveMixId(null)}
+                    onAddToCart={addMixToCart}
+                />
+            ) : selectedProduct ? (
                 <ProductDetailView
                     product={selectedProduct}
                     onBack={() => setSelectedProduct(null)}
@@ -292,8 +340,8 @@ export default function Page() {
                 />
             ) : (
                 <>
-                    {activeTab === 'home' && <HomeView user={user} products={products} categories={categories} banners={banners} favorites={favorites} onAddToCart={addToCart} onToggleFavorite={toggleFavorite} onProductClick={setSelectedProduct} onHeaderAction={handleHeaderAction} />}
-                    {activeTab === 'favorites' && <FavoritesView products={products} favorites={favorites} onAddToCart={addToCart} onToggleFavorite={toggleFavorite} onProductClick={setSelectedProduct} />}
+                    {activeTab === 'home' && <HomeView user={user} products={products} categories={categories} banners={banners} favorites={favorites} onAddToCart={addToCart} onToggleFavorite={toggleFavorite} onProductClick={handleProductClick} onHeaderAction={handleHeaderAction} />}
+                    {activeTab === 'favorites' && <FavoritesView products={products} favorites={favorites} onAddToCart={addToCart} onToggleFavorite={toggleFavorite} onProductClick={handleProductClick} />}
                     {activeTab === 'cart' && <CartView cart={cart} user={user} addToCart={addToCart} removeFromCart={removeFromCart} onSubmitOrder={handleSubmitOrder} />}
                     {activeTab === 'profile' && !user.isGuest && <ProfileView user={user} onLogout={() => { localStorage.removeItem('donaCapivaraUser'); setUser(null); setFavorites([]); }} onNavigate={setActiveTab} onUpdateUser={setUser} />}
                     {activeTab === 'orders' && !user.isGuest && <OrderHistoryView user={user} onBack={() => setActiveTab('profile')} />}
@@ -303,3 +351,4 @@ export default function Page() {
         </main>
     );
 }
+

@@ -49,14 +49,16 @@ export default function ProductCard({ product, isFavorite, onToggleFavorite, onA
                 {hasStock && stock < 5 && <span className="bg-orange-400 text-white text-[10px] font-bold px-2 py-1 rounded-full">Estoque baixo!</span>}
             </div>
 
-            {/* Favorite Button - Always Visible */}
-            <button
-                onClick={handleFavoriteClick}
-                className="absolute top-2 right-2 z-20 bg-white/80 p-1.5 rounded-full shadow-sm hover:bg-white transition cursor-pointer active:scale-90"
-                title="Favoritar"
-            >
-                {isFavorite ? '❤️' : '🤍'}
-            </button>
+            {/* Favorite Button - Only for Logged Users */}
+            {onToggleFavorite && (
+                <button
+                    onClick={handleFavoriteClick}
+                    className="absolute top-2 right-2 z-20 bg-white/80 p-1.5 rounded-full shadow-sm hover:bg-white transition cursor-pointer active:scale-90"
+                    title="Favoritar"
+                >
+                    {isFavorite ? '❤️' : '🤍'}
+                </button>
+            )}
 
             {/* Image Area */}
             <div

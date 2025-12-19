@@ -1,0 +1,198 @@
+import React, { useState, useEffect, useRef } from 'react';
+
+interface Banner {
+    id?: string;
+    image: string;
+    title: string;
+    subtitle?: string;
+    ctaText?: string;
+}
+
+interface BannerCarouselProps {
+    banners: Banner[];
+    onCtaClick?: () => void;
+    autoPlayInterval?: number; // milliseconds
+    priority?: boolean;
+}
+
+export default function BannerCarousel({
+    banners,
+    onCtaClick,
+    autoPlayInterval = 5000,
+    priority = false
+}: BannerCarouselProps) {
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+    const [touchStart, setTouchStart] = useState(0);
+    const [touchEnd, setTouchEnd] = useState(0);
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Auto-play logic
+    useEffect(() => {
+        if (!isAutoPlaying || banners.length <= 1) return;
+
+        intervalRef.current = setInterval(() => {
+            setCurrentIndex((prev) => (prev + 1) % banners.length);
+        }, autoPlayInterval);
+
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
+    }, [isAutoPlaying, banners.length, autoPlayInterval]);
+
+    // Reset to first banner when banners array changes
+    useEffect(() => {
+        setCurrentIndex(0);
+    }, [banners]);
+
+    const goToSlide = (index: number) => {
+        setCurrentIndex(index);
+        // Reset auto-play timer
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        setIsAutoPlaying(true);
+    };
+
+    const handlePrevious = () => {
+        setCurrentIndex((prev) => (prev - 1 + banners.length) % banners.length);
+    };
+
+    const handleNext = () => {
+        setCurrentIndex((prev) => (prev + 1) % banners.length);
+    };
+
+    // Touch handlers for swipe
+    const handleTouchStart = (e: React.TouchEvent) => {
+        setTouchStart(e.targetTouches[0].clientX);
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        setTouchEnd(e.targetTouches[0].clientX);
+    };
+
+    const handleTouchEnd = () => {
+        if (!touchStart || !touchEnd) return;
+
+        const distance = touchStart - touchEnd;
+        const minSwipeDistance = 50;
+
+        if (distance > minSwipeDistance) {
+            handleNext();
+        } else if (distance < -minSwipeDistance) {
+            handlePrevious();
+        }
+
+        setTouchStart(0);
+        setTouchEnd(0);
+    };
+
+    if (!banners || banners.length === 0) return null;
+
+    const currentBanner = banners[currentIndex];
+
+    return (
+        <div
+            className="relative w-full mt-6 mb-6 rounded-3xl overflow-hidden shadow-xl group"
+            onMouseEnter={() => setIsAutoPlaying(false)}
+            onMouseLeave={() => setIsAutoPlaying(true)}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+        >
+            {/* Banner Container */}
+            <div className="relative h-48 md:h-64 bg-gradient-to-br from-gray-100 to-gray-200">
+                {/* Background Image with Fade Animation */}
+                <div className="absolute inset-0">
+                    {banners.map((banner, index) => (
+                        <img
+                            key={banner.id || index}
+                            src={banner.image}
+                            alt={banner.title}
+                            loading={priority && index === 0 ? 'eager' : 'lazy'}
+                            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${index === currentIndex ? 'opacity-100' : 'opacity-0'
+                                }`}
+                        />
+                    ))}
+                </div>
+
+                {/* Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+
+                {/* Content */}
+                <div className="relative h-full flex flex-col justify-end p-6 text-white z-10">
+                    {/* Title with Slide Animation */}
+                    <h2
+                        key={`title-${currentIndex}`}
+                        className="text-2xl md:text-3xl font-bold mb-2 animate-in slide-in-from-bottom-4 fade-in duration-500"
+                    >
+                        {currentBanner.title}
+                    </h2>
+
+                    {/* Subtitle */}
+                    {currentBanner.subtitle && (
+                        <p
+                            key={`subtitle-${currentIndex}`}
+                            className="text-sm md:text-base text-white/90 mb-4 animate-in slide-in-from-bottom-2 fade-in duration-500 delay-100"
+                        >
+                            {currentBanner.subtitle}
+                        </p>
+                    )}
+
+                    {/* CTA Button */}
+                    {currentBanner.ctaText && (
+                        <button
+                            key={`cta-${currentIndex}`}
+                            onClick={onCtaClick}
+                            className="self-start bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white font-bold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all active:scale-95 animate-in slide-in-from-bottom fade-in duration-500 delay-200"
+                        >
+                            {currentBanner.ctaText}
+                        </button>
+                    )}
+                </div>
+
+                {/* Navigation Arrows (Desktop) */}
+                {banners.length > 1 && (
+                    <>
+                        <button
+                            onClick={handlePrevious}
+                            className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-md hover:bg-white/30 text-white w-10 h-10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 hidden md:flex"
+                            aria-label="Banner anterior"
+                        >
+                            ‹
+                        </button>
+                        <button
+                            onClick={handleNext}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-md hover:bg-white/30 text-white w-10 h-10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 hidden md:flex"
+                            aria-label="Próximo banner"
+                        >
+                            ›
+                        </button>
+                    </>
+                )}
+            </div>
+
+            {/* Dots Navigation */}
+            {banners.length > 1 && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+                    {banners.map((_, index) => (
+                        <button
+                            key={index}
+                            onClick={() => goToSlide(index)}
+                            className={`transition-all duration-300 rounded-full ${index === currentIndex
+                                    ? 'w-8 h-2 bg-white'
+                                    : 'w-2 h-2 bg-white/50 hover:bg-white/75'
+                                }`}
+                            aria-label={`Ir para banner ${index + 1}`}
+                        />
+                    ))}
+                </div>
+            )}
+
+            {/* Banner Counter (Top Right) */}
+            {banners.length > 1 && (
+                <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-full z-20">
+                    {currentIndex + 1} / {banners.length}
+                </div>
+            )}
+        </div>
+    );
+}
