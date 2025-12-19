@@ -122,7 +122,7 @@ export default function BannerCarousel({
                     {/* Title with Slide Animation */}
                     <h2
                         key={`title-${currentIndex}`}
-                        className="text-2xl md:text-3xl font-bold mb-2 animate-in slide-in-from-bottom-4 fade-in duration-500"
+                        className="text-2xl md:text-3xl font-bold mb-2 pr-20 animate-in slide-in-from-bottom-4 fade-in duration-500"
                     >
                         {currentBanner.title}
                     </h2>
@@ -131,7 +131,7 @@ export default function BannerCarousel({
                     {currentBanner.subtitle && (
                         <p
                             key={`subtitle-${currentIndex}`}
-                            className="text-sm md:text-base text-white/90 mb-4 animate-in slide-in-from-bottom-2 fade-in duration-500 delay-100"
+                            className="text-sm md:text-base text-white/90 mb-4 pr-20 animate-in slide-in-from-bottom-2 fade-in duration-500 delay-100"
                         >
                             {currentBanner.subtitle}
                         </p>
@@ -142,7 +142,7 @@ export default function BannerCarousel({
                         <button
                             key={`cta-${currentIndex}`}
                             onClick={onCtaClick}
-                            className="self-start bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white font-bold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all active:scale-95 animate-in slide-in-from-bottom fade-in duration-500 delay-200"
+                            className="self-start bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white font-bold text-sm px-4 py-2.5 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all active:scale-95 animate-in slide-in-from-bottom fade-in duration-500 delay-200"
                         >
                             {currentBanner.ctaText}
                         </button>
@@ -178,8 +178,8 @@ export default function BannerCarousel({
                             key={index}
                             onClick={() => goToSlide(index)}
                             className={`transition-all duration-300 rounded-full ${index === currentIndex
-                                    ? 'w-8 h-2 bg-white'
-                                    : 'w-2 h-2 bg-white/50 hover:bg-white/75'
+                                ? 'w-8 h-2 bg-white'
+                                : 'w-2 h-2 bg-white/50 hover:bg-white/75'
                                 }`}
                             aria-label={`Ir para banner ${index + 1}`}
                         />

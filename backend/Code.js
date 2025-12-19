@@ -1,7 +1,3 @@
-// ======================================================
-// BACKEND DONA CAPIVARA - V16.0 (ADDITIONS SYSTEM)
-// ======================================================
-
 const ADMIN_LOGIN = "admin";
 const ADMIN_PASS = "Jxd701852@";
 
@@ -21,7 +17,6 @@ function handleRequest(e) {
       try { data = JSON.parse(e.postData.contents); } catch (err) { }
     }
 
-    // Admin Check
     if (['getAdminOrders', 'updateOrderStatus', 'getOrderItems', 'getDashboardStats', 'getAdminReviews', 'updateReviewStatus'].includes(action)) {
       const providedKey = e.parameter.adminKey || data.adminKey;
       if (String(providedKey).trim() !== ADMIN_PASS) {
@@ -32,14 +27,11 @@ function handleRequest(e) {
     let result;
 
     switch (action) {
-      // --- LEITURA ---
       case 'getProducts': result = getProducts(); break;
       case 'getCategories': result = getCategories(); break;
       case 'getBanners': result = getBanners(); break;
       case 'getConfig': result = getConfig(); break;
       case 'getOrders': result = getOrders(e.parameter.customerId); break;
-
-      // Cupons
       case 'validateCoupon':
         if (e.postData && e.postData.contents) {
           result = validateCouponWithContext(data);
@@ -47,21 +39,13 @@ function handleRequest(e) {
           result = validateCoupon(e.parameter.code);
         }
         break;
-
-      // Reviews
       case 'getReviews': result = getProductReviews(e.parameter.productId); break;
-
-      // --- ADDITIONS SYSTEM ---
       case 'getProductWithAdditions': result = getProductWithAdditions(e.parameter.productId); break;
       case 'calculateItemPrice': result = validateAndCalculatePrice(data); break;
-
-      // --- ADMIN LEITURA ---
       case 'getAdminOrders': result = getAdminOrders(); break;
       case 'getOrderItems': result = getOrderItems(e.parameter.orderId); break;
       case 'getDashboardStats': result = getDashboardStats(); break;
       case 'getAdminReviews': result = getAdminReviews(); break;
-
-      // --- ESCRITA ---
       case 'createCustomer': result = createCustomer(data); break;
       case 'loginCustomer': result = loginCustomer(data); break;
       case 'createOrder': result = createOrder(data); break;
@@ -69,6 +53,10 @@ function handleRequest(e) {
       case 'updateOrderStatus': result = updateOrderStatus(data); break;
       case 'createReview': result = createReview(data); break;
       case 'updateReviewStatus': result = updateReviewStatus(data); break;
+
+      // --- MIX GOURMET SYSTEM ---
+      case 'getMixWithFlavorAndAdditions': result = getMixWithFlavorAndAdditions(e.parameter.mixId); break;
+      case 'calculateMixPrice': result = calculateMixPrice(data); break;
 
       default: result = { error: 'Ação inválida' };
     }
@@ -81,10 +69,6 @@ function handleRequest(e) {
     lock.releaseLock();
   }
 }
-
-// ======================================================
-// FUNÇÕES BÁSICAS E AUXILIARES
-// ======================================================
 
 function getProducts() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GELADINHOS');
@@ -139,10 +123,6 @@ function getOrderItems(oid) {
     return { nome: p ? p.Nome_Geladinho : 'Item excluído', qtd: i.Quantidade, total: i.Total_Item };
   });
 }
-
-// ======================================================
-// SISTEMA DE CUPONS
-// ======================================================
 
 function validateCoupon(code) {
   const data = sheetToJSON(SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CUPONS'));
@@ -221,10 +201,6 @@ function validateCouponWithContext(data) {
     tipoUso: coupon.Tipo_Uso
   };
 }
-
-// ======================================================
-// SISTEMA DE AVALIAÇÕES
-// ======================================================
 
 function createReview(data) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -369,22 +345,12 @@ function updateReviewStatus(data) {
   return { success: false };
 }
 
-// ======================================================
-// ADDITIONS SYSTEM FUNCTIONS
-// ======================================================
-
-/**
- * Get product with its addition groups and options
- * @param {string} productId - ID of the product
- * @returns {object} Product with addition_groups array
- */
 function getProductWithAdditions(productId) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const produtosSheet = ss.getSheetByName('GELADINHOS');
   const gruposSheet = ss.getSheetByName('GRUPOS_ADICIONAIS');
   const adicionaisSheet = ss.getSheetByName('ADICIONAIS');
 
-  // Get product data
   const produtos = sheetToJSON(produtosSheet);
   const produto = produtos.find(p => String(p.ID_Geladinho).trim() === String(productId).trim());
 
@@ -392,23 +358,20 @@ function getProductWithAdditions(productId) {
     return { error: 'Produto não encontrado' };
   }
 
-  // Check if product has additions enabled
   if (!produto.Tem_Adicionais || String(produto.Tem_Adicionais).toUpperCase() !== 'TRUE') {
-    return produto; // Return product without additions
+    return produto;
   }
 
-  // Get addition groups for this product
   const grupoIds = String(produto.IDs_Grupos_Adicionais || '').split(',').map(id => id.trim()).filter(id => id);
 
   if (grupoIds.length === 0) {
-    return produto; // No groups configured
+    return produto;
   }
 
   const grupos = sheetToJSON(gruposSheet)
     .filter(g => grupoIds.includes(String(g.ID_Grupo).trim()) && String(g.Ativo).toUpperCase() === 'TRUE')
     .sort((a, b) => Number(a.Ordem) - Number(b.Ordem));
 
-  // Get additions for each group
   const adicionais = sheetToJSON(adicionaisSheet);
 
   produto.addition_groups = grupos.map(grupo => ({
@@ -436,11 +399,6 @@ function getProductWithAdditions(productId) {
   return produto;
 }
 
-/**
- * Validate additions selection and calculate price
- * @param {object} data - { productId, selectedAdditions, quantity }
- * @returns {object} Validation result with calculated prices
- */
 function validateAndCalculatePrice(data) {
   const { productId, selectedAdditions, quantity } = data;
 
@@ -453,7 +411,6 @@ function validateAndCalculatePrice(data) {
   let additionsTotal = 0;
   const validatedAdditions = [];
 
-  // If product doesn't have additions, just calculate base price
   if (!produto.addition_groups || produto.addition_groups.length === 0) {
     const basePrice = Number(produto.Preco_Venda);
     return {
@@ -467,7 +424,6 @@ function validateAndCalculatePrice(data) {
     };
   }
 
-  // Validate each selected addition
   for (const selection of (selectedAdditions || [])) {
     const grupo = produto.addition_groups.find(g => g.id === selection.group_id);
     if (!grupo) {
@@ -479,7 +435,6 @@ function validateAndCalculatePrice(data) {
       return { success: false, error: `Opção ${selection.option_id} não encontrada` };
     }
 
-    // Check stock status
     if (opcao.stock_status === 'out_of_stock') {
       return {
         success: false,
@@ -498,11 +453,9 @@ function validateAndCalculatePrice(data) {
     });
   }
 
-  // Validate group constraints (min/max)
   for (const grupo of produto.addition_groups) {
     const selectionsInGroup = validatedAdditions.filter(a => a.group_id === grupo.id);
 
-    // Check minimum
     if (grupo.min > 0 && selectionsInGroup.length < grupo.min) {
       return {
         success: false,
@@ -510,7 +463,6 @@ function validateAndCalculatePrice(data) {
       };
     }
 
-    // Check maximum
     if (grupo.max < 99 && selectionsInGroup.length > grupo.max) {
       return {
         success: false,
@@ -533,10 +485,6 @@ function validateAndCalculatePrice(data) {
     validated_additions: validatedAdditions
   };
 }
-
-// ======================================================
-// AUTENTICAÇÃO E CLIENTES
-// ======================================================
 
 function loginCustomer(d) {
   if (String(d.phone).trim().toLowerCase() === ADMIN_LOGIN && String(d.password).trim() === ADMIN_PASS)
@@ -595,10 +543,6 @@ function updateFavorites(d) {
   return { success: false };
 }
 
-// ======================================================
-// ANALYTICS
-// ======================================================
-
 function getDashboardStats() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const vendas = sheetToJSON(ss.getSheetByName('VENDAS'));
@@ -646,10 +590,6 @@ function getDashboardStats() {
     topFlavors: ranking.sort((a, b) => b.value - a.value).slice(0, 3)
   };
 }
-
-// ======================================================
-// VENDAS & ESTOQUE
-// ======================================================
 
 function createOrder(d) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -752,16 +692,14 @@ function createOrder(d) {
     }
   }
 
-  // ✅ SISTEMA DE SORTEIO - Registra números da sorte baseado no valor da compra
   if (d.customer?.id && String(d.customer.id) !== 'GUEST') {
     try {
       const valorCompra = Number(d.total) || 0;
       if (valorCompra > 0) {
-        const resultadoSorteio = atualizarGastoPromoClienteComRegistroSorteio(d.customer.id, valorCompra);
-        Logger.log('🎰 Sorteio processado: ' + JSON.stringify(resultadoSorteio));
+        atualizarGastoPromoClienteComRegistroSorteio(d.customer.id, valorCompra);
       }
     } catch (e) {
-      Logger.log('⚠️ Erro no sistema de sorteio: ' + e.toString());
+      Logger.log('Erro sorteio: ' + e.toString());
     }
   }
 
@@ -783,8 +721,119 @@ function updateOrderStatus(d) {
 }
 
 // ======================================================
-// HELPER FUNCTIONS
+// MIX GOURMET SYSTEM
 // ======================================================
+
+function getMixWithFlavorAndAdditions(mixId) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const mixSheet = ss.getSheetByName('MIX_PRODUTOS');
+  const saboresSheet = ss.getSheetByName('MIX_SABORES');
+  const gruposSheet = ss.getSheetByName('GRUPOS_ADICIONAIS');
+  const adicionaisSheet = ss.getSheetByName('ADICIONAIS');
+
+  if (!mixSheet || !saboresSheet) return { error: 'Sheets MIX_PRODUTOS ou MIX_SABORES não encontradas' };
+
+  const mixes = sheetToJSON(mixSheet);
+  const mix = mixes.find(m => String(m.ID_Mix).trim() === String(mixId).trim());
+  if (!mix) return { error: 'Mix não encontrado' };
+
+  const sabores = sheetToJSON(saboresSheet);
+  const availableFlavors = sabores
+    .filter(s => String(s.Ativo).toUpperCase() === 'TRUE')
+    .map(s => ({
+      id: s.ID_Sabor,
+      name: s.Nome_Sabor,
+      category: s.Categoria || 'Geral',
+      price: Number(s.Preco_Adicional || 0),
+      stock_status: String(s.Status_Estoque).toLowerCase() === 'disponivel' ? 'available' : 'out_of_stock',
+      image_url: s.Imagem_URL || null
+    }))
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+  let additionGroups = [];
+  if (mix.IDs_Grupos_Adicionais) {
+    const grupoIds = String(mix.IDs_Grupos_Adicionais).split(',').map(id => id.trim()).filter(id => id);
+    if (grupoIds.length > 0 && gruposSheet && adicionaisSheet) {
+      const grupos = sheetToJSON(gruposSheet);
+      const adicionais = sheetToJSON(adicionaisSheet);
+      additionGroups = grupos
+        .filter(g => grupoIds.includes(String(g.ID_Grupo).trim()) && String(g.Ativo).toUpperCase() === 'TRUE')
+        .map(grupo => ({
+          id: grupo.ID_Grupo,
+          name: grupo.Nome_Grupo,
+          type: grupo.Tipo,
+          required: Number(grupo.Min) > 0,
+          min: Number(grupo.Min),
+          max: Number(grupo.Max),
+          order: Number(grupo.Ordem),
+          options: adicionais
+            .filter(a => String(a.ID_Grupo).trim() === String(grupo.ID_Grupo).trim())
+            .map(a => ({
+              id: a.ID_Adicional,
+              sku: a.SKU,
+              name: a.Nome,
+              price: Number(a.Preco),
+              stock_status: a.Status_Estoque,
+              image_url: a.Imagem_URL || null,
+              order: Number(a.Ordem)
+            }))
+            .sort((a, b) => a.order - b.order)
+        }))
+        .sort((a, b) => a.order - b.order);
+    }
+  }
+
+  return {
+    id: mix.ID_Mix,
+    name: mix.Nome_Mix,
+    type: 'mix',
+    base_price: Number(mix.Preco_Base || 0),
+    price_per_flavor: Number(mix.Preco_Por_Sabor || 0),
+    max_flavors: Number(mix.Max_Sabores || 2),
+    category_id: mix.ID_Categoria,
+    category_name: mix.Nome_Categoria || 'Mix',
+    stock: Number(mix.Estoque || 0),
+    flavors: availableFlavors,
+    addition_groups: additionGroups
+  };
+}
+
+function calculateMixPrice(data) {
+  const { mixId, selectedFlavors, selectedAdditions, quantity } = data;
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const mixSheet = ss.getSheetByName('MIX_PRODUTOS');
+  const saboresSheet = ss.getSheetByName('MIX_SABORES');
+  if (!mixSheet || !saboresSheet) return { success: false, error: 'Configuração incompleta' };
+  const mixes = sheetToJSON(mixSheet);
+  const mix = mixes.find(m => String(m.ID_Mix).trim() === String(mixId).trim());
+  if (!mix) return { success: false, error: 'Mix não encontrado' };
+  const basePrice = Number(mix.Preco_Base || 0);
+  const pricePerFlavor = Number(mix.Preco_Por_Sabor || 0);
+  const maxFlavors = Number(mix.Max_Sabores || 2);
+  const sabores = sheetToJSON(saboresSheet);
+  const validatedFlavors = [];
+  for (const flavorId of (selectedFlavors || [])) {
+    const sabor = sabores.find(s => String(s.ID_Sabor).trim() === String(flavorId).trim());
+    if (sabor) validatedFlavors.push({ flavor_id: sabor.ID_Sabor, flavor_name: sabor.Nome_Sabor, flavor_price: pricePerFlavor });
+  }
+  let additionsSubtotal = 0;
+  const validatedAdditions = [];
+  if (selectedAdditions && selectedAdditions.length > 0) {
+    const adicionaisSheet = ss.getSheetByName('ADICIONAIS');
+    if (adicionaisSheet) {
+      const adicionais = sheetToJSON(adicionaisSheet);
+      for (const addition of selectedAdditions) {
+        const adicional = adicionais.find(a => String(a.ID_Adicional).trim() === String(addition.option_id).trim());
+        if (adicional) {
+          additionsSubtotal += Number(adicional.Preco);
+          validatedAdditions.push({ group_id: addition.group_id, group_name: addition.group_name, option_id: adicional.ID_Adicional, option_name: adicional.Nome, option_price: Number(adicional.Preco) });
+        }
+      }
+    }
+  }
+  const unitPrice = basePrice + (validatedFlavors.length * pricePerFlavor) + additionsSubtotal;
+  return { success: true, base_price: basePrice, unit_price: unitPrice, total_price: unitPrice * quantity, validated_flavors: validatedFlavors, validated_additions: validatedAdditions };
+}
 
 function sheetToJSON(s) {
   const v = s.getDataRange().getValues();
@@ -796,4 +845,131 @@ function sheetToJSON(s) {
     r.push(o);
   }
   return r;
+}
+
+function getPromoConfig() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const configSheet = ss.getSheetByName('CONFIGURACAO_PROMO');
+  if (!configSheet) {
+    return { id: 'PROMO_DEFAULT', nome: 'Promoção Cinema', icone: '🎬', descricao: 'Ganhe ingressos comprando!', valorMeta: 18, ativa: true };
+  }
+  const configs = sheetToJSON(configSheet);
+  const promoAtiva = configs.find(c => String(c.Promocao_Ativa).toUpperCase() === 'TRUE');
+  if (!promoAtiva) {
+    return { id: 'PROMO_DEFAULT', nome: 'Promoção', icone: '🎁', valorMeta: 18, ativa: false };
+  }
+  return {
+    id: promoAtiva.ID_Config || 'PROMO_DEFAULT',
+    nome: promoAtiva.Nome_Promocao || 'Promoção',
+    icone: promoAtiva.Icone || '🎁',
+    descricao: promoAtiva.Descricao_Curta || '',
+    valorMeta: Number(promoAtiva.Valor_Meta || 18),
+    ativa: true
+  };
+}
+
+function atualizarGastoPromoClienteComRegistroSorteio(customerId, valorCompra) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const clientesSheet = ss.getSheetByName('CLIENTES');
+  const sorteiosSheet = ss.getSheetByName('SORTEIOS');
+  if (!clientesSheet || !sorteiosSheet) return { success: false, numerosGanhos: [] };
+
+  const clientes = sheetToJSON(clientesSheet);
+  const cliente = clientes.find(c => String(c.ID_Cliente).trim() === String(customerId).trim());
+  if (!cliente) return { success: false, numerosGanhos: [] };
+
+  const gastoAtual = Number(cliente.Gasto_Acumulado_Promo || 0);
+  const novoGasto = gastoAtual + valorCompra;
+  const promoConfig = getPromoConfig();
+  const META_POR_NUMERO = promoConfig.valorMeta;
+
+  const numerosGanhos = Math.floor(novoGasto / META_POR_NUMERO);
+  const numerosAnteriores = Math.floor(gastoAtual / META_POR_NUMERO);
+  const novosNumeros = numerosGanhos - numerosAnteriores;
+
+  const clienteData = clientesSheet.getDataRange().getValues();
+  const headers = clienteData[0];
+  const idIdx = headers.indexOf('ID_Cliente');
+  const gastoIdx = headers.indexOf('Gasto_Acumulado_Promo');
+  if (idIdx === -1 || gastoIdx === -1) return { success: false, numerosGanhos: [] };
+
+  for (let i = 1; i < clienteData.length; i++) {
+    if (String(clienteData[i][idIdx]).trim() === String(customerId).trim()) {
+      clientesSheet.getRange(i + 1, gastoIdx + 1).setValue(novoGasto);
+      break;
+    }
+  }
+
+  const numerosRegistrados = [];
+  const promoId = promoConfig.id;
+
+  for (let i = 0; i < novosNumeros; i++) {
+    const numeroSorte = gerarNumeroSorte(promoId);
+    const idSorteio = Utilities.getUuid();
+    sorteiosSheet.appendRow([
+      idSorteio,
+      promoId,
+      customerId,
+      cliente.Nome || 'Cliente',
+      numeroSorte,
+      '',
+      cliente.Email || '',
+      cliente.Telefone || '',
+      'Ativo',
+      new Date(),
+      '',
+      false,
+      '',
+      '',
+      ''
+    ]);
+    numerosRegistrados.push(numeroSorte);
+  }
+
+  return { success: true, numerosGanhos: numerosRegistrados, gastoTotal: novoGasto };
+}
+
+function gerarNumeroSorte(promoId) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sorteiosSheet = ss.getSheetByName('SORTEIOS');
+  if (!sorteiosSheet) return gerarCodigoAleatorio();
+
+  const sorteios = sheetToJSON(sorteiosSheet);
+  const numerosExistentes = sorteios
+    .filter(s => String(s.ID_Promo).trim() === String(promoId).trim())
+    .map(s => String(s.Numero_Sorte));
+
+  let tentativas = 0;
+  let codigo;
+  do {
+    codigo = gerarCodigoAleatorio();
+    tentativas++;
+    if (tentativas > 1000) {
+      codigo = gerarCodigoAleatorio() + String(Date.now()).slice(-2);
+      break;
+    }
+  } while (numerosExistentes.includes(codigo));
+
+  return codigo;
+}
+
+function gerarCodigoAleatorio() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const usados = new Set();
+  let codigo = '';
+  while (codigo.length < 5) {
+    const idx = Math.floor(Math.random() * chars.length);
+    const char = chars[idx];
+    if (!usados.has(char)) {
+      if (codigo.length > 0) {
+        const ultimo = codigo[codigo.length - 1];
+        const indexUltimo = chars.indexOf(ultimo);
+        const indexAtual = chars.indexOf(char);
+        if (Math.abs(indexAtual - indexUltimo) === 1) continue;
+      }
+      usados.add(char);
+      codigo += char;
+    }
+  }
+  return codigo;
 }

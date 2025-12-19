@@ -25,6 +25,7 @@ export default function ProductCard({ product, isFavorite, onToggleFavorite, onA
 
     const stock = Number(product.estoque || 0);
     const hasStock = stock > 0;
+    const isMix = (product as any).isMix === true || (product as any).ID_Tipo_Produto === 'TP-003' || (product as any).nome?.toLowerCase().includes('mix');
 
     const handleFavoriteClick = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -37,6 +38,13 @@ export default function ProductCard({ product, isFavorite, onToggleFavorite, onA
 
     const handleAddToCart = (e: React.MouseEvent) => {
         e.stopPropagation();
+
+        // For Mix products, open the configuration view instead of adding to cart
+        if (isMix && onProductClick) {
+            onProductClick(product);
+            return;
+        }
+
         if (onAddToCart) {
             onAddToCart(product);
         } else {
@@ -86,7 +94,11 @@ export default function ProductCard({ product, isFavorite, onToggleFavorite, onA
                 <h3 className="font-bold text-gray-800 text-sm mb-1 line-clamp-2 leading-tight">{product.nome}</h3>
 
                 <div className="mt-2">
-                    <p className="text-lg font-bold text-[#FF4B82]">R$ {price.toFixed(2)}</p>
+                    {isMix ? (
+                        <p className="text-lg font-bold text-[#FF4B82]">A partir de R$ {price.toFixed(2)}</p>
+                    ) : (
+                        <p className="text-lg font-bold text-[#FF4B82]">R$ {price.toFixed(2)}</p>
+                    )}
 
                     <button
                         onClick={handleAddToCart}
@@ -96,7 +108,7 @@ export default function ProductCard({ product, isFavorite, onToggleFavorite, onA
                             : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                             }`}
                     >
-                        {hasStock ? '+ Adicionar' : 'Indisponível'}
+                        {hasStock ? (isMix ? '🎨 Monte o Seu' : '+ Adicionar') : 'Indisponível'}
                     </button>
                 </div>
             </div>

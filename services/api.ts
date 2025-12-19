@@ -458,15 +458,23 @@ export const API = {
      * Get mix product with available flavors and addition groups
      */
     async getMixWithFlavorAndAdditions(mixId: string) {
+        console.log(`🍦 [API] getMixWithFlavorAndAdditions: ${mixId}`);
         try {
             const response = await fetch(
                 `${API_URL}?action=getMixWithFlavorAndAdditions&mixId=${mixId}&_t=${Date.now()}`
             );
+
+            if (!response.ok) {
+                console.error(`❌ [API] Error fetching mix: HTTP ${response.status}`);
+                return { error: `Erro HTTP ${response.status}` };
+            }
+
             const data = await response.json();
+            console.log(`✅ [API] Mix data received:`, data);
             return data;
         } catch (e) {
-            console.error('Error fetching mix:', e);
-            return null;
+            console.error('💥 [API] getMixWithFlavorAndAdditions error:', e);
+            return { error: 'Erro de conexão com o servidor' };
         }
     },
 

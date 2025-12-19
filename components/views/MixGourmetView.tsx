@@ -39,6 +39,7 @@ interface MixGourmetViewProps {
 export default function MixGourmetView({ mixId, onBack, onAddToCart }: MixGourmetViewProps) {
     const [mix, setMix] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     // Selections
     const [selectedFlavors, setSelectedFlavors] = useState<string[]>([]);
@@ -53,13 +54,18 @@ export default function MixGourmetView({ mixId, onBack, onAddToCart }: MixGourme
 
     const loadMixData = async () => {
         setLoading(true);
+        setError(null);
         try {
             const data = await API.getMixWithFlavorAndAdditions(mixId);
-            if (data) {
+            if (data && !data.error) {
                 setMix(data);
+            } else {
+                setError(data?.error || 'Não foi possível carregar as informações do Mix.');
+                setMix(null);
             }
         } catch (error) {
             console.error('Error loading mix:', error);
+            setError('Ocorreu um erro inesperado ao carregar o Mix.');
         } finally {
             setLoading(false);
         }
@@ -167,12 +173,30 @@ export default function MixGourmetView({ mixId, onBack, onAddToCart }: MixGourme
         return (
             <div className="min-h-screen bg-[#F5F6FA] flex items-center justify-center p-6">
                 <CustomModal />
-                <div className="text-center">
-                    <p className="text-6xl mb-4">😢</p>
-                    <p className="text-gray-600 font-bold">Mix não encontrado</p>
-                    <button onClick={onBack} className="mt-4 bg-pink-500 text-white px-6 py-2 rounded-full font-bold">
-                        Voltar
-                    </button>
+                <div className="text-center bg-white p-8 rounded-3xl shadow-xl max-w-sm">
+                    <p className="text-6xl mb-4">{error ? '⚠️' : '😢'}</p>
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">
+                        {error ? 'Ops! Algo deu errado' : 'Mix não encontrado'}
+                    </h3>
+                    <p className="text-gray-500 mb-6">
+                        {error || 'Não conseguimos localizar este Mix no momento.'}
+                    </p>
+                    <div className="flex flex-col gap-3">
+                        {error && (
+                            <button
+                                onClick={loadMixData}
+                                className="bg-orange-500 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:opacity-90 transition active:scale-95"
+                            >
+                                Tentar Novamente
+                            </button>
+                        )}
+                        <button
+                            onClick={onBack}
+                            className="bg-gray-100 text-gray-600 px-6 py-3 rounded-2xl font-bold hover:bg-gray-200 transition active:scale-95"
+                        >
+                            Voltar ao Início
+                        </button>
+                    </div>
                 </div>
             </div>
         );
@@ -222,7 +246,7 @@ export default function MixGourmetView({ mixId, onBack, onAddToCart }: MixGourme
                             </span>
                         </div>
                         <div className="space-y-2">
-                            {mix.flavors.map((flavor: Flavor) => {
+                            {mix?.flavors?.map((flavor: Flavor) => {
                                 const isSelected = selectedFlavors.includes(flavor.id);
                                 const isAvailable = flavor.stock_status === 'available';
 
@@ -284,7 +308,7 @@ export default function MixGourmetView({ mixId, onBack, onAddToCart }: MixGourme
                     </section>
 
                     {/* Additions Sections */}
-                    {mix.addition_groups && mix.addition_groups.map((group: AdditionGroup) => (
+                    {mix?.addition_groups?.map((group: AdditionGroup) => (
                         <section key={group.id} className="bg-white rounded-2xl shadow-sm p-4">
                             <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
                                 <span>{group.name.includes('Calda') ? '🍯' : '🎂'}</span>
