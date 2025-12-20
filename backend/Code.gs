@@ -163,7 +163,21 @@ function getCategories() {
 }
 
 function getBanners() {
-  return sheetToJSON(SpreadsheetApp.getActiveSpreadsheet().getSheetByName('BANNERS')).filter(i => String(i.Ativo).toUpperCase() === 'TRUE');
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('BANNERS');
+  if (!sheet) return [];
+  
+  const data = sheetToJSON(sheet);
+  return data
+    .filter(i => String(i.Ativo).toUpperCase() === 'TRUE')
+    .map(banner => {
+      // Processar URL de imagem usando normalização AppSheet
+      const urlImagem = normalizarUrlImagem(banner);
+      
+      return {
+        ...banner,
+        URL_Imagem: urlImagem || banner.URL_Imagem || ''
+      };
+    });
 }
 
 function getConfig() {

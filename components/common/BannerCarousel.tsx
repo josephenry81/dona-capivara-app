@@ -109,7 +109,7 @@ export default function BannerCarousel({
                             className={`absolute inset-0 transition-opacity duration-700 ${index === currentIndex ? 'opacity-100' : 'opacity-0'}`}
                         >
                             <Image
-                                src={banner.image}
+                                src={banner.image || 'https://via.placeholder.com/800x400?text=Banner'}
                                 alt={banner.title}
                                 fill
                                 priority={priority && index === 0}
