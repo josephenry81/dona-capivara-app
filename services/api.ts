@@ -14,10 +14,10 @@ export const API = {
         if (useCache && this._catalogCache) {
             const age = Date.now() - this._catalogCache.timestamp;
             if (age < this._catalogTTL) {
-                console.log(`⚡ [Catalog Cache HIT] Age: ${Math.round(age/1000)}s - Instant load!`);
+                console.log(`⚡ [Catalog Cache HIT] Age: ${Math.round(age / 1000)}s - Instant load!`);
                 return this._catalogCache.data;
             } else {
-                console.log(`🕒 [Catalog Cache EXPIRED] Age: ${Math.round(age/1000)}s - Refetching...`);
+                console.log(`🕒 [Catalog Cache EXPIRED] Age: ${Math.round(age / 1000)}s - Refetching...`);
             }
         }
 
@@ -37,19 +37,30 @@ export const API = {
 
             console.log('🔍 [API] Raw banners response:', bannersRaw);
 
-            const products = productsRaw.map((p: any) => ({
-                id: p.ID_Geladinho,
-                nome: p.Nome_Geladinho || 'Produto sem nome',
-                price: Number(p.Preco_Venda || 0),
-                imagem: p.URL_IMAGEM_CACHE || '',
-                estoque: Number(p[' Estoque_Atual'] || p.Estoque_Atual || 0),
-                categoriaId: p.ID_Categoria,
-                descricao: p.Descricao,
-                peso: p.Peso || 'N/A',
-                calorias: p.Calorias || 'N/A',
-                ingredientes: p.Ingredientes || 'N/A',
-                tempo: p.Tempo_Preparo || 'N/A'
-            }));
+            const products = productsRaw.map((p: any) => {
+                const imagemUrl = p.URL_IMAGEM_CACHE || '';
+
+                // DEBUG: Log de imagens inválidas (paths relativos do AppSheet)
+                if (imagemUrl && !imagemUrl.startsWith('http')) {
+                    console.warn(`⚠️ [Image Debug] Imagem inválida para "${p.Nome_Geladinho}":`, imagemUrl);
+                    console.warn(`   → Produto ID: ${p.ID_Geladinho}`);
+                    console.warn(`   → Usando placeholder`);
+                }
+
+                return {
+                    id: p.ID_Geladinho,
+                    nome: p.Nome_Geladinho || 'Produto sem nome',
+                    price: Number(p.Preco_Venda || 0),
+                    imagem: imagemUrl,
+                    estoque: Number(p[' Estoque_Atual'] || p.Estoque_Atual || 0),
+                    categoriaId: p.ID_Categoria,
+                    descricao: p.Descricao,
+                    peso: p.Peso || 'N/A',
+                    calorias: p.Calorias || 'N/A',
+                    ingredientes: p.Ingredientes || 'N/A',
+                    tempo: p.Tempo_Preparo || 'N/A'
+                };
+            });
             const categories = categoriesRaw.map((c: any) => ({ id: c.ID_Categoria, nome: c.Nome_Categoria }));
 
             // ✅ BACKEND V18.0 retorna { success: true, banners: [...] }

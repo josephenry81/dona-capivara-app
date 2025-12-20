@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import ShareButton from '../ui/ShareButton';
 import RatingStars from '../product/RatingStars';
 import ReviewForm from '../product/ReviewForm';
@@ -392,10 +393,14 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
 
             {/* Hero Image */}
             <div className="relative h-[40vh] w-full bg-gray-200 flex-shrink-0">
-                <img
+                <Image
                     src={product.imagem || 'https://via.placeholder.com/500'}
                     alt={product.nome}
-                    className="w-full h-full object-cover"
+                    fill
+                    sizes="100vw"
+                    className="object-cover"
+                    quality={85}
+                    priority
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/5"></div>
             </div>

@@ -73,10 +73,89 @@ function handleRequest(e) {
   }
 }
 
+/**
+ * Normaliza URL de imagem, detectando se é URL completa ou path relativo do AppSheet
+ * @param {Object} row - Linha da planilha com possíveis colunas de imagem
+ * @returns {string} URL normalizada ou string vazia
+ */
+function normalizarUrlImagem(row) {
+  // Lista de possíveis colunas de imagem em ordem de prioridade
+  const possiveisColunas = [
+    'Imagem_Geladinho',    // Nome real da coluna na planilha GELADINHOS
+    'Imagem_URL',          // Usado em MIX_SABORES e ADICIONAIS
+    'URL_IMAGEM_CACHE',
+    'URL_Imagem',
+    'Imagem',
+    'URL_Imagem_Cache'
+  ];
+  
+  // Tentar cada coluna até encontrar um valor válido
+  for (const coluna of possiveisColunas) {
+    const valor = row[coluna];
+    if (!valor) continue;
+    
+    const valorStr = String(valor).trim();
+    if (!valorStr) continue;
+    
+    // Se já for uma URL completa, retornar
+    if (valorStr.startsWith('http://') || valorStr.startsWith('https://')) {
+      return valorStr;
+    }
+    
+    // Se for path relativo do AppSheet (ex: GELADINHOS_Images/arquivo.jpg)
+    // Tentar converter para URL pública do Google Drive
+    if (valorStr.includes('/') || valorStr.includes('_Images')) {
+      Logger.log('🔍 Path AppSheet detectado: ' + valorStr + ' - Tentando converter...');
+      
+      try {
+        // Extrair nome do arquivo do path
+        const fileName = valorStr.split('/').pop();
+        
+        // Tentar encontrar o arquivo no Google Drive
+        const files = DriveApp.getFilesByName(fileName);
+        
+        if (files.hasNext()) {
+          const file = files.next();
+          
+          // Garantir que o arquivo está compartilhado publicamente
+          file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+          
+          // Gerar URL pública usando thumbnail ID (mais confiável que uc?export=view)
+          const fileId = file.getId();
+          const publicUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+          
+          Logger.log('✅ Convertido com sucesso: ' + publicUrl);
+          return publicUrl;
+        } else {
+          Logger.log('⚠️ Arquivo não encontrado no Drive: ' + fileName);
+          return '';
+        }
+      } catch (e) {
+        Logger.log('❌ Erro ao converter path: ' + e.toString());
+        return '';
+      }
+    }
+  }
+  
+  return '';
+}
+
 function getProducts() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GELADINHOS');
   if (!sheet) return [];
-  return sheetToJSON(sheet).filter(i => String(i.Produto_Ativo).toUpperCase() === 'TRUE');
+  
+  const data = sheetToJSON(sheet);
+  return data
+    .filter(i => String(i.Produto_Ativo).toUpperCase() === 'TRUE')
+    .map(p => {
+      // Processar URL de imagem usando múltiplas colunas como fallback
+      const urlImagem = normalizarUrlImagem(p);
+      
+      return {
+        ...p,
+        URL_IMAGEM_CACHE: urlImagem
+      };
+    });
 }
 
 function getCategories() {
@@ -459,14 +538,19 @@ function getMixWithFlavorAndAdditions(mixId) {
   const sabores = sheetToJSON(saboresSheet);
   const availableFlavors = sabores
     .filter(s => String(s.Ativo).toUpperCase() === 'TRUE')
-    .map(s => ({
-      id: s.ID_Sabor,
-      name: s.Nome_Sabor,
-      category: s.Categoria || 'Geral',
-      price: Number(s.Preco_Adicional || 0),
-      stock_status: String(s.Status_Estoque).toLowerCase() === 'disponivel' ? 'available' : 'out_of_stock',
-      image_url: s.Imagem_URL || null
-    }))
+    .map(s => {
+      // Normalizar URL de imagem do sabor
+      const imageUrl = normalizarUrlImagem(s);
+      
+      return {
+        id: s.ID_Sabor,
+        name: s.Nome_Sabor,
+        category: s.Categoria || 'Geral',
+        price: Number(s.Preco_Adicional || 0),
+        stock_status: String(s.Status_Estoque).toLowerCase() === 'disponivel' ? 'available' : 'out_of_stock',
+        image_url: imageUrl || null
+      };
+    })
     .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
   let additionGroups = [];
@@ -487,15 +571,20 @@ function getMixWithFlavorAndAdditions(mixId) {
           order: Number(grupo.Ordem),
           options: adicionais
             .filter(a => String(a.ID_Grupo).trim() === String(grupo.ID_Grupo).trim())
-            .map(a => ({
-              id: a.ID_Adicional,
-              sku: a.SKU,
-              name: a.Nome,
-              price: Number(a.Preco),
-              stock_status: a.Status_Estoque,
-              image_url: a.Imagem_URL || null,
-              order: Number(a.Ordem)
-            }))
+            .map(a => {
+              // Normalizar URL de imagem do adicional
+              const imageUrl = normalizarUrlImagem(a);
+              
+              return {
+                id: a.ID_Adicional,
+                sku: a.SKU,
+                name: a.Nome,
+                price: Number(a.Preco),
+                stock_status: a.Status_Estoque,
+                image_url: imageUrl || null,
+                order: Number(a.Ordem)
+              };
+            })
             .sort((a, b) => a.order - b.order)
         }))
         .sort((a, b) => a.order - b.order);

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { Geladinho, OrderPayload } from '../types/googleSheetTypes';
 
 interface CartItem extends Geladinho {
@@ -82,11 +83,16 @@ export default function CartModal({
                     ) : (
                         cartItems.map(item => (
                             <div key={item.ID_Geladinho} className="cart-item-card">
-                                <img
-                                    src={item.Imagem_URL || item.URL_IMAGEM_CACHE || 'https://via.placeholder.com/60'}
-                                    className="cart-img"
-                                    alt={item.Nome_Geladinho}
-                                />
+                                <div className="relative w-[60px] h-[60px] flex-shrink-0 overflow-hidden rounded-lg">
+                                    <Image
+                                        src={item.Imagem_URL || item.URL_IMAGEM_CACHE || 'https://via.placeholder.com/60'}
+                                        alt={item.Nome_Geladinho}
+                                        fill
+                                        sizes="60px"
+                                        className="object-cover"
+                                        quality={75}
+                                    />
+                                </div>
                                 <div className="cart-info">
                                     <h4 style={{ fontSize: '0.9rem', marginBottom: '5px' }}>{item.Nome_Geladinho}</h4>
                                     <div style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>
