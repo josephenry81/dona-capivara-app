@@ -657,6 +657,297 @@ function calculateMixPrice(data) {
   return { success: true, base_price: basePrice, unit_price: unitPrice, total_price: unitPrice * quantity, validated_flavors: validatedFlavors, validated_additions: validatedAdditions };
 }
 
+// ======================================================
+// PRODUCT REVIEWS SYSTEM
+// ======================================================
+
+/**
+ * Get all approved reviews for a specific product
+ * @param {string} productId - ID do produto
+ * @returns {Array} Array de avaliações aprovadas
+ */
+function getProductReviews(productId) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('AVALIACOES');
+  
+  if (!sheet) {
+    Logger.log('⚠️ Sheet AVALIACOES não encontrada');
+    return [];
+  }
+  
+  const reviews = sheetToJSON(sheet);
+  
+  Logger.log('='.repeat(80));
+  Logger.log(`🔍 getProductReviews CHAMADO`);
+  Logger.log(`📌 Product ID procurado: "${productId}"`);
+  Logger.log(`📊 Total de reviews na planilha: ${reviews.length}`);
+  Logger.log('='.repeat(80));
+  
+  // Debug: Mostrar todas as reviews e seus IDs
+  reviews.forEach((review, index) => {
+    Logger.log(`\nReview #${index + 1}:`);
+    Logger.log(`  - ID_Avaliacao: ${review.ID_Avaliacao}`);
+    Logger.log(`  - ID_Produto: "${review.ID_Produto || 'VAZIO'}"`);
+    Logger.log(`  - ID_Geladinho: "${review.ID_Geladinho || 'VAZIO'}"`);
+    Logger.log(`  - Status: ${review.Status}`);
+    Logger.log(`  - Rating: ${review.Rating}`);
+    Logger.log(`  - Cliente: ${review.Nome_Cliente}`);
+  });
+  
+  // Filtrar apenas avaliações aprovadas do produto específico
+  const approvedReviews = reviews.filter(review => {
+    const productIdFromReview = String(review.ID_Produto || review.ID_Geladinho || '').trim();
+    const productIdSearch = String(productId).trim();
+    const matchesProduct = productIdFromReview === productIdSearch;
+    const isApproved = String(review.Status || '').toUpperCase() === 'APROVADA';
+    
+    Logger.log(`\n🔎 Comparando Review ${review.ID_Avaliacao}:`);
+    Logger.log(`   Review Product ID: "${productIdFromReview}"`);
+    Logger.log(`   Search Product ID: "${productIdSearch}"`);
+    Logger.log(`   IDs Match? ${matchesProduct}`);
+    Logger.log(`   Status: ${review.Status} | Is Approved? ${isApproved}`);
+   Logger.log(`   Will Include? ${matchesProduct && isApproved}`);
+    
+    return matchesProduct && isApproved;
+  });
+  
+  Logger.log('\n' + '='.repeat(80));
+  Logger.log(`✅ RESULTADO: Encontradas ${approvedReviews.length} avaliações aprovadas`);
+  Logger.log('='.repeat(80));
+  
+  // Normalizar estrutura para o frontend
+  return approvedReviews.map(review => {
+    // Suporte para múltiplas variações de nome de coluna
+    const rating = Number(review.Rating || review.Nota || 0);
+    
+    return {
+      id: review.ID_Avaliacao,
+      customerName: review.Nome_Cliente || 'Anônimo',
+      rating: rating,
+      comment: review.Comentario || review.Comment || '',
+      date: review.Data_Avaliacao
+    };
+  });
+}
+
+/**
+ * Create a new product review (status: Pendente)
+ * @param {Object} data - Dados da avaliação
+ * @returns {Object} Resultado da operação
+ */
+function createReview(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('AVALIACOES');
+  
+  if (!sheet) {
+    Logger.log('❌ Sheet AVALIACOES não encontrada');
+    return { 
+      success: false, 
+      message: 'Sistema de avaliações não configurado. Contate o administrador.' 
+    };
+  }
+  
+  // Validação de dados
+  if (!data.customerId || !data.productId || !data.rating) {
+    Logger.log('❌ Dados incompletos:');
+    Logger.log('customerId: ' + data.customerId);
+    Logger.log('productId: ' + data.productId);
+    Logger.log('rating: ' + data.rating);
+    return { 
+      success: false, 
+      message: 'Dados incompletos para criar avaliação' 
+    };
+  }
+  
+  // ====================================================================
+  // ✅ CORREÇÃO CRÍTICA: Ler headers dinamicamente ao invés de assumir posições
+  // ====================================================================
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  
+  Logger.log('='.repeat(80));
+  Logger.log('📋 HEADERS DA PLANILHA AVALIACOES:');
+  Logger.log(JSON.stringify(headers));
+  Logger.log('='.repeat(80));
+  
+  // Mapear índices das colunas
+  const columnMap = {};
+  headers.forEach((header, index) => {
+    if (header) columnMap[String(header).trim()] = index;
+  });
+  
+  Logger.log('🗺️ Mapeamento de colunas:');
+  Logger.log(JSON.stringify(columnMap));
+  
+  // Verificar se colunas obrigatórias existem
+  const requiredColumns = ['ID_Avaliacao', 'ID_Cliente', 'ID_Produto', 'Rating', 'Status'];
+  const missingColumns = requiredColumns.filter(col => columnMap[col] === undefined);
+  
+  if (missingColumns.length > 0) {
+    Logger.log('❌ Colunas faltando: ' + missingColumns.join(', '));
+    return {
+      success: false,
+      message: 'Planilha AVALIACOES com estrutura incorreta. Contate o administrador.'
+    };
+  }
+  
+  // Gerar ID único
+  const reviewId = 'REV-' + Utilities.getUuid().substring(0, 8);
+  
+  // ====================================================================
+  // ✅ LOGS DETALHADOS DOS DADOS RECEBIDOS
+  // ====================================================================
+  Logger.log('='.repeat(80));
+  Logger.log('📦 DADOS RECEBIDOS PARA CRIAR REVIEW:');
+  Logger.log('customerId: "' + data.customerId + '"');
+  Logger.log('productId: "' + data.productId + '"');
+  Logger.log('customerName: "' + (data.customerName || 'N/A') + '"');
+  Logger.log('rating: ' + data.rating);
+  Logger.log('comment: "' + (data.comment || '') + '"');
+  Logger.log('='.repeat(80));
+  
+  // ====================================================================
+  // ✅ INSERIR DADOS NAS COLUNAS CORRETAS DINAMICAMENTE
+  // ====================================================================
+  try {
+    // Criar array com número total de colunas (inicializado vazio)
+    const row = new Array(headers.length).fill('');
+    
+    // Preencher apenas as colunas que existem
+    if (columnMap['ID_Avaliacao'] !== undefined) {
+      row[columnMap['ID_Avaliacao']] = reviewId;
+    }
+    
+    if (columnMap['ID_Cliente'] !== undefined) {
+      row[columnMap['ID_Cliente']] = data.customerId;
+    }
+    
+    if (columnMap['ID_Produto'] !== undefined) {
+      row[columnMap['ID_Produto']] = data.productId;
+    }
+    
+    // ID_Venda pode não existir ou ser opcional
+    if (columnMap['ID_Venda'] !== undefined) {
+      row[columnMap['ID_Venda']] = data.orderId || '';
+    }
+    
+    if (columnMap['Nome_Cliente'] !== undefined) {
+      row[columnMap['Nome_Cliente']] = data.customerName || 'Cliente';
+    }
+    
+    if (columnMap['Rating'] !== undefined) {
+      row[columnMap['Rating']] = Number(data.rating);
+    }
+    
+    // Comentario/Comentário - suporte para variações
+    const comentarioCol = columnMap['Comentario'] || columnMap['Comentário'] || columnMap['Comment'];
+    if (comentarioCol !== undefined) {
+      row[comentarioCol] = data.comment || '';
+    }
+    
+    if (columnMap['Data_Avaliacao'] !== undefined) {
+      row[columnMap['Data_Avaliacao']] = new Date();
+    }
+    
+    if (columnMap['Status'] !== undefined) {
+      row[columnMap['Status']] = 'Pendente';
+    }
+    
+    Logger.log('='.repeat(80));
+    Logger.log('📝 DADOS A SEREM INSERIDOS:');
+    Logger.log(JSON.stringify(row));
+    Logger.log('='.repeat(80));
+    
+    // Inserir linha
+    sheet.appendRow(row);
+    
+    Logger.log('✅ Avaliação criada com sucesso: ' + reviewId);
+    
+    return { 
+      success: true, 
+      message: 'Avaliação enviada! Aguardando aprovação do administrador.',
+      reviewId: reviewId
+    };
+  } catch (error) {
+    Logger.log('❌ Erro ao criar avaliação: ' + error.toString());
+    return { 
+      success: false, 
+      message: 'Erro ao salvar avaliação. Tente novamente.' 
+    };
+  }
+}
+
+/**
+ * [ADMIN] Get all reviews (for admin panel)
+ * @returns {Array} Array de todas as avaliações
+ */
+function getAdminReviews() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('AVALIACOES');
+  
+  if (!sheet) {
+    Logger.log('⚠️ Sheet AVALIACOES não encontrada');
+    return [];
+  }
+  
+  const reviews = sheetToJSON(sheet);
+  
+  // Retornar todas as avaliações (pendentes, aprovadas, rejeitadas)
+  return reviews.map(review => ({
+    id: review.ID_Avaliacao,
+    productId: review.ID_Produto || review.ID_Geladinho,  // Suporte para ambas colunas
+    productName: review.Nome_Geladinho || 'Produto',
+    customerId: review.ID_Cliente,
+    customerName: review.Nome_Cliente || 'Cliente',
+    rating: Number(review.Rating || review.Nota || 0),    // ✅ CORRIGIDO - Rating é o nome correto
+    comment: review.Comentario || '',
+    date: review.Data_Avaliacao,
+    status: review.Status || 'Pendente'
+  })).reverse(); // Mais recentes primeiro
+}
+
+/**
+ * [ADMIN] Update review status (Aprovar/Rejeitar)
+ * @param {Object} data - { reviewId, newStatus }
+ * @returns {Object} Resultado da operação
+ */
+function updateReviewStatus(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('AVALIACOES');
+  
+  if (!sheet) {
+    return { success: false, message: 'Sistema indisponível' };
+  }
+  
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0];
+  const idIndex = headers.indexOf('ID_Avaliacao');
+  const statusIndex = headers.indexOf('Status');
+  
+  if (idIndex === -1 || statusIndex === -1) {
+    return { success: false, message: 'Configuração inválida da planilha' };
+  }
+  
+  // Encontrar e atualizar a avaliação
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][idIndex]).trim() === String(data.reviewId).trim()) {
+      sheet.getRange(i + 1, statusIndex + 1).setValue(data.newStatus);
+      
+      Logger.log(`✅ Status da avaliação ${data.reviewId} atualizado para: ${data.newStatus}`);
+      
+      return { 
+        success: true, 
+        message: `Avaliação ${data.newStatus.toLowerCase()} com sucesso!` 
+      };
+    }
+  }
+  
+  return { success: false, message: 'Avaliação não encontrada' };
+}
+
+// ======================================================
+// HELPER FUNCTION
+// ======================================================
+
 function sheetToJSON(s) {
   const v = s.getDataRange().getValues();
   const h = v[0];
