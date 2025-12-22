@@ -294,9 +294,9 @@ export default function ClientHome({ initialData }: { initialData: any }) {
                     msg += `🎁 Cupom: ${orderData.couponCode} (-R$ ${orderData.discountValue.toFixed(2)})%0A`;
                 }
 
-                // Endere├ºo
+                // Endereço
                 if (orderData.customer.fullAddress) {
-                    msg += `Endere├ºo: ${orderData.customer.fullAddress}%0A`;
+                    msg += `Endereço: ${orderData.customer.fullAddress}%0A`;
                 } else {
                     msg += `Torre: ${orderData.customer.details.torre} - Apto: ${orderData.customer.details.apto}%0A`;
                 }
@@ -304,7 +304,7 @@ export default function ClientHome({ initialData }: { initialData: any }) {
                 // Pagamento
                 msg += `Pgto: ${orderData.paymentMethod}%0A`;
 
-                // Pontos ganhos (se n├úo for guest)
+                // Pontos ganhos (se não for guest)
                 let earned = 0;
                 if (userId !== 'GUEST') {
                     earned = Math.floor(orderData.total) + (orderData.bonusPoints || 0);
