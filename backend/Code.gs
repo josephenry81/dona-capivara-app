@@ -164,8 +164,21 @@ function getProducts() {
   
   const activeProducts = [];
   for (let i = 1; i < values.length; i++) {
-    // Filtrar produtos inativos imediatamente
-    if (String(values[i][ativoIndex]).toUpperCase() === 'TRUE') {
+    const ativoValue = values[i][ativoIndex];
+    
+    // 🔥 FILTRO FLEXÍVEL: Aceita múltiplos formatos
+    let isActive = false;
+    
+    if (typeof ativoValue === 'boolean') {
+      isActive = ativoValue;
+    } else if (typeof ativoValue === 'string') {
+      const normalized = String(ativoValue).toUpperCase().trim();
+      isActive = normalized === 'TRUE' || normalized === 'SIM' || normalized === 'YES' || normalized === '1';
+    } else if (typeof ativoValue === 'number') {
+      isActive = ativoValue === 1;
+    }
+    
+    if (isActive) {
       const obj = {};
       headers.forEach((h, idx) => {
         if (h) obj[h] = values[i][idx];
@@ -174,7 +187,7 @@ function getProducts() {
     }
   }
   
-  Logger.log(`✅ Produtos ativos carregados: ${activeProducts.length}/${values.length - 1}`);
+  Logger.log(`✅ Produtos ativos: ${activeProducts.length}/${values.length - 1}`);
   
   // Processar imagens apenas para produtos ativos
   return activeProducts.map(p => {
