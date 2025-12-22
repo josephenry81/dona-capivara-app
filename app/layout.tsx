@@ -36,7 +36,15 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="pt-BR">
+            <head>
+                {/* 🚀 OTIMIZAÇÃO: Preconnect to backend and CDNs */}
+                <link rel="preconnect" href="https://script.google.com" />
+                <link rel="preconnect" href="https://script.googleusercontent.com" />
+                <link rel="dns-prefetch" href="https://drive.google.com" />
+                <link rel="dns-prefetch" href="https://lh3.googleusercontent.com" />
+            </head>
             <body>{children}</body>
         </html>
     );
 }
+

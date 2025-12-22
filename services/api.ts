@@ -10,8 +10,10 @@ export const API = {
     _catalogTTL: 10 * 60 * 1000, // 10 minutes
 
     async fetchCatalogData(useCache = true) {
-        // Check cache first
-        if (useCache && this._catalogCache) {
+        const isServer = typeof window === 'undefined';
+
+        // Client-side cache check
+        if (!isServer && useCache && this._catalogCache) {
             const age = Date.now() - this._catalogCache.timestamp;
             if (age < this._catalogTTL) {
                 console.log(`⚡ [Catalog Cache HIT] Age: ${Math.round(age / 1000)}s - Instant load!`);
@@ -21,14 +23,17 @@ export const API = {
             }
         }
 
-        // 🚀 OTIMIZAÇÃO: Usar endpoint consolidado ao invés de 3 chamadas separadas
-        console.log('🌐 [Catalog Cache MISS] Fetching from Google Sheets...');
+        // 🚀 OTIMIZAÇÃO: Server-side e client-side fetch
+        console.log(isServer ? '🖥️ [SERVER] Fetching catalog data...' : '🌐 [CLIENT] Fetching catalog data...');
         try {
             if (!API_URL) throw new Error("API URL missing");
             const timestamp = Date.now();
 
-            // Uma única chamada ao invés de 3!
-            const response = await fetch(`${API_URL}?action=getCatalogData&_t=${timestamp}`);
+            // Server-side usa Next.js cache, client-side usa cache normal
+            const response = await fetch(`${API_URL}?action=getCatalogData&_t=${timestamp}`, {
+                cache: isServer ? 'force-cache' : 'default',
+                next: isServer ? { revalidate: 600 } : undefined, // 10min server cache
+            });
             const catalogData = await response.json();
 
             console.log('🔍 [API] Catalog data response:', catalogData);
@@ -75,12 +80,14 @@ export const API = {
 
             const finalData = { products, categories, banners };
 
-            // Store in cache
-            this._catalogCache = {
-                data: finalData,
-                timestamp: Date.now()
-            };
-            console.log('✅ [Catalog Cache STORED] Valid for 10 minutes');
+            // Store in client-side cache only
+            if (!isServer) {
+                this._catalogCache = {
+                    data: finalData,
+                    timestamp: Date.now()
+                };
+                console.log('✅ [Catalog Cache STORED] Valid for 10 minutes');
+            }
 
             return finalData;
         } catch (error) {
