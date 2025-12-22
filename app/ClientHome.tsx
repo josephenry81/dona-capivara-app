@@ -12,7 +12,7 @@ import LoadingCapybara from '../components/ui/LoadingCapybara';
 import { API } from '../services/api';
 import { useModal } from '../components/ui/Modal';
 
-// ÔÜí DYNAMIC IMPORTS - Lazy load heavy components
+// ⚡ DYNAMIC IMPORTS - Lazy load heavy components
 const CartView = dynamic(() => import('../components/views/CartView'), {
     loading: () => <LoadingCapybara />,
     ssr: false
@@ -70,14 +70,14 @@ export default function ClientHome({ initialData }: { initialData: any }) {
             } catch (e) { localStorage.removeItem('donaCapivaraUser'); }
         }
 
-        // Ô£à REFERRAL LINK DETECTION
+        // ✅ REFERRAL LINK DETECTION
         if (typeof window !== 'undefined') {
             const params = new URLSearchParams(window.location.search);
             const refCode = params.get('ref');
             if (refCode) {
                 localStorage.setItem('donaCapivaraRef', refCode);
-                showToast(`­ƒÄü C├│digo ${refCode} aplicado! Cadastre-se para ganhar 50 pontos.`, 'success');
-                // Limpar URL sem recarregar p├ígina
+                showToast(`🎁 Código ${refCode} aplicado! Cadastre-se para ganhar 50 pontos.`, 'success');
+                // Limpar URL sem recarregar página
                 window.history.replaceState({}, '', window.location.pathname);
             }
         }
@@ -90,7 +90,7 @@ export default function ClientHome({ initialData }: { initialData: any }) {
         });
     }, [products.length, categories.length, banners.length]);
 
-    // ÔÜí MEMOIZED: Add to cart function
+    // ⚡ MEMOIZED: Add to cart function
     const addToCart = useCallback((product: any, qtyToAdd = 1, additions?: any[]) => {
         setCart(prev => {
             // If additions are present, treat as unique item even if same product
@@ -155,7 +155,7 @@ export default function ClientHome({ initialData }: { initialData: any }) {
 
     const removeFromCart = (id: string) => setCart(prev => prev.filter(i => (i.cart_item_id || i.id) !== id));
 
-    // ÔÜí MEMOIZED: Toggle favorite function
+    // ⚡ MEMOIZED: Toggle favorite function
     const toggleFavorite = useCallback((productId: string) => {
         setFavorites(prev => {
             let newFavs;
@@ -176,8 +176,8 @@ export default function ClientHome({ initialData }: { initialData: any }) {
         });
     }, [user, showToast]);
 
-    // ­ƒìª HANDLE PRODUCT CLICK - Detects Mix products
-    // ÔÜí MEMOIZED
+    // 🍪 HANDLE PRODUCT CLICK - Detects Mix products
+    // ⚡ MEMOIZED
     const handleProductClick = useCallback((product: any) => {
         const isMix = product.ID_Tipo_Produto === 'TP-003' ||
             product.id?.includes('MIX') ||
@@ -189,16 +189,16 @@ export default function ClientHome({ initialData }: { initialData: any }) {
             if (mixId === 'MIX-GOURMET') {
                 mixId = 'MIX-001';
             }
-            console.log('­ƒìª Opening Mix Gourmet with ID:', mixId);
+            console.log('🍪 Opening Mix Gourmet with ID:', mixId);
             setActiveMixId(mixId);
         } else {
             setSelectedProduct(product);
         }
     }, []);
 
-    // ­ƒìª ADD MIX TO CART
+    // 🍪 ADD MIX TO CART
     const addMixToCart = (mixData: any) => {
-        console.log('­ƒøÆ Adding mix to cart:', mixData);
+        console.log('🐝 Adding mix to cart:', mixData);
         const cartItem = {
             id: mixData.id,
             nome: mixData.nome,
@@ -213,15 +213,15 @@ export default function ClientHome({ initialData }: { initialData: any }) {
             isReadyMade: mixData.isReadyMade || false
         };
         setCart(prev => [...prev, cartItem]);
-        showToast(`­ƒìª Mix adicionado ao carrinho!`, 'success');
+        showToast(`🍪 Mix adicionado ao carrinho!`, 'success');
         setActiveMixId(null);
     };
 
     const handleHeaderAction = async () => {
         const confirmed = await confirm(
-            user?.isGuest ? '­ƒöô Fazer Login?' : '­ƒÜ¬ Sair da Conta?',
+            user?.isGuest ? '🔑 Fazer Login?' : '🚪 Sair da Conta?',
             user?.isGuest
-                ? 'Voc├¬ est├í navegando como visitante. Deseja fazer login para salvar seus favoritos?'
+                ? 'Você está navegando como visitante. Deseja fazer login para salvar seus favoritos?'
                 : 'Tem certeza que deseja sair da sua conta?'
         );
 
@@ -268,15 +268,15 @@ export default function ClientHome({ initialData }: { initialData: any }) {
 
                     // Mostrar adicionais se existirem
                     if (item.selected_additions && item.selected_additions.length > 0) {
-                        msg += `  ÔÇó Base: R$ ${item.price.toFixed(2)}%0A`;
-                        item.selected_additions.forEach((add: any) => {
-                            msg += `  ÔÇó ${add.option_name} (+R$ ${add.option_price.toFixed(2)})%0A`;
+                        msg += `  • Base: R$ ${item.price.toFixed(2)}%0A`;
+                        item.selected_additions?.forEach((add: any) => {
+                            msg += `  • ${add.option_name} (+R$ ${add.option_price.toFixed(2)})%0A`;
                         });
                         if (item.unit_price) {
                             msg += `  Subtotal: R$ ${(item.unit_price * item.quantity).toFixed(2)}%0A`;
                         }
                     } else {
-                        // Produto sem adicionais: mostrar pre├ºo
+                        // Produto sem adicionais: mostrar preço
                         const itemTotal = item.price * item.quantity;
                         msg += `  R$ ${itemTotal.toFixed(2)}%0A`;
                     }
@@ -360,11 +360,11 @@ export default function ClientHome({ initialData }: { initialData: any }) {
                 }
 
             } else { showToast(response.message || 'Erro ao salvar.', 'error'); }
-        } catch (e) { showToast('Erro de conex├úo.', 'error'); }
+        } catch (e) { showToast('Erro de conexão.', 'error'); }
     };
 
     const handleLogin = (u: any) => {
-        console.log('­ƒöÉ handleLogin called with:', u);
+        console.log('🔑 handleLogin called with:', u);
 
         // CRITICAL FIX: Persist user to localStorage (including adminKey for admin users)
         setUser(u);
@@ -372,10 +372,10 @@ export default function ClientHome({ initialData }: { initialData: any }) {
 
         if (u.favorites && Array.isArray(u.favorites)) setFavorites(u.favorites);
 
-        console.log('Ô£à User saved to localStorage:', u);
+        console.log('✅ User saved to localStorage:', u);
     };
 
-    // Ô£à FIXED: Render Toast before AuthView
+    // ✅ FIXED: Render Toast before AuthView
     if (!user) {
         return (
             <>
