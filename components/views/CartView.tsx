@@ -565,7 +565,7 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                                     <input
                                         required
                                         name="rua"
-                                        placeholder="Nº"
+                                        placeholder="Rua"
                                         value={addressData.rua}
                                         onChange={handleInputChange}
                                         className="col-span-2 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition"
