@@ -362,7 +362,7 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
                             className="flex-1 h-14 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold rounded-xl shadow-lg shadow-pink-200 hover:opacity-90 transition flex justify-between items-center px-6 active:scale-95"
                         >
                             <span>🛒 Adicionar</span>
-                            <span className="bg-white/20 px-2 py-1 rounded text-sm">
+                            <span className="bg-white/20 px-2 py-1 rounded text-sm whitespace-nowrap">
                                 R$ {totalPrice.toFixed(2)}
                             </span>
                         </button>
@@ -413,7 +413,7 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
                 <div className="flex justify-between items-start mb-6">
                     <h1 className="text-2xl font-bold text-gray-800 w-3/4 leading-tight">{product.nome}</h1>
                     <div className="text-right">
-                        <span className="text-2xl font-bold text-[#FF4B82]">R$ {basePrice.toFixed(2)}</span>
+                        <span className="text-2xl font-bold text-[#FF4B82] whitespace-nowrap">R$ {basePrice.toFixed(2)}</span>
                         {hasAdditions && <p className="text-xs text-gray-400">base</p>}
                     </div>
                 </div>
@@ -536,7 +536,7 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
                         className="flex-1 h-14 bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white font-bold rounded-xl shadow-lg shadow-orange-200 hover:opacity-90 transition flex justify-between items-center px-6 active:scale-95"
                     >
                         <span>Adicionar</span>
-                        <span className="bg-white/20 px-2 py-1 rounded text-sm">
+                        <span className="bg-white/20 px-2 py-1 rounded text-sm whitespace-nowrap">
                             R$ {((basePrice + selectedAdditions.reduce((sum, a) => sum + a.option_price, 0)) * quantity).toFixed(2)}
                         </span>
                     </button>
