@@ -49,6 +49,7 @@ export default function Page() {
     const [favorites, setFavorites] = useState<string[]>([]);
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
     const [activeMixId, setActiveMixId] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
     const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as any, ts: 0 });
     const { modalState, hideModal, confirm, alert, Modal: CustomModal } = useModal();
 
@@ -79,9 +80,13 @@ export default function Page() {
         }
 
         API.fetchCatalogData().then(data => {
-            setProducts(data.products);
-            setCategories(data.categories);
-            setBanners(data.banners);
+            setProducts(data.products || []);
+            setCategories(data.categories || []);
+            setBanners(data.banners || []);
+            setIsLoading(false);
+        }).catch(err => {
+            console.error('Error loading catalog:', err);
+            setIsLoading(false);
         });
     }, []);
 
@@ -411,7 +416,20 @@ export default function Page() {
                 />
             ) : (
                 <>
-                    {activeTab === 'home' && <HomeView user={user} products={products} categories={categories} banners={banners} favorites={favorites} onAddToCart={addToCart} onToggleFavorite={toggleFavorite} onProductClick={handleProductClick} onHeaderAction={handleHeaderAction} />}
+                    {activeTab === 'home' && (
+                        <HomeView
+                            user={user}
+                            products={products}
+                            categories={categories}
+                            banners={banners}
+                            favorites={favorites}
+                            onAddToCart={addToCart}
+                            onToggleFavorite={toggleFavorite}
+                            onProductClick={handleProductClick}
+                            onHeaderAction={handleHeaderAction}
+                            isLoading={isLoading}
+                        />
+                    )}
                     {activeTab === 'favorites' && <FavoritesView products={products} favorites={favorites} onAddToCart={addToCart} onToggleFavorite={toggleFavorite} onProductClick={handleProductClick} />}
                     {activeTab === 'cart' && <CartView cart={cart} user={user} addToCart={addToCart} decreaseQuantity={decreaseQuantity} removeFromCart={removeFromCart} onSubmitOrder={handleSubmitOrder} />}
                     {activeTab === 'profile' && !user.isGuest && <ProfileView user={user} onLogout={() => { localStorage.removeItem('donaCapivaraUser'); setUser(null); setFavorites([]); }} onNavigate={setActiveTab} onUpdateUser={setUser} />}

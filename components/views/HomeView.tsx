@@ -13,11 +13,13 @@ interface HomeViewProps {
     onToggleFavorite: (id: string) => void;
     onProductClick: (product: any) => void;
     onHeaderAction: () => void;
+    isLoading?: boolean;
 }
 
 export default function HomeView({
     user, products, categories, banners, favorites,
-    onAddToCart, onToggleFavorite, onProductClick, onHeaderAction
+    onAddToCart, onToggleFavorite, onProductClick, onHeaderAction,
+    isLoading = false
 }: HomeViewProps) {
 
     const [activeCategory, setActiveCategory] = useState('todos');
@@ -31,8 +33,8 @@ export default function HomeView({
         return matchesSearch && matchesCategory;
     });
 
-    // 🔥 OTIMIZAÇÃO: Mostrar skeleton enquanto carrega
-    if (!products || products.length === 0) return <SkeletonHomeView />;
+    // 🔥 OTIMIZAÇÃO: Mostrar skeleton apenas durante o carregamento inicial
+    if (isLoading) return <SkeletonHomeView />;
 
 
     const handleBannerClick = () => {
