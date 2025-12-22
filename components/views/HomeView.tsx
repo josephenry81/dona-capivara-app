@@ -119,19 +119,53 @@ export default function HomeView({
                 ))}
             </div>
 
+            {/* Empty State - No Products Available */}
+            {filteredProducts.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-16 px-6">
+                    <div className="text-8xl mb-4">😔</div>
+                    <h3 className="text-2xl font-bold text-gray-800 mb-2 text-center">
+                        {searchTerm ? 'Nenhum produto encontrado' : 'Sem estoque no momento'}
+                    </h3>
+                    <p className="text-gray-500 text-center mb-6 max-w-md">
+                        {searchTerm
+                            ? `Não encontramos produtos com "${searchTerm}". Tente buscar por outro termo.`
+                            : 'Todos os nossos produtos estão esgotados no momento. Estamos reabastecendo! Volte em breve.'
+                        }
+                    </p>
+                    {searchTerm && (
+                        <button
+                            onClick={() => setSearchTerm('')}
+                            className="bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white px-6 py-3 rounded-full font-bold shadow-lg hover:opacity-90 transition"
+                        >
+                            Limpar Busca
+                        </button>
+                    )}
+                    {!searchTerm && activeCategory !== 'todos' && (
+                        <button
+                            onClick={() => setActiveCategory('todos')}
+                            className="bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white px-6 py-3 rounded-full font-bold shadow-lg hover:opacity-90 transition"
+                        >
+                            Ver Todas as Categorias
+                        </button>
+                    )}
+                </div>
+            )}
+
             {/* Grid */}
-            <div id="products-grid" className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 px-6 mt-4">
-                {filteredProducts.map(product => (
-                    <ProductCard
-                        key={product.id}
-                        product={product}
-                        isFavorite={favorites.includes(product.id)}
-                        onToggleFavorite={!user?.isGuest ? onToggleFavorite : undefined}
-                        onAddToCart={onAddToCart}
-                        onProductClick={onProductClick}
-                    />
-                ))}
-            </div>
+            {filteredProducts.length > 0 && (
+                <div id="products-grid" className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 px-6 mt-4">
+                    {filteredProducts.map(product => (
+                        <ProductCard
+                            key={product.id}
+                            product={product}
+                            isFavorite={favorites.includes(product.id)}
+                            onToggleFavorite={!user?.isGuest ? onToggleFavorite : undefined}
+                            onAddToCart={onAddToCart}
+                            onProductClick={onProductClick}
+                        />
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
