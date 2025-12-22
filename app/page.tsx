@@ -90,7 +90,7 @@ export default function Page() {
             // Only sync if we got a valid response (even if empty products/categories)
             if (data && (fetchedProducts.length > 0 || data.categories?.length > 0)) {
                 setFavorites(prev => {
-                    const validFavs = prev.filter(id => fetchedProducts.some(p => p.id === id));
+                    const validFavs = prev.filter(id => fetchedProducts.some((p: any) => p.id === id));
                     if (validFavs.length !== prev.length) {
                         console.log(`🧹 cleaned ${prev.length - validFavs.length} orphaned favorites`);
                         // Update localStorage if user is logged in
