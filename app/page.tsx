@@ -80,15 +80,32 @@ export default function Page() {
         }
 
         API.fetchCatalogData().then(data => {
-            setProducts(data.products || []);
+            const fetchedProducts = data.products || [];
+            setProducts(fetchedProducts);
             setCategories(data.categories || []);
             setBanners(data.banners || []);
             setIsLoading(false);
+
+            // 🔄 SYNC FAVORITES: Remove IDs that don't exist in current catalog
+            if (fetchedProducts.length > 0) {
+                setFavorites(prev => {
+                    const validFavs = prev.filter(id => fetchedProducts.some(p => p.id === id));
+                    if (validFavs.length !== prev.length) {
+                        console.log(`🧹 cleaned ${prev.length - validFavs.length} orphaned favorites`);
+                        // Update localStorage if user is logged in
+                        if (user) {
+                            const updatedUser = { ...user, favorites: validFavs };
+                            localStorage.setItem('donaCapivaraUser', JSON.stringify(updatedUser));
+                        }
+                    }
+                    return validFavs;
+                });
+            }
         }).catch(err => {
             console.error('Error loading catalog:', err);
             setIsLoading(false);
         });
-    }, []);
+    }, [user?.id]);
 
     // ⚡ MEMOIZED: Add to cart function
     const addToCart = useCallback((product: any, qtyToAdd = 1, additions?: any[]) => {
