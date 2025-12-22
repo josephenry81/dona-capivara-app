@@ -14,15 +14,15 @@ export const API = {
         if (useCache && this._catalogCache) {
             const age = Date.now() - this._catalogCache.timestamp;
             if (age < this._catalogTTL) {
-                console.log(`ÔÜí [Catalog Cache HIT] Age: ${Math.round(age / 1000)}s - Instant load!`);
+                console.log(`⚡ [Catalog Cache HIT] Age: ${Math.round(age / 1000)}s - Instant load!`);
                 return this._catalogCache.data;
             } else {
-                console.log(`­ƒòÆ [Catalog Cache EXPIRED] Age: ${Math.round(age / 1000)}s - Refetching...`);
+                console.log(`🔄 [Catalog Cache EXPIRED] Age: ${Math.round(age / 1000)}s - Refetching...`);
             }
         }
 
-        // ­ƒÜÇ OTIMIZA├ç├âO: Usar endpoint consolidado ao inv├®s de 3 chamadas separadas
-        console.log('­ƒîÉ [Catalog Cache MISS] Fetching from Google Sheets...');
+        // 🚀 OTIMIZAÇÃO: Usar endpoint consolidado ao invés de 3 chamadas separadas
+        console.log('🌐 [Catalog Cache MISS] Fetching from Google Sheets...');
         try {
             if (!API_URL) throw new Error("API URL missing");
             const timestamp = Date.now();
@@ -31,14 +31,19 @@ export const API = {
             const response = await fetch(`${API_URL}?action=getCatalogData&_t=${timestamp}`);
             const catalogData = await response.json();
 
-            console.log('­ƒöì [API] Catalog data response:', catalogData);
+            console.log('🔍 [API] Raw catalog data:', JSON.stringify(catalogData).substring(0, 500) + '...');
+
+            if (!catalogData || (!catalogData.products && !catalogData.categories)) {
+                console.error('❌ [API] Malformed catalog data response:', catalogData);
+                return { products: [], categories: [], banners: [] };
+            }
 
             // Processar produtos
             const products = (catalogData.products || []).map((p: any) => {
                 const imagemUrl = p.URL_IMAGEM_CACHE || '';
 
                 if (imagemUrl && !imagemUrl.startsWith('http')) {
-                    console.warn(`ÔÜá´©Å [Image Debug] Imagem inv├ílida para "${p.Nome_Geladinho}":`, imagemUrl);
+                    console.warn(`⚠️ [Image Debug] Imagem inválida para "${p.Nome_Geladinho}":`, imagemUrl);
                 }
 
                 return {
@@ -71,7 +76,7 @@ export const API = {
                 ctaText: b.ctaText || b.Texto_CTA || ''
             }));
 
-            console.log(`Ô£à [API] ${products.length} produtos, ${categories.length} categorias, ${banners.length} banners`);
+            console.log(`✅ [API] ${products.length} produtos, ${categories.length} categorias, ${banners.length} banners`);
 
             const finalData = { products, categories, banners };
 
@@ -80,11 +85,11 @@ export const API = {
                 data: finalData,
                 timestamp: Date.now()
             };
-            console.log('Ô£à [Catalog Cache STORED] Valid for 10 minutes');
+            console.log('✅ [Catalog Cache STORED] Valid for 10 minutes');
 
             return finalData;
         } catch (error) {
-            console.error('ÔØî [API] Error fetching catalog:', error);
+            console.error('❌ [API] Error fetching catalog:', error);
             return { products: [], categories: [], banners: [] };
         }
     },
