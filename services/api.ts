@@ -10,40 +10,35 @@ export const API = {
     _catalogTTL: 10 * 60 * 1000, // 10 minutes
 
     async fetchCatalogData(useCache = true) {
-        const isServer = typeof window === 'undefined';
-
-        // Client-side cache check
-        if (!isServer && useCache && this._catalogCache) {
+        // Check cache first
+        if (useCache && this._catalogCache) {
             const age = Date.now() - this._catalogCache.timestamp;
             if (age < this._catalogTTL) {
-                console.log(`⚡ [Catalog Cache HIT] Age: ${Math.round(age / 1000)}s - Instant load!`);
+                console.log(`ÔÜí [Catalog Cache HIT] Age: ${Math.round(age / 1000)}s - Instant load!`);
                 return this._catalogCache.data;
             } else {
-                console.log(`🕒 [Catalog Cache EXPIRED] Age: ${Math.round(age / 1000)}s - Refetching...`);
+                console.log(`­ƒòÆ [Catalog Cache EXPIRED] Age: ${Math.round(age / 1000)}s - Refetching...`);
             }
         }
 
-        // 🚀 OTIMIZAÇÃO: Server-side e client-side fetch
-        console.log(isServer ? '🖥️ [SERVER] Fetching catalog data...' : '🌐 [CLIENT] Fetching catalog data...');
+        // ­ƒÜÇ OTIMIZA├ç├âO: Usar endpoint consolidado ao inv├®s de 3 chamadas separadas
+        console.log('­ƒîÉ [Catalog Cache MISS] Fetching from Google Sheets...');
         try {
             if (!API_URL) throw new Error("API URL missing");
             const timestamp = Date.now();
 
-            // Server-side usa Next.js cache, client-side usa cache normal
-            const response = await fetch(`${API_URL}?action=getCatalogData&_t=${timestamp}`, {
-                cache: isServer ? 'force-cache' : 'default',
-                next: isServer ? { revalidate: 600 } : undefined, // 10min server cache
-            });
+            // Uma ├║nica chamada ao inv├®s de 3!
+            const response = await fetch(`${API_URL}?action=getCatalogData&_t=${timestamp}`);
             const catalogData = await response.json();
 
-            console.log('🔍 [API] Catalog data response:', catalogData);
+            console.log('­ƒöì [API] Catalog data response:', catalogData);
 
             // Processar produtos
             const products = (catalogData.products || []).map((p: any) => {
                 const imagemUrl = p.URL_IMAGEM_CACHE || '';
 
                 if (imagemUrl && !imagemUrl.startsWith('http')) {
-                    console.warn(`⚠️ [Image Debug] Imagem inválida para "${p.Nome_Geladinho}":`, imagemUrl);
+                    console.warn(`ÔÜá´©Å [Image Debug] Imagem inv├ílida para "${p.Nome_Geladinho}":`, imagemUrl);
                 }
 
                 return {
@@ -76,22 +71,20 @@ export const API = {
                 ctaText: b.ctaText || b.Texto_CTA || ''
             }));
 
-            console.log(`✅ [API] ${products.length} produtos, ${categories.length} categorias, ${banners.length} banners`);
+            console.log(`Ô£à [API] ${products.length} produtos, ${categories.length} categorias, ${banners.length} banners`);
 
             const finalData = { products, categories, banners };
 
-            // Store in client-side cache only
-            if (!isServer) {
-                this._catalogCache = {
-                    data: finalData,
-                    timestamp: Date.now()
-                };
-                console.log('✅ [Catalog Cache STORED] Valid for 10 minutes');
-            }
+            // Store in cache
+            this._catalogCache = {
+                data: finalData,
+                timestamp: Date.now()
+            };
+            console.log('Ô£à [Catalog Cache STORED] Valid for 10 minutes');
 
             return finalData;
         } catch (error) {
-            console.error('❌ [API] Error fetching catalog:', error);
+            console.error('ÔØî [API] Error fetching catalog:', error);
             return { products: [], categories: [], banners: [] };
         }
     },
@@ -121,31 +114,31 @@ export const API = {
                 };
             }
             return data;
-        } catch (error) { return { success: false, message: "Erro de conexão" }; }
+        } catch (error) { return { success: false, message: "Erro de conex├úo" }; }
     },
 
     // CRITICAL FIX: Return {orders: [...]} format expected by AdminView
     async getAdminOrders(adminKey: string) {
-        console.log('🔍 [API] getAdminOrders chamado com adminKey:', adminKey);
+        console.log('­ƒöì [API] getAdminOrders chamado com adminKey:', adminKey);
         if (!API_URL) return { orders: [] };
         try {
             const response = await fetch(`${API_URL}?action=getAdminOrders&adminKey=${adminKey}&_t=${Date.now()}`, { cache: 'no-store' });
             const data = await response.json();
 
-            console.log('🔍 [API] Resposta bruta:', data);
-            console.log('🔍 [API] Tipo:', typeof data);
-            console.log('🔍 [API] É array?:', Array.isArray(data));
+            console.log('­ƒöì [API] Resposta bruta:', data);
+            console.log('­ƒöì [API] Tipo:', typeof data);
+            console.log('­ƒöì [API] ├ë array?:', Array.isArray(data));
 
             if (data.error || data.success === false) {
-                console.error('❌ [API] Backend retornou erro:', data);
+                console.error('ÔØî [API] Backend retornou erro:', data);
                 return { orders: [] };
             }
 
             const list = data.orders || (Array.isArray(data) ? data : []);
-            console.log('✅ [API] Lista de pedidos:', list.length, 'pedidos');
+            console.log('Ô£à [API] Lista de pedidos:', list.length, 'pedidos');
 
             const normalized = list.map((order: any) => {
-                console.log('🔍 Raw order:', order);
+                console.log('­ƒöì Raw order:', order);
 
                 const apto = order.Apartamento_Cliente || order.Ap || order.Apto || order.Apartamento || '-';
                 const torre = order.Torre_Cliente || order.Torre || '';
@@ -178,10 +171,10 @@ export const API = {
                 };
             });
 
-            console.log('✅ [API] Retornando {orders: [...]} com', normalized.length, 'pedidos');
+            console.log('Ô£à [API] Retornando {orders: [...]} com', normalized.length, 'pedidos');
             return { orders: normalized };
         } catch (error) {
-            console.error('💥 [API] getAdminOrders error:', error);
+            console.error('­ƒÆÑ [API] getAdminOrders error:', error);
             return { orders: [] };
         }
     },
@@ -206,13 +199,13 @@ export const API = {
         if (useCache) {
             const cached = this._couponsCache.get(normalizedCode);
             if (cached && Date.now() - cached.timestamp < this._couponCacheTTL) {
-                console.log(`⚡ [Cache HIT] Cupom ${normalizedCode} - Validação instantânea!`);
+                console.log(`ÔÜí [Cache HIT] Cupom ${normalizedCode} - Valida├º├úo instant├ónea!`);
                 return cached.data;
             }
         }
 
         // Fetch from server
-        console.log(`🌐 [Cache MISS] Validando cupom ${normalizedCode}`);
+        console.log(`­ƒîÉ [Cache MISS] Validando cupom ${normalizedCode}`);
 
         try {
             const response = await fetch(`${API_URL}?action=validateCoupon&code=${normalizedCode}`, {
@@ -231,17 +224,17 @@ export const API = {
                     data,
                     timestamp: Date.now()
                 });
-                console.log(`✅ [Cache STORE] Cupom ${normalizedCode} armazenado`);
+                console.log(`Ô£à [Cache STORE] Cupom ${normalizedCode} armazenado`);
             }
 
             return data;
         } catch (e) {
-            console.error('❌ [Coupon Validation Error]:', e);
+            console.error('ÔØî [Coupon Validation Error]:', e);
             return {
                 success: false,
                 message: e instanceof Error && e.name === 'TimeoutError'
                     ? 'Timeout ao validar cupom. Tente novamente.'
-                    : 'Erro ao validar cupom. Verifique sua conexão.'
+                    : 'Erro ao validar cupom. Verifique sua conex├úo.'
             };
         }
     },
@@ -264,10 +257,10 @@ export const API = {
         if (code) {
             const normalized = code.trim().toUpperCase();
             this._couponsCache.delete(normalized);
-            console.log(`🗑️ [Cache CLEAR] Cupom ${normalized} removido`);
+            console.log(`­ƒùæ´©Å [Cache CLEAR] Cupom ${normalized} removido`);
         } else {
             this._couponsCache.clear();
-            console.log('🗑️ [Cache CLEAR] Todos os cupons removidos');
+            console.log('­ƒùæ´©Å [Cache CLEAR] Todos os cupons removidos');
         }
     },
     async syncFavorites(phone: string, favorites: string[]) {
@@ -288,7 +281,7 @@ export const API = {
                 date: order.Data_Venda,
                 total: Number(order.Total_Venda || 0),
                 status: order.Status || 'Pendente',
-                paymentMethod: order.Forma_de_Pagamento || 'Não informado'
+                paymentMethod: order.Forma_de_Pagamento || 'N├úo informado'
             }));
         } catch (e) { return []; }
     },
@@ -329,7 +322,7 @@ export const API = {
             });
             return await response.json();
         } catch (e) {
-            return { success: false, message: 'Erro de conexão' };
+            return { success: false, message: 'Erro de conex├úo' };
         }
     },
     async clearCacheAndReload() {
@@ -345,10 +338,10 @@ export const API = {
     // ========================================
 
     /**
-     * Girar roleta e obter prêmio garantido
+     * Girar roleta e obter pr├¬mio garantido
      */
     async spinWheel(userId: string, spinNumber: number) {
-        console.log('🎰 [API] spinWheel:', { userId, spinNumber });
+        console.log('­ƒÄ░ [API] spinWheel:', { userId, spinNumber });
         try {
             const response = await fetch(API_URL, {
                 method: 'POST',
@@ -360,36 +353,36 @@ export const API = {
                 })
             });
             const data = await response.json();
-            console.log('🎰 [API] spinWheel response:', data);
+            console.log('­ƒÄ░ [API] spinWheel response:', data);
             return data;
         } catch (error) {
-            console.error('💥 [API] spinWheel error:', error);
+            console.error('­ƒÆÑ [API] spinWheel error:', error);
             return { success: false, message: 'Erro ao girar roleta' };
         }
     },
 
     /**
-     * Obter prêmios pendentes do usuário
+     * Obter pr├¬mios pendentes do usu├írio
      */
     async getUserPrizes(userId: string) {
-        console.log('🎁 [API] getUserPrizes:', userId);
+        console.log('­ƒÄü [API] getUserPrizes:', userId);
         try {
             const timestamp = Date.now();
             const response = await fetch(`${API_URL}?action=getUserPrizes&userId=${userId}&_t=${timestamp}`);
             const data = await response.json();
-            console.log('🎁 [API] getUserPrizes response:', data);
+            console.log('­ƒÄü [API] getUserPrizes response:', data);
             return data;
         } catch (error) {
-            console.error('💥 [API] getUserPrizes error:', error);
+            console.error('­ƒÆÑ [API] getUserPrizes error:', error);
             return [];
         }
     },
 
     /**
-     * Resgatar prêmio em um pedido
+     * Resgatar pr├¬mio em um pedido
      */
     async redeemPrize(userId: string, prizeId: string, orderId: string) {
-        console.log('✅ [API] redeemPrize:', { userId, prizeId, orderId });
+        console.log('Ô£à [API] redeemPrize:', { userId, prizeId, orderId });
         try {
             const response = await fetch(API_URL, {
                 method: 'POST',
@@ -402,36 +395,36 @@ export const API = {
                 })
             });
             const data = await response.json();
-            console.log('✅ [API] redeemPrize response:', data);
+            console.log('Ô£à [API] redeemPrize response:', data);
             return data;
         } catch (error) {
-            console.error('💥 [API] redeemPrize error:', error);
-            return { success: false, message: 'Erro ao resgatar prêmio' };
+            console.error('­ƒÆÑ [API] redeemPrize error:', error);
+            return { success: false, message: 'Erro ao resgatar pr├¬mio' };
         }
     },
 
     /**
-     * Obter número de giros disponíveis
+     * Obter n├║mero de giros dispon├¡veis
      */
     async getUserSpins(userId: string) {
-        console.log('🎲 [API] getUserSpins:', userId);
+        console.log('­ƒÄ▓ [API] getUserSpins:', userId);
         try {
             const timestamp = Date.now();
             const response = await fetch(`${API_URL}?action=getUserSpins&userId=${userId}&_t=${timestamp}`);
             const data = await response.json();
-            console.log('🎲 [API] getUserSpins response:', data);
+            console.log('­ƒÄ▓ [API] getUserSpins response:', data);
             return data;
         } catch (error) {
-            console.error('💥 [API] getUserSpins error:', error);
+            console.error('­ƒÆÑ [API] getUserSpins error:', error);
             return { success: false, spins: 0 };
         }
     },
 
     /**
-     * Salvar prêmio ganho na raspadinha
+     * Salvar pr├¬mio ganho na raspadinha
      */
     async saveScratchPrize(userId: string, prize: any) {
-        console.log('🎁 [API] saveScratchPrize:', { userId, prize });
+        console.log('­ƒÄü [API] saveScratchPrize:', { userId, prize });
         try {
             const response = await fetch(API_URL, {
                 method: 'POST',
@@ -450,10 +443,10 @@ export const API = {
                 })
             });
             const data = await response.json();
-            console.log('🎁 [API] saveScratchPrize response:', data);
+            console.log('­ƒÄü [API] saveScratchPrize response:', data);
             return data;
         } catch (error) {
-            console.error('💥 [API] saveScratchPrize error:', error);
+            console.error('­ƒÆÑ [API] saveScratchPrize error:', error);
             return { success: false, error: String(error) };
         }
     },
@@ -487,7 +480,7 @@ export const API = {
             return result;
         } catch (e) {
             console.error('Error calculating price:', e);
-            return { success: false, error: 'Erro ao calcular preço' };
+            return { success: false, error: 'Erro ao calcular pre├ºo' };
         }
     },
 
@@ -499,23 +492,23 @@ export const API = {
      * Get mix product with available flavors and addition groups
      */
     async getMixWithFlavorAndAdditions(mixId: string) {
-        console.log(`🍦 [API] getMixWithFlavorAndAdditions: ${mixId}`);
+        console.log(`­ƒìª [API] getMixWithFlavorAndAdditions: ${mixId}`);
         try {
             const response = await fetch(
                 `${API_URL}?action=getMixWithFlavorAndAdditions&mixId=${mixId}&_t=${Date.now()}`
             );
 
             if (!response.ok) {
-                console.error(`❌ [API] Error fetching mix: HTTP ${response.status}`);
+                console.error(`ÔØî [API] Error fetching mix: HTTP ${response.status}`);
                 return { error: `Erro HTTP ${response.status}` };
             }
 
             const data = await response.json();
-            console.log(`✅ [API] Mix data received:`, data);
+            console.log(`Ô£à [API] Mix data received:`, data);
             return data;
         } catch (e) {
-            console.error('💥 [API] getMixWithFlavorAndAdditions error:', e);
-            return { error: 'Erro de conexão com o servidor' };
+            console.error('­ƒÆÑ [API] getMixWithFlavorAndAdditions error:', e);
+            return { error: 'Erro de conex├úo com o servidor' };
         }
     },
 
@@ -538,11 +531,11 @@ export const API = {
             return result;
         } catch (e) {
             console.error('Error calculating mix price:', e);
-            return { success: false, error: 'Erro ao calcular preço do mix' };
+            return { success: false, error: 'Erro ao calcular pre├ºo do mix' };
         }
     },
 
-    // ⚡ ========================================
+    // ÔÜí ========================================
     // PERFORMANCE OPTIMIZATION - CACHE SYSTEM
     // ========================================
 
@@ -557,13 +550,13 @@ export const API = {
         if (useCache) {
             const cached = this._additionsCache.get(productId);
             if (cached && Date.now() - cached.timestamp < this._cacheTTL) {
-                console.log(`⚡ [Cache HIT] Product ${productId} - Instant load!`);
+                console.log(`ÔÜí [Cache HIT] Product ${productId} - Instant load!`);
                 return cached.data;
             }
         }
 
         // Fetch from server
-        console.log(`🌐 [Cache MISS] Fetching product ${productId}`);
+        console.log(`­ƒîÉ [Cache MISS] Fetching product ${productId}`);
         const url = `${API_URL}?action=getProductWithAdditions&productId=${productId}&_t=${Date.now()}`;
 
         try {
@@ -600,10 +593,10 @@ export const API = {
     clearAdditionsCache(productId?: string) {
         if (productId) {
             this._additionsCache.delete(productId);
-            console.log(`🗑️ [Cache CLEAR] Cleared ${productId}`);
+            console.log(`­ƒùæ´©Å [Cache CLEAR] Cleared ${productId}`);
         } else {
             this._additionsCache.clear();
-            console.log('🗑️ [Cache CLEAR] Cleared all cache');
+            console.log('­ƒùæ´©Å [Cache CLEAR] Cleared all cache');
         }
     },
 
@@ -613,7 +606,7 @@ export const API = {
      */
     clearCatalogCache() {
         this._catalogCache = null;
-        console.log('🗑️ [Catalog Cache CLEAR] Cache invalidated');
+        console.log('­ƒùæ´©Å [Catalog Cache CLEAR] Cache invalidated');
     },
 
     /**
@@ -624,7 +617,7 @@ export const API = {
         this._catalogCache = null;
         this._couponsCache.clear();
         this._additionsCache.clear();
-        console.log('🗑️ [ALL CACHES CLEARED] Complete cache flush');
+        console.log('­ƒùæ´©Å [ALL CACHES CLEARED] Complete cache flush');
     },
 
     // ========================================
@@ -690,7 +683,7 @@ export const API = {
                 })
             });
             const data = await response.json();
-            console.log('🎉 [API] Sorteio realizado:', data);
+            console.log('­ƒÄë [API] Sorteio realizado:', data);
             return data;
         } catch (error) {
             console.error('Error performing raffle:', error);
@@ -725,13 +718,13 @@ export const API = {
                 })
             });
             const data = await response.json();
-            console.log('🎁 [API] Prêmio concedido:', data);
+            console.log('­ƒÄü [API] Pr├¬mio concedido:', data);
             return data;
         } catch (error) {
             console.error('Error awarding prize:', error);
             return {
                 success: false,
-                message: 'Erro ao conceder prêmio'
+                message: 'Erro ao conceder pr├¬mio'
             };
         }
     }
