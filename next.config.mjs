@@ -14,6 +14,33 @@ const nextConfig = {
       { protocol: 'https', hostname: '**' }
     ],
   },
+  
+  // 🚀 OTIMIZAÇÃO: Compressão automática
+  compress: true,
+  
+  // 🚀 OTIMIZAÇÃO: Headers de cache agressivo para assets estáticos
+  async headers() {
+    return [
+      {
+        source: '/:all*(svg|jpg|jpeg|png|webp|gif|ico)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default withPWA({

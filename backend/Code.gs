@@ -190,7 +190,7 @@ function getProducts() {
 function getCatalogData() {
   const cache = CacheService.getScriptCache();
   const CACHE_KEY = 'catalog_data_v1';
-  const CACHE_TTL = 300; // 5 minutos
+  const CACHE_TTL = 600; // 10 minutos (aumentado de 5min para mais cache hits)
   
   // Tentar buscar do cache primeiro
   const cached = cache.get(CACHE_KEY);
