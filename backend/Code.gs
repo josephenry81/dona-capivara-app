@@ -186,43 +186,11 @@ function getProducts() {
   });
 }
 
-// 🚀 OTIMIZAÇÃO: Endpoint consolidado com cache (10 minutos)
-function getCatalogData() {
-  const cache = CacheService.getScriptCache();
-  const cacheKey = 'catalog_data_v1';
-  
-  // Tentar buscar do cache
-  const cached = cache.get(cacheKey);
-  if (cached) {
-    console.log('✅ [Cache HIT] Returning cached catalog data');
-    return JSON.parse(cached);
-  }
-  
-  console.log('❌ [Cache MISS] Fetching fresh catalog data');
-  
-  // Buscar dados frescos
-  const products = getProducts();
-  const categories = getCategories();
-  const banners = getBanners();
-  
-  const result = {
-    products: products,
-    categories: categories,
-    banners: banners
-  };
-  
-  // Armazenar no cache por 10 minutos (600 segundos)
-  cache.put(cacheKey, JSON.stringify(result), 600);
-  console.log('✅ [Cache STORED] Catalog data cached for 10 minutes');
-  
-  return result;
-}
-
 // 🚀 OTIMIZAÇÃO CRÍTICA: Endpoint consolidado com cache agressivo
 function getCatalogData() {
   const cache = CacheService.getScriptCache();
   const CACHE_KEY = 'catalog_data_v1';
-  const CACHE_TTL = 600; // 10 minutos (aumentado de 5min para mais cache hits)
+  const CACHE_TTL = 600; // 10 minutos
   
   // Tentar buscar do cache primeiro
   const cached = cache.get(CACHE_KEY);
