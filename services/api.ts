@@ -21,30 +21,24 @@ export const API = {
             }
         }
 
-        // Fetch from API
+        // 🚀 OTIMIZAÇÃO: Usar endpoint consolidado ao invés de 3 chamadas separadas
         console.log('🌐 [Catalog Cache MISS] Fetching from Google Sheets...');
         try {
             if (!API_URL) throw new Error("API URL missing");
             const timestamp = Date.now();
-            const [productsRes, categoriesRes, bannersRes] = await Promise.all([
-                fetch(`${API_URL}?action=getProducts&_t=${timestamp}`),
-                fetch(`${API_URL}?action=getCategories&_t=${timestamp}`),
-                fetch(`${API_URL}?action=getBanners&_t=${timestamp}`)
-            ]);
-            const productsRaw = await productsRes.json();
-            const categoriesRaw = await categoriesRes.json();
-            const bannersRaw = await bannersRes.json();
 
-            console.log('🔍 [API] Raw banners response:', bannersRaw);
+            // Uma única chamada ao invés de 3!
+            const response = await fetch(`${API_URL}?action=getCatalogData&_t=${timestamp}`);
+            const catalogData = await response.json();
 
-            const products = productsRaw.map((p: any) => {
+            console.log('🔍 [API] Catalog data response:', catalogData);
+
+            // Processar produtos
+            const products = (catalogData.products || []).map((p: any) => {
                 const imagemUrl = p.URL_IMAGEM_CACHE || '';
 
-                // DEBUG: Log de imagens inválidas (paths relativos do AppSheet)
                 if (imagemUrl && !imagemUrl.startsWith('http')) {
                     console.warn(`⚠️ [Image Debug] Imagem inválida para "${p.Nome_Geladinho}":`, imagemUrl);
-                    console.warn(`   → Produto ID: ${p.ID_Geladinho}`);
-                    console.warn(`   → Usando placeholder`);
                 }
 
                 return {
@@ -61,14 +55,15 @@ export const API = {
                     tempo: p.Tempo_Preparo || 'N/A'
                 };
             });
-            const categories = categoriesRaw.map((c: any) => ({ id: c.ID_Categoria, nome: c.Nome_Categoria }));
 
-            // ✅ BACKEND V18.0 retorna { success: true, banners: [...] }
-            const bannersArray = bannersRaw.success && Array.isArray(bannersRaw.banners)
-                ? bannersRaw.banners
-                : (Array.isArray(bannersRaw) ? bannersRaw : []);
+            // Processar categorias
+            const categories = (catalogData.categories || []).map((c: any) => ({
+                id: c.ID_Categoria,
+                nome: c.Nome_Categoria
+            }));
 
-            const banners = bannersArray.map((b: any) => ({
+            // Processar banners
+            const banners = (catalogData.banners || []).map((b: any) => ({
                 id: b.id || b.ID_Banner || '',
                 image: b.image || b.URL_Imagem || '',
                 title: b.title || b.Titulo || '',
@@ -76,18 +71,18 @@ export const API = {
                 ctaText: b.ctaText || b.Texto_CTA || ''
             }));
 
-            console.log(`✅ [API] ${banners.length} banners carregados:`, banners);
+            console.log(`✅ [API] ${products.length} produtos, ${categories.length} categorias, ${banners.length} banners`);
 
-            const catalogData = { products, categories, banners };
+            const finalData = { products, categories, banners };
 
             // Store in cache
             this._catalogCache = {
-                data: catalogData,
+                data: finalData,
                 timestamp: Date.now()
             };
             console.log('✅ [Catalog Cache STORED] Valid for 10 minutes');
 
-            return catalogData;
+            return finalData;
         } catch (error) {
             console.error('❌ [API] Error fetching catalog:', error);
             return { products: [], categories: [], banners: [] };

@@ -27,6 +27,9 @@ function handleRequest(e) {
     let result;
 
     switch (action) {
+      // 🚀 OTIMIZAÇÃO: Endpoint consolidado com cache
+      case 'getCatalogData': result = getCatalogData(); break;
+      
       case 'getProducts': result = getProducts(); break;
       case 'getCategories': result = getCategories(); break;
       case 'getBanners': result = getBanners(); break;
@@ -181,6 +184,46 @@ function getProducts() {
       URL_IMAGEM_CACHE: urlImagem
     };
   });
+}
+
+// 🚀 OTIMIZAÇÃO CRÍTICA: Endpoint consolidado com cache agressivo
+function getCatalogData() {
+  const cache = CacheService.getScriptCache();
+  const CACHE_KEY = 'catalog_data_v1';
+  const CACHE_TTL = 300; // 5 minutos
+  
+  // Tentar buscar do cache primeiro
+  const cached = cache.get(CACHE_KEY);
+  if (cached) {
+    Logger.log('⚡ CACHE HIT - Retornando dados em <50ms');
+    return JSON.parse(cached);
+  }
+  
+  Logger.log('🌐 CACHE MISS - Buscando dados das planilhas...');
+  const startTime = new Date().getTime();
+  
+  // Buscar todos os dados de uma vez
+  const products = getProducts();
+  const categories = getCategories();
+  const banners = getBanners();
+  
+  const catalogData = {
+    products,
+    categories,
+    banners,
+    _cached_at: new Date().toISOString()
+  };
+  
+  // Armazenar no cache
+  try {
+    cache.put(CACHE_KEY, JSON.stringify(catalogData), CACHE_TTL);
+    const endTime = new Date().getTime();
+    Logger.log(`✅ Dados cacheados com sucesso (${endTime - startTime}ms)`);
+  } catch (e) {
+    Logger.log('⚠️ Erro ao cachear dados: ' + e.toString());
+  }
+  
+  return catalogData;
 }
 
 function getCategories() {
