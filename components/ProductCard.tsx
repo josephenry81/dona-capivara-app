@@ -87,6 +87,7 @@ export default function ProductCard({ product, isFavorite, onToggleFavorite, onA
                     src={product.imagem || 'https://via.placeholder.com/150'}
                     alt={product.nome}
                     fill
+                    loading="lazy"
                     sizes="(max-width: 768px) 50vw, 300px"
                     className={`object-cover transition-transform duration-500 group-hover:scale-110 ${!hasStock ? 'grayscale' : ''}`}
                     quality={75}

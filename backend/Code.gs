@@ -144,18 +144,43 @@ function getProducts() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GELADINHOS');
   if (!sheet) return [];
   
-  const data = sheetToJSON(sheet);
-  return data
-    .filter(i => String(i.Produto_Ativo).toUpperCase() === 'TRUE')
-    .map(p => {
-      // Processar URL de imagem usando múltiplas colunas como fallback
-      const urlImagem = normalizarUrlImagem(p);
-      
-      return {
-        ...p,
-        URL_IMAGEM_CACHE: urlImagem
-      };
-    });
+  // 🔥 OTIMIZAÇÃO: Filtrar produtos ativos ANTES de processar imagens
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0];
+  const ativoIndex = headers.indexOf('Produto_Ativo');
+  
+  // Se coluna não existe, usar abordagem antiga
+  if (ativoIndex === -1) {
+    Logger.log('⚠️ Coluna Produto_Ativo não encontrada, usando fallback');
+    const data = sheetToJSON(sheet);
+    return data.map(p => ({
+      ...p,
+      URL_IMAGEM_CACHE: normalizarUrlImagem(p)
+    }));
+  }
+  
+  const activeProducts = [];
+  for (let i = 1; i < values.length; i++) {
+    // Filtrar produtos inativos imediatamente
+    if (String(values[i][ativoIndex]).toUpperCase() === 'TRUE') {
+      const obj = {};
+      headers.forEach((h, idx) => {
+        if (h) obj[h] = values[i][idx];
+      });
+      activeProducts.push(obj);
+    }
+  }
+  
+  Logger.log(`✅ Produtos ativos carregados: ${activeProducts.length}/${values.length - 1}`);
+  
+  // Processar imagens apenas para produtos ativos
+  return activeProducts.map(p => {
+    const urlImagem = normalizarUrlImagem(p);
+    return {
+      ...p,
+      URL_IMAGEM_CACHE: urlImagem
+    };
+  });
 }
 
 function getCategories() {
@@ -166,18 +191,40 @@ function getBanners() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('BANNERS');
   if (!sheet) return [];
   
-  const data = sheetToJSON(sheet);
-  return data
-    .filter(i => String(i.Ativo).toUpperCase() === 'TRUE')
-    .map(banner => {
-      // Processar URL de imagem usando normalização AppSheet
-      const urlImagem = normalizarUrlImagem(banner);
-      
-      return {
-        ...banner,
-        URL_Imagem: urlImagem || banner.URL_Imagem || ''
-      };
-    });
+  // 🔥 OTIMIZAÇÃO: Filtrar banners ativos ANTES de processar imagens
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0];
+  const ativoIndex = headers.indexOf('Ativo');
+  
+  if (ativoIndex === -1) {
+    Logger.log('⚠️ Coluna Ativo não encontrada em BANNERS, usando fallback');
+    const data = sheetToJSON(sheet);
+    return data.map(banner => ({
+      ...banner,
+      URL_Imagem: normalizarUrlImagem(banner) || banner.URL_Imagem || ''
+    }));
+  }
+  
+  const activeBanners = [];
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][ativoIndex]).toUpperCase() === 'TRUE') {
+      const obj = {};
+      headers.forEach((h, idx) => {
+        if (h) obj[h] = values[i][idx];
+      });
+      activeBanners.push(obj);
+    }
+  }
+  
+  Logger.log(`✅ Banners ativos carregados: ${activeBanners.length}/${values.length - 1}`);
+  
+  return activeBanners.map(banner => {
+    const urlImagem = normalizarUrlImagem(banner);
+    return {
+      ...banner,
+      URL_Imagem: urlImagem || banner.URL_Imagem || ''
+    };
+  });
 }
 
 function getConfig() {

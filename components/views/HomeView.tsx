@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ProductCard from '../ProductCard';
-import LoadingCapybara from '../ui/LoadingCapybara';
+import SkeletonHomeView from '../ui/SkeletonHomeView';
 import BannerCarousel from '../common/BannerCarousel';
 
 interface HomeViewProps {
@@ -31,7 +31,9 @@ export default function HomeView({
         return matchesSearch && matchesCategory;
     });
 
-    if (!products || products.length === 0) return <LoadingCapybara />;
+    // 🔥 OTIMIZAÇÃO: Mostrar skeleton enquanto carrega
+    if (!products || products.length === 0) return <SkeletonHomeView />;
+
 
     const handleBannerClick = () => {
         const el = document.getElementById('products-grid');
