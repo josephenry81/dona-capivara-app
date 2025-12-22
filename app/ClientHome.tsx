@@ -118,7 +118,7 @@ export default function ClientHome({ initialData }: { initialData: any }) {
             const existingItem = prev.find(item => item.id === product.id && !item.selected_additions);
             const currentQty = existingItem ? existingItem.quantity : 0;
             if (currentQty + qtyToAdd > product.estoque) {
-                showToast(`Estoque insuficiente! Apenas ${product.estoque} dispon├¡veis.`, 'error');
+                showToast(`Estoque insuficiente! Apenas ${product.estoque} disponíveis.`, 'error');
                 return prev;
             }
             let newCart;
@@ -255,11 +255,11 @@ export default function ClientHome({ initialData }: { initialData: any }) {
                 const shortId = (response.idVenda || 'PENDENTE').slice(0, 8).toUpperCase();
 
                 // Mensagem formatada para WhatsApp
-                let msg = `*Novo Pedido Dona Capivara* ­ƒÉ╣%0AID: ${shortId}%0A----------------%0A`;
+                let msg = `*Novo Pedido Dona Capivara* 🧉%0AID: ${shortId}%0A----------------%0A`;
 
                 // Agendamento (se houver)
                 if (orderData.scheduling && orderData.scheduling !== 'Imediata') {
-                    msg += `­ƒôà *AGENDADO:* ${orderData.scheduling}%0A%0A`;
+                    msg += `📅 *AGENDADO:* ${orderData.scheduling}%0A%0A`;
                 }
 
                 // Itens do pedido
@@ -291,7 +291,7 @@ export default function ClientHome({ initialData }: { initialData: any }) {
 
                 // Cupom (se houver)
                 if (orderData.couponCode && orderData.discountValue > 0) {
-                    msg += `­ƒÄü Cupom: ${orderData.couponCode} (-R$ ${orderData.discountValue.toFixed(2)})%0A`;
+                    msg += `🎁 Cupom: ${orderData.couponCode} (-R$ ${orderData.discountValue.toFixed(2)})%0A`;
                 }
 
                 // Endere├ºo
@@ -308,10 +308,10 @@ export default function ClientHome({ initialData }: { initialData: any }) {
                 let earned = 0;
                 if (userId !== 'GUEST') {
                     earned = Math.floor(orderData.total) + (orderData.bonusPoints || 0);
-                    msg += `Ô£¿ Pontos Ganhos: +${earned}%0A`;
+                    msg += `⭐ Pontos Ganhos: +${earned}%0A`;
                 }
 
-                // Detec├º├úo de plataforma
+                // Detecção de plataforma
                 const isAndroid = /Android/.test(navigator.userAgent);
                 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
                 const phone = '5541991480096';
@@ -325,7 +325,7 @@ export default function ClientHome({ initialData }: { initialData: any }) {
                         window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
                     }
                 } else if (isIOS) {
-                    // iOS: usa wa.me com link tempor├írio
+                    // iOS: usa wa.me com link temporário
                     const whatsappUrl = `https://wa.me/${phone}?text=${msg}`;
                     const link = document.createElement('a');
                     link.href = whatsappUrl;
@@ -340,8 +340,8 @@ export default function ClientHome({ initialData }: { initialData: any }) {
                 }
 
                 alert(
-                    '­ƒÄë Pedido Enviado!',
-                    `Seu pedido ${shortId} foi enviado com sucesso! Voc├¬ ser├í redirecionado para o WhatsApp.`,
+                    '🎉 Pedido Enviado!',
+                    `Seu pedido ${shortId} foi enviado com sucesso! Você será redirecionado para o WhatsApp.`,
                     'success'
                 );
                 setCart([]);
