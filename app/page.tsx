@@ -87,13 +87,14 @@ export default function Page() {
             setIsLoading(false);
 
             // 🔄 SYNC FAVORITES: Remove IDs that don't exist in current catalog
-            if (fetchedProducts.length > 0) {
+            // Only sync if we got a valid response (even if empty products/categories)
+            if (data && (fetchedProducts.length > 0 || data.categories?.length > 0)) {
                 setFavorites(prev => {
                     const validFavs = prev.filter(id => fetchedProducts.some(p => p.id === id));
                     if (validFavs.length !== prev.length) {
                         console.log(`🧹 cleaned ${prev.length - validFavs.length} orphaned favorites`);
                         // Update localStorage if user is logged in
-                        if (user) {
+                        if (user && !user.isGuest) {
                             const updatedUser = { ...user, favorites: validFavs };
                             localStorage.setItem('donaCapivaraUser', JSON.stringify(updatedUser));
                         }
@@ -232,6 +233,17 @@ export default function Page() {
         setCart(prev => [...prev, cartItem]);
         showToast(`🍪 Mix adicionado ao carrinho!`, 'success');
         setActiveMixId(null);
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('donaCapivaraUser');
+        setUser(null);
+        setActiveTab('home');
+        setCart([]);
+        setFavorites([]);
+        setSelectedProduct(null);
+        setActiveMixId(null);
+        showToast('Até logo! 👋', 'info');
     };
 
     const handleHeaderAction = async () => {

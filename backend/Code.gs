@@ -166,16 +166,14 @@ function getProducts() {
   for (let i = 1; i < values.length; i++) {
     const ativoValue = values[i][ativoIndex];
     
-    // 🔥 FILTRO FLEXÍVEL: Aceita múltiplos formatos
+    // 🔥 FILTRO ULTRA-ROBUSTO: Aceita múltiplos formatos e limpa espaços
     let isActive = false;
     
-    if (typeof ativoValue === 'boolean') {
-      isActive = ativoValue;
-    } else if (typeof ativoValue === 'string') {
-      const normalized = String(ativoValue).toUpperCase().trim();
-      isActive = normalized === 'TRUE' || normalized === 'SIM' || normalized === 'YES' || normalized === '1';
-    } else if (typeof ativoValue === 'number') {
-      isActive = ativoValue === 1;
+    if (ativoValue === true) {
+      isActive = true;
+    } else if (ativoValue !== null && ativoValue !== undefined) {
+      const strVal = String(ativoValue).toUpperCase().trim();
+      isActive = strVal === 'TRUE' || strVal === 'SIM' || strVal === 'YES' || strVal === '1' || strVal === 'S' || strVal === 'OK';
     }
     
     if (isActive) {
@@ -185,6 +183,10 @@ function getProducts() {
       });
       activeProducts.push(obj);
     }
+  }
+  
+  if (activeProducts.length === 0 && values.length > 1) {
+    Logger.log('⚠️ AVISO: Nenhum produto ativo filtrado entre ' + (values.length - 1) + ' linhas.');
   }
   
   Logger.log(`✅ Produtos ativos: ${activeProducts.length}/${values.length - 1}`);
@@ -226,6 +228,12 @@ function getCatalogData() {
     banners,
     _cached_at: new Date().toISOString()
   };
+  
+  // 🛡️ PROTEÇÃO: Não cachear se o catálogo veio vazio mas a planilha tem dados
+  if (products.length === 0) {
+    Logger.log('🚫 Ignorando cache: Catálogo vazio detectado.');
+    return catalogData;
+  }
   
   // Armazenar no cache
   try {
