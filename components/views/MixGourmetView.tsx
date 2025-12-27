@@ -232,6 +232,47 @@ export default function MixGourmetView({ mixId, onBack, onAddToCart }: MixGourme
                     <h2 className="text-lg font-bold text-gray-800">Monte o Seu Mix</h2>
                 </div>
 
+                {/* O que está incluso na Base */}
+                {mix.base_price > 0 && mix.price_per_flavor === 0 && (
+                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-4 mb-4">
+                        <div className="flex items-center gap-2 mb-3">
+                            <span className="text-2xl">✨</span>
+                            <h3 className="font-bold text-green-800">O que está incluso na base</h3>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="flex items-center gap-2">
+                                <span className="text-green-600">✓</span>
+                                <span className="text-gray-700">2 Sabores</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-green-600">✓</span>
+                                <span className="text-gray-700">Cobertura</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-green-600">✓</span>
+                                <span className="text-gray-700">Leite Condensado</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-green-600">✓</span>
+                                <span className="text-gray-700">Calda de Chocolate</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-green-600">✓</span>
+                                <span className="text-gray-700">Calda de Morango</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-green-600">✓</span>
+                                <span className="text-gray-700">Granulado Amendoim</span>
+                            </div>
+                        </div>
+                        <div className="mt-3 pt-3 border-t border-green-200">
+                            <p className="text-xs text-green-700 font-medium">
+                                💰 Preço base: R$ {mix.base_price.toFixed(2)} — Adicione extras abaixo!
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 {/* Custom Tab Content */}
                 <div className="space-y-6">
                     {/* Flavors Section */}
@@ -239,7 +280,12 @@ export default function MixGourmetView({ mixId, onBack, onAddToCart }: MixGourme
                         <div className="flex justify-between items-center mb-3">
                             <h2 className="font-bold text-gray-800 flex items-center gap-2">
                                 <span>🍓</span>
-                                <span>Escolha até 2 Sabores</span>
+                                <span>
+                                    Escolha até 2 Sabores
+                                    {mix.price_per_flavor === 0 && (
+                                        <span className="text-green-600 text-sm ml-1">(Inclusos)</span>
+                                    )}
+                                </span>
                             </h2>
                             <span className="bg-[pink-50] text-pink-500 font-bold text-sm px-3 py-1 rounded-full">
                                 {selectedFlavors.length}/2

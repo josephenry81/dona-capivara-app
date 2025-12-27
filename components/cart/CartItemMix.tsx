@@ -40,12 +40,17 @@ export default function CartItemMix({
             <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-xl p-4 space-y-2">
                 {/* Base Price */}
                 <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Base Mix:</span>
+                    <span className="text-gray-600">
+                        Base Mix:
+                        {item.price_breakdown.flavors_total === 0 && item.selected_flavors.length > 0 && (
+                            <span className="text-green-600 text-xs ml-1">(inclui {item.selected_flavors.length} sabores)</span>
+                        )}
+                    </span>
                     <span className="text-gray-800 font-medium">R$ {item.base_price.toFixed(2)}</span>
                 </div>
 
-                {/* Flavors */}
-                {item.selected_flavors.length > 0 && (
+                {/* Flavors - Only show if they have a cost */}
+                {item.selected_flavors.length > 0 && item.price_breakdown.flavors_total > 0 && (
                     <div className="space-y-1">
                         <div className="flex justify-between text-sm font-medium text-gray-700">
                             <span>🍓 Sabores ({item.selected_flavors.length}):</span>

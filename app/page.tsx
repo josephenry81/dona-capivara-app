@@ -57,6 +57,12 @@ export default function Page() {
         setToast({ visible: true, message, type, ts: Date.now() });
     };
 
+    // ⚡ OTIMIZAÇÃO: Prefetch catalog data ANTES do componente montar
+    useEffect(() => {
+        // Prefetch imediato (não aguarda nada)
+        API.fetchCatalogData().catch(() => { });
+    }, []); // Executa apenas uma vez
+
     useEffect(() => {
         const savedUser = localStorage.getItem('donaCapivaraUser');
         if (savedUser) {
@@ -79,6 +85,7 @@ export default function Page() {
             }
         }
 
+        // ⚡ OTIMIZAÇÃO: Carregar catálogo (provavelmente já está em cache do prefetch)
         API.fetchCatalogData().then(data => {
             const fetchedProducts = data.products || [];
             setProducts(fetchedProducts);
@@ -94,9 +101,15 @@ export default function Page() {
                     if (validFavs.length !== prev.length) {
                         console.log(`🧹 cleaned ${prev.length - validFavs.length} orphaned favorites`);
                         // Update localStorage if user is logged in
-                        if (user && !user.isGuest) {
-                            const updatedUser = { ...user, favorites: validFavs };
-                            localStorage.setItem('donaCapivaraUser', JSON.stringify(updatedUser));
+                        const currentUser = localStorage.getItem('donaCapivaraUser');
+                        if (currentUser) {
+                            try {
+                                const userObj = JSON.parse(currentUser);
+                                if (!userObj.isGuest) {
+                                    const updatedUser = { ...userObj, favorites: validFavs };
+                                    localStorage.setItem('donaCapivaraUser', JSON.stringify(updatedUser));
+                                }
+                            } catch (e) { }
                         }
                     }
                     return validFavs;
@@ -106,7 +119,8 @@ export default function Page() {
             console.error('Error loading catalog:', err);
             setIsLoading(false);
         });
-    }, [user?.id]);
+    }, []); // ⚡ CRÍTICO: Removida dependência de user?.id para evitar re-execuções
+
 
     // ⚡ MEMOIZED: Add to cart function
     const addToCart = useCallback((product: any, qtyToAdd = 1, additions?: any[]) => {

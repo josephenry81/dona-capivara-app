@@ -4,10 +4,10 @@ const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || '';
 export const API = {
 
     // ========================================
-    // CATALOG CACHE (10 min TTL)
+    // CATALOG CACHE (30 min TTL) - ⚡ OTIMIZADO
     // ========================================
     _catalogCache: null as { data: any; timestamp: number } | null,
-    _catalogTTL: 10 * 60 * 1000, // 10 minutes
+    _catalogTTL: 30 * 60 * 1000, // 30 minutes (aumentado de 10min)
 
     async fetchCatalogData(useCache = true) {
         // Check cache first
@@ -27,8 +27,15 @@ export const API = {
             if (!API_URL) throw new Error("API URL missing");
             const timestamp = Date.now();
 
-            // Uma ├║nica chamada ao inv├®s de 3!
-            const response = await fetch(`${API_URL}?action=getCatalogData&_t=${timestamp}`);
+            // Uma única chamada ao invés de 3! + Timeout de 8s
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 segundos
+
+            const response = await fetch(`${API_URL}?action=getCatalogData&_t=${timestamp}`, {
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
             const catalogData = await response.json();
 
             console.log('🔍 [API] Raw catalog data:', JSON.stringify(catalogData).substring(0, 500) + '...');
@@ -85,11 +92,22 @@ export const API = {
                 data: finalData,
                 timestamp: Date.now()
             };
-            console.log('✅ [Catalog Cache STORED] Valid for 10 minutes');
+            console.log('✅ [Catalog Cache STORED] Valid for 30 minutes');
 
             return finalData;
-        } catch (error) {
-            console.error('❌ [API] Error fetching catalog:', error);
+        } catch (error: any) {
+            if (error.name === 'AbortError') {
+                console.error('⏱️ [API] Timeout: Requisição demorou mais de 8s');
+            } else {
+                console.error('❌ [API] Error fetching catalog:', error);
+            }
+
+            // Se tiver cache antigo, retornar ele mesmo expirado
+            if (this._catalogCache) {
+                console.warn('⚠️ [API] Usando cache expirado como fallback');
+                return this._catalogCache.data;
+            }
+
             return { products: [], categories: [], banners: [] };
         }
     },
@@ -339,122 +357,12 @@ export const API = {
     },
 
     // ========================================
-    // WHEEL / GAMIFICATION API FUNCTIONS
+    // GAMIFICATION FUNCTIONS REMOVED
     // ========================================
+    // Sistema de raspadinha/roleta foi removido na versão V15.0
+    // Funções removidas: spinWheel, getUserPrizes, redeemPrize, getUserSpins, saveScratchPrize
+    // Para histórico, ver conversa: c2f372ec-27fb-4e1f-9b61-c3d495f9b260
 
-    /**
-     * Girar roleta e obter pr├¬mio garantido
-     */
-    async spinWheel(userId: string, spinNumber: number) {
-        console.log('­ƒÄ░ [API] spinWheel:', { userId, spinNumber });
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'spinWheel',
-                    userId,
-                    spinNumber
-                })
-            });
-            const data = await response.json();
-            console.log('­ƒÄ░ [API] spinWheel response:', data);
-            return data;
-        } catch (error) {
-            console.error('­ƒÆÑ [API] spinWheel error:', error);
-            return { success: false, message: 'Erro ao girar roleta' };
-        }
-    },
-
-    /**
-     * Obter pr├¬mios pendentes do usu├írio
-     */
-    async getUserPrizes(userId: string) {
-        console.log('­ƒÄü [API] getUserPrizes:', userId);
-        try {
-            const timestamp = Date.now();
-            const response = await fetch(`${API_URL}?action=getUserPrizes&userId=${userId}&_t=${timestamp}`);
-            const data = await response.json();
-            console.log('­ƒÄü [API] getUserPrizes response:', data);
-            return data;
-        } catch (error) {
-            console.error('­ƒÆÑ [API] getUserPrizes error:', error);
-            return [];
-        }
-    },
-
-    /**
-     * Resgatar pr├¬mio em um pedido
-     */
-    async redeemPrize(userId: string, prizeId: string, orderId: string) {
-        console.log('Ô£à [API] redeemPrize:', { userId, prizeId, orderId });
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'redeemPrize',
-                    userId,
-                    prizeId,
-                    orderId
-                })
-            });
-            const data = await response.json();
-            console.log('Ô£à [API] redeemPrize response:', data);
-            return data;
-        } catch (error) {
-            console.error('­ƒÆÑ [API] redeemPrize error:', error);
-            return { success: false, message: 'Erro ao resgatar pr├¬mio' };
-        }
-    },
-
-    /**
-     * Obter n├║mero de giros dispon├¡veis
-     */
-    async getUserSpins(userId: string) {
-        console.log('­ƒÄ▓ [API] getUserSpins:', userId);
-        try {
-            const timestamp = Date.now();
-            const response = await fetch(`${API_URL}?action=getUserSpins&userId=${userId}&_t=${timestamp}`);
-            const data = await response.json();
-            console.log('­ƒÄ▓ [API] getUserSpins response:', data);
-            return data;
-        } catch (error) {
-            console.error('­ƒÆÑ [API] getUserSpins error:', error);
-            return { success: false, spins: 0 };
-        }
-    },
-
-    /**
-     * Salvar pr├¬mio ganho na raspadinha
-     */
-    async saveScratchPrize(userId: string, prize: any) {
-        console.log('­ƒÄü [API] saveScratchPrize:', { userId, prize });
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'saveScratchPrize',
-                    userId: userId,
-                    prize: {
-                        name: prize.name,
-                        description: prize.description,
-                        value: prize.value || 0,
-                        type: prize.type || 'desconto',
-                        code: prize.code || '',
-                        timestamp: new Date().toISOString()
-                    }
-                })
-            });
-            const data = await response.json();
-            console.log('­ƒÄü [API] saveScratchPrize response:', data);
-            return data;
-        } catch (error) {
-            console.error('­ƒÆÑ [API] saveScratchPrize error:', error);
-            return { success: false, error: String(error) };
-        }
-    },
 
     // ========================================
     // ADDITIONS SYSTEM API FUNCTIONS

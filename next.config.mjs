@@ -14,10 +14,18 @@ const nextConfig = {
       { protocol: 'https', hostname: '**' }
     ],
   },
-  
+
+  // 🚀 OTIMIZAÇÃO: Remove console.logs em produção (mantém error e warn)
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn'],
+    } : false,
+  },
+
+
   // 🚀 OTIMIZAÇÃO: Compressão automática
   compress: true,
-  
+
   // 🚀 OTIMIZAÇÃO: Headers de cache agressivo para assets estáticos
   async headers() {
     return [
