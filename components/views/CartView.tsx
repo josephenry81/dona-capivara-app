@@ -153,7 +153,7 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
 
     const totalPointsEarned = useMemo(() => Math.floor(total) + bonusPoints, [total, bonusPoints]);
 
-    // ⚡ MEMOIZED: Coupon validation
+    // ⚡ MEMOIZED: Coupon validation with context
     const handleApplyCoupon = useCallback(async () => {
         if (!couponCode.trim()) {
             setCouponFeedback({ type: 'error', message: 'Digite um código de cupom' });
@@ -165,7 +165,14 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
         setCouponFeedback(null);
 
         try {
-            const res = await API.validateCoupon(couponCode);
+            // 🔥 CORREÇÃO: Usar validateCouponWithContext para verificar histórico
+            const customerId = user?.id || user?.ID_Cliente || 'GUEST';
+
+            const res = await API.validateCouponWithContext({
+                code: couponCode,
+                customerId: customerId,
+                subtotal: subtotal
+            });
 
             if (res.success) {
                 setAppliedCoupon(res);
@@ -195,7 +202,7 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
         } finally {
             setCouponLoading(false);
         }
-    }, [couponCode, API, setAppliedCoupon, setCouponFeedback, setCouponLoading]);
+    }, [couponCode, user, subtotal]);
 
     const handleInputChange = (e: any) => {
         const { name, value } = e.target;

@@ -217,7 +217,6 @@ export const API = {
 
     async validateCoupon(code: string, useCache = true) {
         const normalizedCode = code.trim().toUpperCase();
-
         // Check cache first
         if (useCache) {
             const cached = this._couponsCache.get(normalizedCode);
@@ -261,6 +260,59 @@ export const API = {
             };
         }
     },
+
+    /**
+     * 🔥 NOVA FUNÇÃO: Validar cupom com contexto completo
+     * Verifica histórico de uso, valor mínimo, etc.
+     */
+    async validateCouponWithContext(data: {
+        code: string;
+        customerId: string;
+        subtotal: number;
+    }) {
+        const normalizedCode = data.code.trim().toUpperCase();
+
+        console.log(`🔍 [Validação Contextual] Cupom: ${normalizedCode}, Cliente: ${data.customerId}, Subtotal: R$ ${data.subtotal}`);
+
+        try {
+            // 🔧 CORREÇÃO: Google Apps Script lê dados de postData.contents
+            const payload = JSON.stringify({
+                code: normalizedCode,
+                customerId: data.customerId,
+                subtotal: data.subtotal
+            });
+
+            const response = await fetch(`${API_URL}?action=validateCoupon`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: payload,
+                signal: AbortSignal.timeout(15000)
+            });
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                console.log(`✅ [Cupom Válido] Tipo: ${result.type}, Valor: ${result.value}, Tipo Uso: ${result.tipoUso}`);
+            } else {
+                console.warn(`⚠️ [Cupom Inválido] ${result.message}`);
+            }
+
+            return result;
+        } catch (e) {
+            console.error('❌ [Coupon Context Validation Error]:', e);
+            return {
+                success: false,
+                message: e instanceof Error && e.name === 'TimeoutError'
+                    ? 'Timeout ao validar cupom. Tente novamente.'
+                    : 'Erro ao validar cupom. Verifique sua conexão.'
+            };
+        }
+    },
+
 
     /**
      * Prefetch coupon validation (background, non-blocking)
