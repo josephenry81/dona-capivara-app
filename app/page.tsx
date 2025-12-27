@@ -150,7 +150,7 @@ export default function Page() {
             const existingItem = prev.find(item => item.id === product.id && !item.selected_additions);
             const currentQty = existingItem ? existingItem.quantity : 0;
             if (currentQty + qtyToAdd > product.estoque) {
-                showToast(`Estoque insuficiente! Apenas ${product.estoque} dispon├¡veis.`, 'error');
+                showToast(`Estoque insuficiente! Apenas ${product.estoque} disponíveis.`, 'error');
                 return prev;
             }
             let newCart;
@@ -418,7 +418,7 @@ export default function Page() {
         console.log('✅ User saved to localStorage:', u);
     };
 
-    // Ô£à FIXED: Render Toast before AuthView
+    // ✅ FIXED: Render Toast before AuthView
     if (!user) {
         return (
             <>
