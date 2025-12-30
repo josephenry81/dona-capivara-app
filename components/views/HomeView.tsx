@@ -92,8 +92,8 @@ export default function HomeView({
                         {
                             id: 'default',
                             image: 'https://img.freepik.com/free-vector/flat-design-food-sale-banner_23-2149137947.jpg',
-                            title: 'Bem-vindo à Dona Capivara',
-                            subtitle: 'Os melhores geladinhos da cidade!',
+                            title: 'Bem-vindo à Dona Capivara (Versão 16:9)',
+                            subtitle: 'O novo banner imponente em proporção 16:9!',
                             ctaText: 'Ver Cardápio'
                         }
                     ]}

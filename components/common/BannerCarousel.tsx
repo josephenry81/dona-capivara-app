@@ -99,8 +99,8 @@ export default function BannerCarousel({
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
         >
-            {/* Banner Container */}
-            <div className="relative h-48 md:h-64 bg-gradient-to-br from-gray-100 to-gray-200">
+            {/* Banner Container - 16:9 com altura máxima controlada */}
+            <div className="relative w-full aspect-[4/3] md:aspect-[16/9] md:max-h-[500px] lg:max-h-[600px] bg-gradient-to-br from-gray-100 to-gray-200">
                 {/* Background Image with Fade Animation */}
                 <div className="absolute inset-0">
                     {banners.map((banner, index) => (

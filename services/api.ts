@@ -1,23 +1,46 @@
 // Keeping all other functions, but providing the full file for safety
 const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || '';
 
+// 🧠 CACHE VERSION - Incrementar quando houver mudanças importantes no backend
+// Isso força todos os clientes a recarregar dados quando necessário
+const CACHE_VERSION = '1.0.0';
+
 export const API = {
 
     // ========================================
     // CATALOG CACHE (30 min TTL) - ⚡ OTIMIZADO
     // ========================================
-    _catalogCache: null as { data: any; timestamp: number } | null,
+    _catalogCache: null as { data: any; timestamp: number; version: string } | null,
     _catalogTTL: 30 * 60 * 1000, // 30 minutes (aumentado de 10min)
 
     async fetchCatalogData(useCache = true) {
+        // 🧠 SMART CACHE: Detecta se é novo visitante ou versão desatualizada
+        // Só executa no cliente (não no SSR)
+        if (typeof window !== 'undefined') {
+            const isNewVisitor = !localStorage.getItem('donaCapivara_lastVisit');
+            const cachedVersion = localStorage.getItem('donaCapivara_cacheVersion');
+            const isOutdatedVersion = cachedVersion !== CACHE_VERSION;
+
+            // Se é novo visitante ou versão desatualizada, força reload
+            if (isNewVisitor || isOutdatedVersion) {
+                console.log(`🆕 [Smart Cache] ${isNewVisitor ? 'Novo visitante detectado' : 'Versão desatualizada'} - Forçando reload...`);
+                this._catalogCache = null; // Invalida cache
+                localStorage.setItem('donaCapivara_lastVisit', new Date().toISOString());
+                localStorage.setItem('donaCapivara_cacheVersion', CACHE_VERSION);
+            }
+        }
+
         // Check cache first
         if (useCache && this._catalogCache) {
             const age = Date.now() - this._catalogCache.timestamp;
-            if (age < this._catalogTTL) {
+            const isVersionValid = this._catalogCache.version === CACHE_VERSION;
+
+            if (age < this._catalogTTL && isVersionValid) {
                 console.log(`⚡ [Catalog Cache HIT] Age: ${Math.round(age / 1000)}s - Instant load!`);
                 return this._catalogCache.data;
             } else {
-                console.log(`🔄 [Catalog Cache EXPIRED] Age: ${Math.round(age / 1000)}s - Refetching...`);
+                const reason = !isVersionValid ? 'Versão desatualizada' : `Expirado (${Math.round(age / 1000)}s)`;
+                console.log(`🔄 [Catalog Cache EXPIRED] ${reason} - Refetching...`);
             }
         }
 
@@ -87,12 +110,13 @@ export const API = {
 
             const finalData = { products, categories, banners };
 
-            // Store in cache
+            // Store in cache with version
             this._catalogCache = {
                 data: finalData,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                version: CACHE_VERSION
             };
-            console.log('✅ [Catalog Cache STORED] Valid for 30 minutes');
+            console.log(`✅ [Catalog Cache STORED] Version ${CACHE_VERSION} - Valid for 30 minutes`);
 
             return finalData;
         } catch (error: any) {
@@ -571,7 +595,12 @@ export const API = {
      */
     clearCatalogCache() {
         this._catalogCache = null;
-        console.log('🧹 [Catalog Cache CLEAR] Cache invalidated');
+        // Também limpa os marcadores de visitante para forçar reload completo
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('donaCapivara_lastVisit');
+            localStorage.removeItem('donaCapivara_cacheVersion');
+        }
+        console.log('🧹 [Catalog Cache CLEAR] Cache invalidated + localStorage cleared');
     },
 
     /**
