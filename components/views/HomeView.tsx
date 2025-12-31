@@ -91,9 +91,9 @@ export default function HomeView({
                     banners={banners && banners.length > 0 ? banners : [
                         {
                             id: 'default',
-                            image: 'https://img.freepik.com/free-vector/flat-design-food-sale-banner_23-2149137947.jpg',
-                            title: 'Bem-vindo à Dona Capivara (Versão 16:9)',
-                            subtitle: 'O novo banner imponente em proporção 16:9!',
+                            image: '/clube-capivara-banner.png',
+                            title: 'Entre para o Clube Capivara!',
+                            subtitle: 'Ganhe 1 ponto por real em compras e troque por descontos. Convide amigos e receba +50 pontos!',
                             ctaText: 'Ver Cardápio'
                         }
                     ]}
