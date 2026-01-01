@@ -85,16 +85,24 @@ export default function HomeView({
                 </div>
             </div>
 
-            {/* Banner Carousel - Updated with new image */}
+            {/* Banner Carousel - Sistema Configurável
+                IMPORTANTE: Para trocar o banner padrão via banco de dados:
+                1. Adicione um campo "banner_padrao" na sua tabela de configurações
+                2. Retorne esse banner junto com os outros banners da API
+                3. Ou crie um endpoint separado: /getBannerPadrao
+                4. O banner padrão só aparece quando não há banners do backend
+                
+                Configuração atual do banner padrão (pode ser movida para o banco):
+            */}
             <div className="mx-6">
                 <BannerCarousel
                     banners={banners && banners.length > 0 ? banners : [
                         {
-                            id: 'default',
-                            image: '/clube-capivara-banner.jpg',
-                            title: 'Ganhe Pontos Toda Vez Que Comprar!',
-                            subtitle: 'Cada R$1 vira ponto. Troque por descontos e brindes. Indicou amigo? Ganhe +50 pontos!',
-                            ctaText: 'Ver Cardápio'
+                            id: 'default-clube-capivara',
+                            image: '/clube-capivara-banner.jpg', // TROCAR: Pode vir do banco de dados
+                            title: 'Ganhe Pontos Toda Vez Que Comprar!', // TROCAR: Pode vir do banco
+                            subtitle: 'Cada R$1 vira ponto. Troque por descontos e brindes. Indicou amigo? Ganhe +50 pontos!', // TROCAR: Pode vir do banco
+                            ctaText: 'Ver Cardápio' // TROCAR: Pode vir do banco
                         }
                     ]}
                     onCtaClick={handleBannerClick}

@@ -99,8 +99,12 @@ export default function BannerCarousel({
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
         >
-            {/* Banner Container - Otimizado para mobile e desktop */}
-            <div className="relative w-full aspect-[4/3] sm:aspect-[3/2] md:aspect-[16/9] bg-gradient-to-br from-yellow-50 to-orange-50">
+            {/* Banner Container - Configuração responsiva sem bordas 
+                Mobile: 16:9 com object-cover para preencher sem bordas
+                Desktop: 16:9 mantém proporção ideal
+                Imagem padrão pode ser alterada via banco de dados (ver HomeView.tsx)
+            */}
+            <div className="relative w-full aspect-[16/9] sm:aspect-[16/9] md:aspect-[16/9] bg-yellow-400">
                 {/* Background Image with Fade Animation */}
                 <div className="absolute inset-0">
                     {banners.map((banner, index) => (
@@ -114,7 +118,7 @@ export default function BannerCarousel({
                                 fill
                                 priority={priority && index === 0}
                                 sizes="(max-width: 768px) 100vw, 80vw"
-                                className="object-contain"
+                                className="object-cover object-center"
                                 quality={90}
                             />
                         </div>
