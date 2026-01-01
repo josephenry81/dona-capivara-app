@@ -99,8 +99,8 @@ export default function BannerCarousel({
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
         >
-            {/* Banner Container - 16:9 com altura máxima controlada */}
-            <div className="relative w-full aspect-[4/3] md:aspect-[16/9] md:max-h-[500px] lg:max-h-[600px] bg-gradient-to-br from-gray-100 to-gray-200">
+            {/* Banner Container - Otimizado para mobile e desktop */}
+            <div className="relative w-full aspect-[4/3] sm:aspect-[3/2] md:aspect-[16/9] bg-gradient-to-br from-yellow-50 to-orange-50">
                 {/* Background Image with Fade Animation */}
                 <div className="absolute inset-0">
                     {banners.map((banner, index) => (
@@ -114,47 +114,49 @@ export default function BannerCarousel({
                                 fill
                                 priority={priority && index === 0}
                                 sizes="(max-width: 768px) 100vw, 80vw"
-                                className="object-cover"
-                                quality={80}
+                                className="object-contain"
+                                quality={90}
                             />
                         </div>
                     ))}
                 </div>
 
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+                {/* Gradient Overlay - Apenas sutil no bottom para não escurecer a imagem */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
 
-                {/* Content */}
-                <div className="relative h-full flex flex-col justify-end p-6 text-white z-10">
-                    {/* Title with Slide Animation */}
-                    <h2
-                        key={`title-${currentIndex}`}
-                        className="text-2xl md:text-3xl font-bold mb-2 pr-20 animate-in slide-in-from-bottom-4 fade-in duration-500"
-                    >
-                        {currentBanner.title}
-                    </h2>
-
-                    {/* Subtitle */}
-                    {currentBanner.subtitle && (
-                        <p
-                            key={`subtitle-${currentIndex}`}
-                            className="text-sm md:text-base text-white/90 mb-4 pr-20 animate-in slide-in-from-bottom-2 fade-in duration-500 delay-100"
+                {/* Content - Oculto para banners locais que já possuem texto integrado */}
+                {!currentBanner.image.startsWith('/') && (
+                    <div className="relative h-full flex flex-col justify-end p-6 text-white z-10">
+                        {/* Title with Slide Animation */}
+                        <h2
+                            key={`title-${currentIndex}`}
+                            className="text-2xl md:text-3xl font-bold mb-2 pr-20 animate-in slide-in-from-bottom-4 fade-in duration-500"
                         >
-                            {currentBanner.subtitle}
-                        </p>
-                    )}
+                            {currentBanner.title}
+                        </h2>
 
-                    {/* CTA Button */}
-                    {currentBanner.ctaText && (
-                        <button
-                            key={`cta-${currentIndex}`}
-                            onClick={onCtaClick}
-                            className="self-start bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white font-bold text-sm px-4 py-2.5 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all active:scale-95 animate-in slide-in-from-bottom fade-in duration-500 delay-200"
-                        >
-                            {currentBanner.ctaText}
-                        </button>
-                    )}
-                </div>
+                        {/* Subtitle */}
+                        {currentBanner.subtitle && (
+                            <p
+                                key={`subtitle-${currentIndex}`}
+                                className="text-sm md:text-base text-white/90 mb-4 pr-20 animate-in slide-in-from-bottom-2 fade-in duration-500 delay-100"
+                            >
+                                {currentBanner.subtitle}
+                            </p>
+                        )}
+
+                        {/* CTA Button */}
+                        {currentBanner.ctaText && (
+                            <button
+                                key={`cta-${currentIndex}`}
+                                onClick={onCtaClick}
+                                className="self-start bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white font-bold text-sm px-4 py-2.5 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all active:scale-95 animate-in slide-in-from-bottom fade-in duration-500 delay-200"
+                            >
+                                {currentBanner.ctaText}
+                            </button>
+                        )}
+                    </div>
+                )}
 
                 {/* Navigation Arrows (Desktop) */}
                 {banners.length > 1 && (

@@ -85,15 +85,15 @@ export default function HomeView({
                 </div>
             </div>
 
-            {/* Banner Carousel */}
+            {/* Banner Carousel - Updated with new image */}
             <div className="mx-6">
                 <BannerCarousel
                     banners={banners && banners.length > 0 ? banners : [
                         {
                             id: 'default',
-                            image: '/clube-capivara-banner.png',
-                            title: 'Entre para o Clube Capivara!',
-                            subtitle: 'Ganhe 1 ponto por real em compras e troque por descontos. Convide amigos e receba +50 pontos!',
+                            image: '/clube-capivara-banner.jpg',
+                            title: 'Ganhe Pontos Toda Vez Que Comprar!',
+                            subtitle: 'Cada R$1 vira ponto. Troque por descontos e brindes. Indicou amigo? Ganhe +50 pontos!',
                             ctaText: 'Ver Cardápio'
                         }
                     ]}
