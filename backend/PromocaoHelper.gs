@@ -54,13 +54,19 @@ function atualizarGastoPromoClienteComRegistroSorteio(customerId, valorCompra) {
   
   if (!clientesSheet || !sorteiosSheet) return { success: false, numerosGanhos: [] };
 
+  // 🔒 CORREÇÃO: Só acumular gasto se a promoção estiver ATIVA
+  const promoConfig = getPromoConfig();
+  if (!promoConfig.ativa) {
+    Logger.log('🚫 Promoção desativada. Gasto não acumulado para: ' + customerId);
+    return { success: false, numerosGanhos: [], message: 'Promoção desativada' };
+  }
+
   const clientes = sheetToJSON(clientesSheet);
   const cliente = clientes.find(c => String(c.ID_Cliente).trim() === String(customerId).trim());
   if (!cliente) return { success: false, numerosGanhos: [] };
 
   const gastoAtual = Number(cliente.Gasto_Acumulado_Promo || 0);
   const novoGasto = gastoAtual + valorCompra;
-  const promoConfig = getPromoConfig();
   const META_POR_NUMERO = promoConfig.valorMeta;
 
   const numerosGanhos = Math.floor(novoGasto / META_POR_NUMERO);
