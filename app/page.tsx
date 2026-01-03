@@ -453,6 +453,13 @@ export default function Page() {
                 setCart([]);
                 setActiveTab('home');
 
+                // ⚡ REFRESH CATÁLOGO: Invalidar cache e recarregar produtos com estoque atualizado
+                API.invalidateCatalogCache();
+                API.fetchCatalogData(false).then(data => {
+                    if (data?.products) setProducts(data.products);
+                    console.log('🔄 Catálogo atualizado após pedido');
+                });
+
                 if (userId !== 'GUEST') {
                     const redeemed = Number(orderData.pointsRedeemed || 0);
                     const currentPts = Number(user.points || 0);

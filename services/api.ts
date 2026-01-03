@@ -8,11 +8,17 @@ const CACHE_VERSION = '1.0.0';
 export const API = {
 
     // ========================================
-    // CATALOG CACHE (30 min TTL) - ⚡ QI 145 OTIMIZADO
+    // CATALOG CACHE (5 min TTL) - ⚡ OTIMIZADO
     // ========================================
     _catalogCache: null as { data: any; timestamp: number; version: string } | null,
-    _catalogTTL: 30 * 60 * 1000,
+    _catalogTTL: 5 * 60 * 1000, // ⚡ Reduzido de 30 min para 5 min
     _pendingCatalogFetch: null as Promise<any> | null, // 🧠 SINGLETON PROMISE (Deduplicação)
+
+    // 🗑️ Função para invalidar cache local (usar após pedido)
+    invalidateCatalogCache() {
+        console.log('🗑️ [API] Invalidando cache local do catálogo...');
+        this._catalogCache = null;
+    },
 
     async fetchCatalogData(useCache = true) {
         // 1. Se já existe uma busca em curso, retornar a mesma promessa (Deduplicação)

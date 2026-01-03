@@ -270,7 +270,7 @@ function getProducts() {
 function getCatalogData() {
   const cache = CacheService.getScriptCache();
   const CACHE_KEY = 'catalog_data_v1';
-  const CACHE_TTL = 600; // 10 minutos
+  const CACHE_TTL = 120; // ⚡ OTIMIZADO: 2 minutos para refletir mudanças de estoque mais rápido
   
   // Tentar buscar do cache primeiro
   const cached = cache.get(CACHE_KEY);
