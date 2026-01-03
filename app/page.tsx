@@ -66,11 +66,6 @@ export default function Page() {
         setToast({ visible: true, message, type, ts: Date.now() });
     };
 
-    // ⚡ OTIMIZAÇÃO: Prefetch catalog data ANTES do componente montar
-    useEffect(() => {
-        // Prefetch imediato (não aguarda nada)
-        API.fetchCatalogData().catch(() => { });
-    }, []); // Executa apenas uma vez
 
     useEffect(() => {
         const savedUser = localStorage.getItem('donaCapivaraUser');
@@ -94,40 +89,47 @@ export default function Page() {
             }
         }
 
-        // ⚡ OTIMIZAÇÃO: Carregar catálogo (provavelmente já está em cache do prefetch)
-        API.fetchCatalogData().then(data => {
-            const fetchedProducts = data.products || [];
-            setProducts(fetchedProducts);
-            setCategories(data.categories || []);
-            setBanners(data.banners || []);
-            setIsLoading(false);
+        // ⚡ CARREGAMENTO DE CATÁLOGO: Aguarda dados antes de renderizar
+        const loadCatalog = async () => {
+            try {
+                const data = await API.fetchCatalogData();
+                const fetchedProducts = data.products || [];
 
-            // 🔄 SYNC FAVORITES: Remove IDs that don't exist in current catalog
-            // Only sync if we got a valid response (even if empty products/categories)
-            if (data && (fetchedProducts.length > 0 || data.categories?.length > 0)) {
-                setFavorites(prev => {
-                    const validFavs = prev.filter(id => fetchedProducts.some((p: any) => p.id === id));
-                    if (validFavs.length !== prev.length) {
-                        console.log(`🧹 cleaned ${prev.length - validFavs.length} orphaned favorites`);
-                        // Update localStorage if user is logged in
-                        const currentUser = localStorage.getItem('donaCapivaraUser');
-                        if (currentUser) {
-                            try {
-                                const userObj = JSON.parse(currentUser);
-                                if (!userObj.isGuest) {
-                                    const updatedUser = { ...userObj, favorites: validFavs };
-                                    localStorage.setItem('donaCapivaraUser', JSON.stringify(updatedUser));
-                                }
-                            } catch (e) { }
+                setProducts(fetchedProducts);
+                setCategories(data.categories || []);
+                setBanners(data.banners || []);
+
+                // 🔄 SYNC FAVORITES: Remove IDs that don't exist in current catalog
+                if (data && (fetchedProducts.length > 0 || data.categories?.length > 0)) {
+                    setFavorites(prev => {
+                        const validFavs = prev.filter(id => fetchedProducts.some((p: any) => p.id === id));
+                        if (validFavs.length !== prev.length) {
+                            console.log(`🧹 cleaned ${prev.length - validFavs.length} orphaned favorites`);
+                            // Update localStorage if user is logged in
+                            const currentUser = localStorage.getItem('donaCapivaraUser');
+                            if (currentUser) {
+                                try {
+                                    const userObj = JSON.parse(currentUser);
+                                    if (!userObj.isGuest) {
+                                        const updatedUser = { ...userObj, favorites: validFavs };
+                                        localStorage.setItem('donaCapivaraUser', JSON.stringify(updatedUser));
+                                    }
+                                } catch (e) { }
+                            }
                         }
-                    }
-                    return validFavs;
-                });
+                        return validFavs;
+                    });
+                }
+            } catch (err) {
+                console.error('❌ Erro ao carregar catálogo:', err);
+                // Mesmo com erro, parar loading para não travar a interface
+            } finally {
+                // Sempre desativar loading, com ou sem erro
+                setIsLoading(false);
             }
-        }).catch(err => {
-            console.error('Error loading catalog:', err);
-            setIsLoading(false);
-        });
+        };
+
+        loadCatalog();
     }, []); // ⚡ CRÍTICO: Removida dependência de user?.id para evitar re-execuções
 
 
