@@ -8,79 +8,90 @@ const CACHE_VERSION = '1.0.0';
 export const API = {
 
     // ========================================
-    // CATALOG CACHE (30 min TTL) - ⚡ OTIMIZADO
+    // CATALOG CACHE (30 min TTL) - ⚡ QI 145 OTIMIZADO
     // ========================================
     _catalogCache: null as { data: any; timestamp: number; version: string } | null,
-    _catalogTTL: 30 * 60 * 1000, // 30 minutes (aumentado de 10min)
+    _catalogTTL: 30 * 60 * 1000,
+    _pendingCatalogFetch: null as Promise<any> | null, // 🧠 SINGLETON PROMISE (Deduplicação)
 
     async fetchCatalogData(useCache = true) {
+        // 1. Se já existe uma busca em curso, retornar a mesma promessa (Deduplicação)
+        if (this._pendingCatalogFetch) {
+            console.log('🔄 [API] Requisição em curso detectada. Reutilizando promessa...');
+            return this._pendingCatalogFetch;
+        }
+
+        this._pendingCatalogFetch = (async () => {
+            try {
+                return await this._executeFetchCatalog(useCache);
+            } finally {
+                this._pendingCatalogFetch = null; // Limpa para permitir novas buscas após conclusão
+            }
+        })();
+
+        return this._pendingCatalogFetch;
+    },
+
+    async _executeFetchCatalog(useCache: boolean) {
         // 🧠 SMART CACHE: Detecta se é novo visitante ou versão desatualizada
-        // Só executa no cliente (não no SSR)
         if (typeof window !== 'undefined') {
             const isNewVisitor = !localStorage.getItem('donaCapivara_lastVisit');
             const cachedVersion = localStorage.getItem('donaCapivara_cacheVersion');
             const isOutdatedVersion = cachedVersion !== CACHE_VERSION;
 
-            // Se é novo visitante ou versão desatualizada, força reload
             if (isNewVisitor || isOutdatedVersion) {
-                console.log(`🆕 [Smart Cache] ${isNewVisitor ? 'Novo visitante detectado' : 'Versão desatualizada'} - Forçando reload...`);
-                this._catalogCache = null; // Invalida cache
+                console.log(`🆕 [Smart Cache] ${isNewVisitor ? 'Novo visitante' : 'Versão desatualizada'} - Invalida cache local`);
+                this._catalogCache = null;
                 localStorage.setItem('donaCapivara_lastVisit', new Date().toISOString());
                 localStorage.setItem('donaCapivara_cacheVersion', CACHE_VERSION);
             }
         }
 
-        // Check cache first
+        // Check internal memory cache
         if (useCache && this._catalogCache) {
             const age = Date.now() - this._catalogCache.timestamp;
             const isVersionValid = this._catalogCache.version === CACHE_VERSION;
 
             if (age < this._catalogTTL && isVersionValid) {
-                console.log(`⚡ [Catalog Cache HIT] Age: ${Math.round(age / 1000)}s - Instant load!`);
+                console.log(`⚡ [Catalog Cache HIT] Age: ${Math.round(age / 1000)}s`);
                 return this._catalogCache.data;
-            } else {
-                const reason = !isVersionValid ? 'Versão desatualizada' : `Expirado (${Math.round(age / 1000)}s)`;
-                console.log(`🔄 [Catalog Cache EXPIRED] ${reason} - Refetching...`);
             }
         }
 
-        // 🚀 OTIMIZAÇÃO: Usar endpoint consolidado ao invés de 3 chamadas separadas
-        console.log('🌐 [Catalog Cache MISS] Fetching from Google Sheets...');
-        try {
-            if (!API_URL) throw new Error("API URL missing");
-            const timestamp = Date.now();
+        // 🚀 EXECUÇÃO COM RETRY LOGIC (Máximo 2 tentativas)
+        let attempts = 0;
+        const maxAttempts = 2;
+        const timeoutMs = 15000; // ⏱️ Aumentado para 15s (Google Cold Start)
 
-            // Uma única chamada ao invés de 3! + Timeout de 8s
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 segundos
+        while (attempts < maxAttempts) {
+            attempts++;
+            console.log(`🌐 [API] Fetching Catalog (Tentativa ${attempts}/${maxAttempts})...`);
 
-            const response = await fetch(`${API_URL}?action=getCatalogData&_t=${timestamp}`, {
-                signal: controller.signal
-            });
-            clearTimeout(timeoutId);
+            try {
+                if (!API_URL) throw new Error("API URL missing");
+                const timestamp = Date.now();
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-            const catalogData = await response.json();
+                const response = await fetch(`${API_URL}?action=getCatalogData&_t=${timestamp}`, {
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
 
-            console.log('🔍 [API] Raw catalog data:', JSON.stringify(catalogData).substring(0, 500) + '...');
+                if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+                const catalogData = await response.json();
 
-            if (!catalogData || (!catalogData.products && !catalogData.categories)) {
-                console.error('❌ [API] Malformed catalog data response:', catalogData);
-                return { products: [], categories: [], banners: [] };
-            }
-
-            // Processar produtos
-            const products = (catalogData.products || []).map((p: any) => {
-                const imagemUrl = p.URL_IMAGEM_CACHE || '';
-
-                if (imagemUrl && !imagemUrl.startsWith('http')) {
-                    console.warn(`⚠️ [Image Debug] Imagem inválida para "${p.Nome_Geladinho}":`, imagemUrl);
+                // Validação de dados malformados
+                if (!catalogData || (!catalogData.products && !catalogData.categories)) {
+                    throw new Error('Malformed catalog data response');
                 }
 
-                return {
+                // Processar produtos
+                const products = (catalogData.products || []).map((p: any) => ({
                     id: p.ID_Geladinho,
                     nome: p.Nome_Geladinho || 'Produto sem nome',
                     price: Number(p.Preco_Venda || 0),
-                    imagem: imagemUrl,
+                    imagem: p.URL_IMAGEM_CACHE || '',
                     estoque: Number(p[' Estoque_Atual'] || p.Estoque_Atual || 0),
                     categoriaId: p.ID_Categoria,
                     descricao: p.Descricao,
@@ -88,51 +99,48 @@ export const API = {
                     calorias: p.Calorias || 'N/A',
                     ingredientes: p.Ingredientes || 'N/A',
                     tempo: p.Tempo_Preparo || 'N/A'
-                };
-            });
+                }));
 
-            // Processar categorias
-            const categories = (catalogData.categories || []).map((c: any) => ({
-                id: c.ID_Categoria,
-                nome: c.Nome_Categoria
-            }));
+                const categories = (catalogData.categories || []).map((c: any) => ({
+                    id: c.ID_Categoria,
+                    nome: c.Nome_Categoria
+                }));
 
-            // Processar banners
-            const banners = (catalogData.banners || []).map((b: any) => ({
-                id: b.id || b.ID_Banner || '',
-                image: b.image || b.URL_Imagem || '',
-                title: b.title || b.Titulo || '',
-                subtitle: b.subtitle || b.Subtitulo || '',
-                ctaText: b.ctaText || b.Texto_CTA || ''
-            }));
+                const banners = (catalogData.banners || []).map((b: any) => ({
+                    id: b.id || b.ID_Banner || '',
+                    image: b.image || b.URL_Imagem || '',
+                    title: b.title || b.Titulo || '',
+                    subtitle: b.subtitle || b.Subtitulo || '',
+                    ctaText: b.ctaText || b.Texto_CTA || ''
+                }));
 
-            console.log(`✅ [API] ${products.length} produtos, ${categories.length} categorias, ${banners.length} banners`);
+                const finalData = { products, categories, banners };
 
-            const finalData = { products, categories, banners };
+                // Store in memory cache
+                this._catalogCache = { data: finalData, timestamp: Date.now(), version: CACHE_VERSION };
+                console.log(`✅ [API] Sucesso! ${products.length} produtos carregados.`);
 
-            // Store in cache with version
-            this._catalogCache = {
-                data: finalData,
-                timestamp: Date.now(),
-                version: CACHE_VERSION
-            };
-            console.log(`✅ [Catalog Cache STORED] Version ${CACHE_VERSION} - Valid for 30 minutes`);
+                return finalData;
 
-            return finalData;
-        } catch (error: any) {
-            if (error.name === 'AbortError') {
-                console.error('⏱️ [API] Timeout: Requisição demorou mais de 8s');
-            } else {
-                console.error('❌ [API] Error fetching catalog:', error);
+            } catch (error: any) {
+                const isTimeout = error.name === 'AbortError';
+                console.warn(`⚠️ [API] Falha na tentativa ${attempts}:`, isTimeout ? 'Timeout' : error.message);
+
+                if (attempts < maxAttempts) {
+                    console.log('🔄 Aguardando 1s antes do retry...');
+                    await new Promise(r => setTimeout(r, 1000));
+                    continue;
+                }
+
+                // Se todas as tentativas falharem:
+                if (this._catalogCache) {
+                    console.error('❌ [API] Todas as tentativas falharam. Usando cache expirado de emergência.');
+                    return this._catalogCache.data;
+                }
+
+                // 🔥 QI 145: Não retornar lista vazia se for erro real de carregamento!
+                throw error;
             }
-
-            // Se tiver cache antigo, retornar ele mesmo expirado
-            if (this._catalogCache) {
-                console.warn('⚠️ [API] Usando cache expirado como fallback');
-                return this._catalogCache.data;
-            }
-
-            return { products: [], categories: [], banners: [] };
         }
     },
 

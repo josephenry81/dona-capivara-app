@@ -14,12 +14,16 @@ interface HomeViewProps {
     onProductClick: (product: any) => void;
     onHeaderAction: () => void;
     isLoading?: boolean;
+    hasError?: boolean;
+    onRetry?: () => void;
 }
 
 export default function HomeView({
     user, products, categories, banners, favorites,
     onAddToCart, onToggleFavorite, onProductClick, onHeaderAction,
-    isLoading = false
+    isLoading = false,
+    hasError = false,
+    onRetry
 }: HomeViewProps) {
 
     const [activeCategory, setActiveCategory] = useState('todos');
@@ -129,8 +133,30 @@ export default function HomeView({
                 ))}
             </div>
 
-            {/* Empty State - No Products Available */}
-            {filteredProducts.length === 0 && (
+            {/* Error State */}
+            {hasError && (
+                <div className="flex flex-col items-center justify-center py-20 px-6">
+                    <div className="text-8xl mb-6">📡</div>
+                    <h3 className="text-2xl font-bold text-gray-800 mb-2 text-center">
+                        Ops! Problema de Conexão
+                    </h3>
+                    <p className="text-gray-500 text-center mb-8 max-w-md">
+                        Não conseguimos carregar o cardápio. Isso pode ser instabilidade no servidor ou na sua internet.
+                    </p>
+                    <button
+                        onClick={onRetry}
+                        className="bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white px-8 py-4 rounded-full font-bold shadow-xl hover:scale-105 transition-transform flex items-center gap-2"
+                    >
+                        <span>🔄</span> Tentar Novamente
+                    </button>
+                    <p className="text-xs text-gray-400 mt-6 animate-pulse">
+                        Dica: Verifique sua conexão e tente carregar novamente.
+                    </p>
+                </div>
+            )}
+
+            {/* Empty State - No Products Available (ONLY if NOT error) */}
+            {!hasError && filteredProducts.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-16 px-6">
                     <div className="text-8xl mb-4">😔</div>
                     <h3 className="text-2xl font-bold text-gray-800 mb-2 text-center">

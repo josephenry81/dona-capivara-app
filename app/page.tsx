@@ -58,6 +58,7 @@ export default function Page() {
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
     const [activeMixId, setActiveMixId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [hasError, setHasError] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as any, ts: 0 });
     const { modalState, hideModal, confirm, alert, Modal: CustomModal } = useModal();
@@ -91,6 +92,8 @@ export default function Page() {
 
         // ⚡ CARREGAMENTO DE CATÁLOGO: Aguarda dados antes de renderizar
         const loadCatalog = async () => {
+            setHasError(false);
+            setIsLoading(true);
             try {
                 const data = await API.fetchCatalogData();
                 const fetchedProducts = data.products || [];
@@ -121,10 +124,9 @@ export default function Page() {
                     });
                 }
             } catch (err) {
-                console.error('❌ Erro ao carregar catálogo:', err);
-                // Mesmo com erro, parar loading para não travar a interface
+                console.error('❌ Erro crítico ao carregar catálogo:', err);
+                setHasError(true);
             } finally {
-                // Sempre desativar loading, com ou sem erro
                 setIsLoading(false);
             }
         };
@@ -517,6 +519,18 @@ export default function Page() {
                             onProductClick={handleProductClick}
                             onHeaderAction={handleHeaderAction}
                             isLoading={isLoading}
+                            hasError={hasError}
+                            onRetry={() => {
+                                // A função loadCatalog já está definida no useEffect, 
+                                // mas precisamos de uma forma de dispará-la novamente.
+                                // Já que ela é definida localmente no useEffect,
+                                // o mais simples é expor o trigger de recarga via window
+                                // ou simplesmente forçar um estado que dispare o useEffect.
+                                // mas o useEffect tem [] como deps.
+                                // Melhor: disparar uma função global ou recarregar a página?
+                                // Não, vamos apenas disparar a mesma lógica de recarga.
+                                window.location.reload();
+                            }}
                         />
                     )}
                     {activeTab === 'favorites' && <FavoritesView products={products} favorites={favorites} onAddToCart={addToCart} onToggleFavorite={toggleFavorite} onProductClick={handleProductClick} />}
