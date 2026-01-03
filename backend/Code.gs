@@ -1,6 +1,71 @@
 const ADMIN_LOGIN = "admin";
 const ADMIN_PASS = "Jxd701852@";
 
+// ============================================================================
+// ⚡ NOVA FUNÇÃO: Atualiza Produto_Ativo instantaneamente após baixa de estoque
+// ============================================================================
+/**
+ * Atualiza o status Produto_Ativo dos produtos especificados
+ * ULTRA-RÁPIDA: Só processa os produtos que tiveram estoque alterado
+ * 
+ * @param {Array<string>} productIds - Array com IDs dos produtos a atualizar
+ */
+function atualizarProdutosEspecificos(productIds) {
+  if (!productIds || productIds.length === 0) return;
+  
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('GELADINHOS');
+    
+    if (!sheet) {
+      Logger.log('⚠️ Sheet GELADINHOS não encontrada');
+      return;
+    }
+    
+    // Ler dados da planilha
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    
+    // Encontrar índices das colunas
+    const idIndex = headers.indexOf('ID_Geladinho');
+    const estoqueIndex = headers.indexOf('Estoque_Atual');
+    const ativoIndex = headers.indexOf('Produto_Ativo');
+    
+    // Validar se colunas existem
+    if (idIndex === -1 || estoqueIndex === -1 || ativoIndex === -1) {
+      Logger.log('⚠️ Colunas necessárias não encontradas para atualizar Produto_Ativo');
+      return;
+    }
+    
+    // Atualizar cada produto do pedido
+    let atualizados = 0;
+    
+    productIds.forEach(prodId => {
+      for (let i = 1; i < data.length; i++) {
+        if (String(data[i][idIndex]).trim() === String(prodId).trim()) {
+          const estoqueAtual = Number(data[i][estoqueIndex]) || 0;
+          const novoStatus = estoqueAtual > 0;
+          
+          // Atualizar status do produto
+          sheet.getRange(i + 1, ativoIndex + 1).setValue(novoStatus);
+          
+          atualizados++;
+          Logger.log(`⚡ ${prodId}: Produto_Ativo = ${novoStatus} (Estoque: ${estoqueAtual})`);
+          break;
+        }
+      }
+    });
+    
+    if (atualizados > 0) {
+      Logger.log(`✅ ${atualizados} produto(s) atualizado(s) instantaneamente`);
+    }
+    
+  } catch (error) {
+    Logger.log('⚠️ Erro ao atualizar Produto_Ativo: ' + error.toString());
+    // Não retorna erro para não quebrar o fluxo do pedido
+  }
+}
+
 function doGet(e) { return handleRequest(e); }
 function doPost(e) { return handleRequest(e); }
 
@@ -577,6 +642,9 @@ function createOrder(d) {
         }
     }
 
+    // ⚡ NOVO: Array para coletar IDs dos produtos alterados
+    const produtosAlterados = [];
+
     // 2. Se chegou aqui, todos têm estoque. Agora sim, processar baixa e itens.
     d.cart.forEach(item => {
       const qtd = Number(item.quantity) || 1;
@@ -588,7 +656,15 @@ function createOrder(d) {
 
       // Baixar estoque (setValue atômico na linha correta)
       G.getRange(info.row, stkIdx + 1).setValue(info.current - qtd);
+      
+      // ⚡ NOVO: Adicionar produto à lista de alterados
+      produtosAlterados.push(prodId);
     });
+    
+    // ⚡ NOVO: Atualizar Produto_Ativo instantaneamente
+    if (produtosAlterados.length > 0) {
+      atualizarProdutosEspecificos(produtosAlterados);
+    }
   }
 
   if (H && d.couponCode && d.customer?.id && String(d.customer.id) !== 'GUEST') {
