@@ -694,14 +694,45 @@ function createOrder(d) {
       const earned = Math.floor(Number(d.total));
       let bonus = Number(d.bonusPoints || 0);
 
+      // 🔒 CORREÇÃO: Verificar se cliente já usou código de indicação antes
+      const indicadoPorIdx = h.indexOf('Indicado_Por');
+      
       if (d.referralCode && codeIdx > -1) {
-        for (let k = 1; k < cData.length; k++) {
-          if (String(cData[k][codeIdx]).trim() == String(d.referralCode).trim()) {
-            if (String(cData[k][idIdx]) !== String(d.customer.id)) {
-              C.getRange(k + 1, ptsIdx + 1).setValue(Number(cData[k][ptsIdx] || 0) + 50);
+        // Encontrar linha do cliente atual para verificar Indicado_Por
+        let clienteRow = -1;
+        let jaUsouIndicacao = false;
+        
+        for (let i = 1; i < cData.length; i++) {
+          if (String(cData[i][idIdx]) === String(d.customer.id)) {
+            clienteRow = i;
+            // Verificar se já tem indicação registrada
+            if (indicadoPorIdx > -1 && cData[i][indicadoPorIdx]) {
+              jaUsouIndicacao = String(cData[i][indicadoPorIdx]).trim() !== '';
             }
             break;
           }
+        }
+        
+        // Só processar indicação se o cliente NUNCA usou um código antes
+        if (!jaUsouIndicacao) {
+          for (let k = 1; k < cData.length; k++) {
+            if (String(cData[k][codeIdx]).trim() == String(d.referralCode).trim()) {
+              // Não permitir auto-indicação
+              if (String(cData[k][idIdx]) !== String(d.customer.id)) {
+                // Dar 50 pontos ao indicador
+                C.getRange(k + 1, ptsIdx + 1).setValue(Number(cData[k][ptsIdx] || 0) + 50);
+                
+                // Registrar quem indicou o cliente (para bloquear usos futuros)
+                if (indicadoPorIdx > -1 && clienteRow > 0) {
+                  C.getRange(clienteRow + 1, indicadoPorIdx + 1).setValue(d.referralCode);
+                  Logger.log(`✅ Indicação registrada: ${d.customer.id} indicado por ${d.referralCode}`);
+                }
+              }
+              break;
+            }
+          }
+        } else {
+          Logger.log(`🚫 Cliente ${d.customer.id} já usou código de indicação anteriormente. Ignorando.`);
         }
       }
 
