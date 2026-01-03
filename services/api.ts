@@ -375,14 +375,21 @@ export const API = {
         try {
             const response = await fetch(`${API_URL}?action=getOrders&customerId=${customerId}&_t=${Date.now()}`);
             const data = await response.json();
-            return data.map((order: any) => ({
+
+            // Suporte a formato { orders: [...] } ou array direto [...]
+            const list = data.orders || (Array.isArray(data) ? data : []);
+
+            return list.map((order: any) => ({
                 id: order.ID_Venda,
                 date: order.Data_Venda,
                 total: Number(order.Total_Venda || 0),
                 status: order.Status || 'Pendente',
                 paymentMethod: order.Forma_de_Pagamento || 'Não informado'
             }));
-        } catch (e) { return []; }
+        } catch (e) {
+            console.error('❌ [API] Erro ao carregar pedidos do cliente:', e);
+            return [];
+        }
     },
 
     async getOrderItems(adminKey: string, orderId: string) {

@@ -38,6 +38,14 @@ const ProfileView = dynamic(() => import('../components/views/ProfileView'), {
     ssr: false
 });
 
+// 🔧 CONFIGURAÇÃO E CONSTANTES
+const WHATSAPP_PHONE = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || '5541991480096';
+const ORDER_ID_LENGTH = 8;
+const LINK_CLEANUP_DELAY_MS = 100;
+const LOCALE = 'pt-BR';
+const TIMEZONE = 'America/Sao_Paulo';
+const CURRENCY = 'BRL';
+
 
 export default function Page() {
     const [user, setUser] = useState<any>(null);
@@ -50,6 +58,7 @@ export default function Page() {
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
     const [activeMixId, setActiveMixId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as any, ts: 0 });
     const { modalState, hideModal, confirm, alert, Modal: CustomModal } = useModal();
 
@@ -276,6 +285,14 @@ export default function Page() {
     };
 
     const handleSubmitOrder = async (orderData: any) => {
+        // IDEMPOTENCY GUARD: Previne dupla submissão
+        if (isSubmitting) {
+            console.warn('⚠️ Pedido já está sendo processado. Ignorando nova tentativa.');
+            return;
+        }
+
+        setIsSubmitting(true);
+
         // --- CRITICAL FIX: ID RESOLUTION ---
         const userId = user?.isGuest ? 'GUEST' : (user.id || user.ID_Cliente || 'GUEST');
 
@@ -295,91 +312,111 @@ export default function Page() {
             const response: any = await API.submitOrder(finalOrder);
 
             if (response && response.success) {
-                const shortId = (response.idVenda || 'PENDENTE').slice(0, 8).toUpperCase();
+                // Garantir que o ID seja string para evitar erro em .slice() se vier como número
+                const rawId = response.idVenda || 'PENDENTE';
+                const shortId = String(rawId).slice(0, ORDER_ID_LENGTH).toUpperCase();
 
-                // Mensagem formatada para WhatsApp
-                let msg = `*Novo Pedido Dona Capivara* 🧉%0AID: ${shortId}%0A----------------%0A`;
+                // Helper para sanitizar strings e prevenir quebra de formato
+                const sanitize = (str: string) => String(str || '').replace(/[*_~`]/g, '');
 
-                // Agendamento (se houver)
+                // Helper para formatação de moeda BRL
+                const formatCurrency = (value: number) =>
+                    new Intl.NumberFormat(LOCALE, {
+                        style: 'currency',
+                        currency: CURRENCY
+                    }).format(value);
+
+                // Construção da mensagem baseada em array
+                const msgLines = [];
+                msgLines.push(`*Novo Pedido Dona Capivara* \uD83E\uDDC9`);
+                msgLines.push(`ID: ${shortId}`);
+                msgLines.push(`----------------`);
+
                 if (orderData.scheduling && orderData.scheduling !== 'Imediata') {
-                    msg += `📅 *AGENDADO:* ${orderData.scheduling}%0A%0A`;
+                    msgLines.push(`\uD83D\uDCC5 *AGENDADO:* ${sanitize(orderData.scheduling)}\n`);
                 }
 
-                // Itens do pedido
                 orderData.cart.forEach((item: any) => {
-                    msg += `${item.quantity}x ${item.nome}%0A`;
+                    const itemName = sanitize(item.nome || 'Produto');
+                    msgLines.push(`${item.quantity}x ${itemName}`);
 
-                    // Mostrar adicionais se existirem
-                    if (item.selected_additions && item.selected_additions.length > 0) {
-                        msg += `  • Base: R$ ${item.price.toFixed(2)}%0A`;
-                        item.selected_additions.forEach((add: any) => {
-                            msg += `  • ${add.option_name} (+R$ ${add.option_price.toFixed(2)})%0A`;
+                    // Detalhes de Sabores (Mix Gourmet)
+                    if (item.isMix && item.selected_flavors && item.selected_flavors.length > 0) {
+                        msgLines.push(`  *Sabores:*`);
+                        item.selected_flavors.forEach((flv: any) => {
+                            msgLines.push(`  - ${sanitize(flv.flavor_name || flv.nome || flv)}`);
                         });
-                        if (item.unit_price) {
-                            msg += `  Subtotal: R$ ${(item.unit_price * item.quantity).toFixed(2)}%0A`;
-                        }
-                    } else {
-                        // Produto sem adicionais: mostrar preço
-                        const itemTotal = item.price * item.quantity;
-                        msg += `  R$ ${itemTotal.toFixed(2)}%0A`;
                     }
-                    msg += `%0A`;
+
+                    // Detalhes de Adicionais
+                    if (item.selected_additions && item.selected_additions.length > 0) {
+                        if (!item.isMix) msgLines.push(`  \u2022 Base: ${formatCurrency(item.price)}`);
+                        item.selected_additions.forEach((add: any) => {
+                            msgLines.push(`  \u2022 ${sanitize(add.option_name)} (+${formatCurrency(add.option_price)})`);
+                        });
+                    }
+
+                    if (item.unit_price && (item.selected_additions?.length > 0 || item.isMix)) {
+                        msgLines.push(`  Total Item: ${formatCurrency(item.unit_price * item.quantity)}`);
+                    } else if (item.price) {
+                        msgLines.push(`  Total Item: ${formatCurrency(item.price * item.quantity)}`);
+                    }
+                    msgLines.push('');
                 });
 
-                // Total
-                msg += `%0A*Total: R$ ${orderData.total.toFixed(2)}*%0A`;
+                msgLines.push(`*Total: ${formatCurrency(orderData.total)}*`);
+                msgLines.push(`Cliente: ${sanitize(orderData.customer.name)}`);
 
-                // Cliente
-                msg += `Cliente: ${orderData.customer.name}%0A`;
-
-                // Cupom (se houver)
-                if (orderData.couponCode && orderData.discountValue > 0) {
-                    msg += `🎁 Cupom: ${orderData.couponCode} (-R$ ${orderData.discountValue.toFixed(2)})%0A`;
+                // Exibição detalhada de descontos
+                if (orderData.couponCode && orderData.couponDiscount > 0) {
+                    msgLines.push(`\uD83C\uDF81 Cupom: ${sanitize(orderData.couponCode)} (-${formatCurrency(orderData.couponDiscount)})`);
                 }
 
-                // Endereço
+                if (orderData.pointsDiscount > 0) {
+                    msgLines.push(`\uD83D\uDC51 Pontos: -${formatCurrency(orderData.pointsDiscount)}`);
+                }
+
+                if (orderData.referralCode) {
+                    msgLines.push(`\uD83E\uDD1D Ref: ${sanitize(orderData.referralCode)}`);
+                }
+
                 if (orderData.customer.fullAddress) {
-                    msg += `Endereço: ${orderData.customer.fullAddress}%0A`;
-                } else {
-                    msg += `Torre: ${orderData.customer.details.torre} - Apto: ${orderData.customer.details.apto}%0A`;
-                }
-
-                // Pagamento
-                msg += `Pgto: ${orderData.paymentMethod}%0A`;
-
-                // Pontos ganhos (se não for guest)
-                let earned = 0;
-                if (userId !== 'GUEST') {
-                    earned = Math.floor(orderData.total) + (orderData.bonusPoints || 0);
-                    msg += `⭐ Pontos Ganhos: +${earned}%0A`;
-                }
-
-                // Detecção de plataforma
-                const isAndroid = /Android/.test(navigator.userAgent);
-                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-                const phone = '5541991480096';
-
-                if (isAndroid) {
-                    // Android: tenta whatsapp:// primeiro (abre direto no app)
-                    try {
-                        window.location.href = `whatsapp://send?phone=${phone}&text=${msg}`;
-                    } catch (e) {
-                        // Fallback para wa.me se falhar
-                        window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+                    msgLines.push(`Endereço: ${sanitize(orderData.customer.fullAddress)}`);
+                    if (orderData.customer.details?.complemento) {
+                        msgLines.push(`Comp: ${sanitize(orderData.customer.details.complemento)}`);
                     }
-                } else if (isIOS) {
-                    // iOS: usa wa.me com link temporário
-                    const whatsappUrl = `https://wa.me/${phone}?text=${msg}`;
+                } else if (orderData.customer.details) {
+                    msgLines.push(`Torre: ${sanitize(orderData.customer.details.torre)} - Apto: ${sanitize(orderData.customer.details.apto)}`);
+                }
+
+                msgLines.push(`Pgto: ${sanitize(orderData.paymentMethod)}`);
+
+                // Cálculo de pontos fidelidade
+                const earned = userId !== 'GUEST' ? Math.floor(orderData.total) + (orderData.bonusPoints || 0) : 0;
+
+                if (userId !== 'GUEST') {
+                    msgLines.push(`\u2B50 Pontos Ganhos: +${earned}`);
+                }
+
+                console.log(`✅ Pedido ${shortId} processado com sucesso. Redirecionando para WhatsApp...`);
+
+                // Codificação robusta da mensagem
+                const encodedMsg = encodeURIComponent(msgLines.join('\n'));
+                const whatsappUrl = `https://wa.me/${WHATSAPP_PHONE}?text=${encodedMsg}`;
+
+                // Redirecionamento unificado e seguro com tratamento de erro
+                try {
                     const link = document.createElement('a');
                     link.href = whatsappUrl;
                     link.target = '_blank';
                     link.rel = 'noopener noreferrer';
                     document.body.appendChild(link);
                     link.click();
-                    document.body.removeChild(link);
-                } else {
-                    // Desktop/outros: abre wa.me em nova aba
-                    window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+                    setTimeout(() => document.body.removeChild(link), LINK_CLEANUP_DELAY_MS);
+                } catch (linkError) {
+                    console.error('❌ Erro ao abrir WhatsApp:', linkError);
+                    // Fallback: tentar window.open direto
+                    window.open(whatsappUrl, '_blank');
                 }
 
                 alert(
@@ -402,8 +439,15 @@ export default function Page() {
                     localStorage.setItem('donaCapivaraUser', JSON.stringify(updatedUser));
                 }
 
-            } else { showToast(response.message || 'Erro ao salvar.', 'error'); }
-        } catch (e) { showToast('Erro de conexão.', 'error'); }
+            } else {
+                showToast(response.message || 'Erro ao salvar.', 'error');
+            }
+        } catch (e) {
+            console.error('❌ Erro ao processar pedido:', e);
+            showToast('Erro de conexão. Tente novamente.', 'error');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleLogin = (u: any) => {

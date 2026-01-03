@@ -258,7 +258,11 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
 
             await onSubmitOrder({
                 cart, total, referralCode, bonusPoints, paymentMethod, deliveryFee, scheduling: schedulingInfo,
-                pointsRedeemed, discountValue: totalDiscount, couponCode: appliedCoupon ? couponCode : '',
+                pointsRedeemed,
+                discountValue: totalDiscount, // Valor total para o banco (compatibilidade)
+                pointsDiscount: discountValue, // Detalhe para WhatsApp
+                couponDiscount: couponDiscount, // Detalhe para WhatsApp
+                couponCode: appliedCoupon ? couponCode : '',
                 customer: { name: addressData.nome, fullAddress: finalAddress, details: addressData }
             });
         } finally {
