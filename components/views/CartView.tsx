@@ -4,6 +4,13 @@ import { API } from '../../services/api';
 import CartItemAdditions from '../cart/CartItemAdditions';
 import { useModal } from '../ui/Modal';
 
+// Helper para formatação de moeda BRL (R$ X,XX com vírgula)
+const formatCurrency = (value: number): string => {
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(value);
+};
 
 interface Product {
     id: string;
@@ -176,7 +183,7 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
 
             if (res.success) {
                 setAppliedCoupon(res);
-                const discount = res.type === 'PORCENTAGEM' ? `${res.value}%` : `R$ ${res.value.toFixed(2)}`;
+                const discount = res.type === 'PORCENTAGEM' ? `${res.value}%` : formatCurrency(res.value);
                 setCouponFeedback({
                     type: 'success',
                     message: `Cupom aplicado! Desconto de ${discount}`
@@ -227,7 +234,7 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
 
         const confirmed = await confirm(
             '🛒 Confirmar Pedido?',
-            `Você está prestes a finalizar um pedido no valor de R$ ${total.toFixed(2)}. Deseja continuar?`
+            `Você está prestes a finalizar um pedido no valor de ${formatCurrency(total)}. Deseja continuar?`
         );
         if (!confirmed) return;
 
@@ -317,7 +324,7 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                             <div className="flex-1">
                                 <h3 className="font-bold text-gray-800 text-sm">{item.nome}</h3>
                                 <p className="text-[#FF4B82] font-bold">
-                                    R$ {item.price.toFixed(2)}
+                                    {formatCurrency(item.price)}
                                     {item.selected_additions && item.selected_additions.length > 0 && (
                                         <span className="text-xs text-gray-400 ml-1">(base)</span>
                                     )}
@@ -327,7 +334,7 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                                 {/* Show total if has additions */}
                                 {item.unit_price && item.unit_price !== item.price && (
                                     <p className="text-sm text-gray-600 mt-1 font-semibold">
-                                        Unitário: R$ {item.unit_price.toFixed(2)}
+                                        Unitário: {formatCurrency(item.unit_price)}
                                     </p>
                                 )}
                             </div>
@@ -376,7 +383,7 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                         {usePoints && (
                             <div className="text-sm text-gray-600 mt-2 border-t border-yellow-200 pt-2 animate-in fade-in slide-in-from-top-1">
                                 <p>Usando <span className="font-bold text-red-500">{pointsRedeemed} pts</span></p>
-                                <p>Desconto: <span className="font-bold text-green-600">R$ {discountValue.toFixed(2)}</span></p>
+                                <p>Desconto: <span className="font-bold text-green-600">{formatCurrency(discountValue)}</span></p>
                             </div>
                         )}
                     </div>
@@ -629,29 +636,29 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                     <div className="bg-white p-4 rounded-2xl shadow-sm space-y-2 text-sm">
                         <div className="flex justify-between text-gray-500">
                             <span>Subtotal</span>
-                            <span>R$ {subtotal.toFixed(2)}</span>
+                            <span>{formatCurrency(subtotal)}</span>
                         </div>
                         <div className="flex justify-between text-gray-500">
                             <span>Entrega</span>
                             <span className={deliveryFee === 0 ? 'text-[#28a745] font-bold' : 'text-red-500'}>
-                                {deliveryFee === 0 ? 'Grátis ✓' : `R$ ${deliveryFee.toFixed(2)}`}
+                                {deliveryFee === 0 ? 'Grátis ✓' : formatCurrency(deliveryFee)}
                             </span>
                         </div>
                         {couponDiscount > 0 && (
                             <div className="flex justify-between text-purple-600 font-bold">
                                 <span>Cupom 🎟️</span>
-                                <span>- R$ {couponDiscount.toFixed(2)}</span>
+                                <span>- {formatCurrency(couponDiscount)}</span>
                             </div>
                         )}
                         {discountValue > 0 && (
                             <div className="flex justify-between text-green-600 font-bold">
                                 <span>Pontos 👑</span>
-                                <span>- R$ {discountValue.toFixed(2)}</span>
+                                <span>- {formatCurrency(discountValue)}</span>
                             </div>
                         )}
                         <div className="border-t border-gray-100 my-2 pt-2 flex justify-between text-lg font-bold text-[#2D3436]">
                             <span>Total</span>
-                            <span className="text-[#FF4B82]">R$ {total.toFixed(2)}</span>
+                            <span className="text-[#FF4B82]">{formatCurrency(total)}</span>
                         </div>
                         <div className="bg-[#FFF0F5] text-[#FF4B82] text-center py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1">
                             <span className="text-base">💎</span> Ganhe {totalPointsEarned} pontos neste pedido
