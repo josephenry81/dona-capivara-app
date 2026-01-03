@@ -88,7 +88,7 @@ export default function Page() {
             const refCode = params.get('ref');
             if (refCode) {
                 localStorage.setItem('donaCapivaraRef', refCode);
-                showToast(`🎁 Código ${refCode} aplicado! Cadastre-se para ganhar 50 pontos.`, 'success');
+                showToast(`🎁 Código ${refCode} aplicado! Cadastre-se e ganhe +50 pts`, 'success');
                 // Limpar URL sem recarregar página
                 window.history.replaceState({}, '', window.location.pathname);
             }
