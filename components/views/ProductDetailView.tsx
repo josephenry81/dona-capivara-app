@@ -47,7 +47,11 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
 
 
     const handleIncrement = () => {
-        if (quantity < product.estoque) setQuantity(q => q + 1);
+        if (quantity < product.estoque) {
+            setQuantity(q => q + 1);
+        } else {
+            alert('⚠️ Limite de Estoque', `Ops! Temos apenas ${product.estoque} unidades disponíveis.`, 'warning');
+        }
     };
 
     const handleDecrement = () => {
@@ -185,6 +189,15 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
     }, [selectedOptionsByGroup, productWithAdditions]);
 
     const handleAddToCart = () => {
+        if (product.estoque < 1) {
+            alert('🚫 Produto Esgotado', 'Desculpe, este produto acabou de esgotar.', 'warning');
+            return;
+        }
+        if (quantity > product.estoque) {
+            alert('⚠️ Estoque Insuficiente', `Temos apenas ${product.estoque} unidades disponíveis.`, 'warning');
+            setQuantity(product.estoque);
+            return;
+        }
         onAddToCart(product, quantity, selectedAdditions.length > 0 ? selectedAdditions : undefined);
     };
 
@@ -359,12 +372,18 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
                         {/* Add to Cart Button */}
                         <button
                             onClick={handleAddToCart}
-                            className="flex-1 h-14 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold rounded-xl shadow-lg shadow-pink-200 hover:opacity-90 transition flex justify-between items-center px-6 active:scale-95"
+                            disabled={product.estoque < 1}
+                            className={`flex-1 h-14 font-bold rounded-xl shadow-lg transition flex justify-between items-center px-6 active:scale-95 ${product.estoque > 0
+                                ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-pink-200 hover:opacity-90'
+                                : 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
+                                }`}
                         >
-                            <span>🛒 Adicionar</span>
-                            <span className="bg-white/20 px-2 py-1 rounded text-sm whitespace-nowrap">
-                                R$ {totalPrice.toFixed(2)}
-                            </span>
+                            <span>🛒 {product.estoque > 0 ? 'Adicionar' : 'Esgotado'}</span>
+                            {product.estoque > 0 && (
+                                <span className="bg-white/20 px-2 py-1 rounded text-sm whitespace-nowrap">
+                                    R$ {totalPrice.toFixed(2)}
+                                </span>
+                            )}
                         </button>
                     </div>
 
@@ -523,12 +542,18 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
 
                             <button
                                 onClick={handleAddToCart}
-                                className="flex-1 h-14 bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white font-bold rounded-xl shadow-lg shadow-orange-200 hover:opacity-90 transition flex justify-between items-center px-6 active:scale-95"
+                                disabled={product.estoque < 1}
+                                className={`flex-1 h-14 font-bold rounded-xl shadow-lg transition flex justify-between items-center px-6 active:scale-95 ${product.estoque > 0
+                                    ? 'bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white shadow-orange-200 hover:opacity-90'
+                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
+                                    }`}
                             >
-                                <span>Adicionar</span>
-                                <span className="bg-white/20 px-2 py-1 rounded text-sm whitespace-nowrap">
-                                    R$ {((basePrice + selectedAdditions.reduce((sum, a) => sum + a.option_price, 0)) * quantity).toFixed(2)}
-                                </span>
+                                <span>{product.estoque > 0 ? 'Adicionar' : 'Esgotado'}</span>
+                                {product.estoque > 0 && (
+                                    <span className="bg-white/20 px-2 py-1 rounded text-sm whitespace-nowrap">
+                                        R$ {((basePrice + selectedAdditions.reduce((sum, a) => sum + a.option_price, 0)) * quantity).toFixed(2)}
+                                    </span>
+                                )}
                             </button>
                         </div>
                     </div>

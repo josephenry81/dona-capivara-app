@@ -23,6 +23,7 @@ interface Product {
     selected_additions?: any[];
     additions_subtotal?: number;
     unit_price?: number;
+    estoque: number;
 }
 interface CartViewProps {
     cart: Product[];
@@ -345,10 +346,26 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                                 >
                                     -
                                 </button>
-                                <span className="text-sm font-bold min-w-[20px] text-center">{item.quantity}</span>
+                                <div className="flex flex-col items-center">
+                                    <span className="text-sm font-bold min-w-[20px] text-center">{item.quantity}</span>
+                                    {/* QI 145: Aviso de limite de estoque atingido */}
+                                    {item.quantity >= (item.estoque || 0) && (
+                                        <span className="text-[10px] text-orange-500 font-bold leading-none mt-0.5">Limite</span>
+                                    )}
+                                </div>
                                 <button
-                                    onClick={() => addToCart(item)}
-                                    className="text-[#FF4B82] font-bold w-8 h-8 flex items-center justify-center hover:bg-pink-50 rounded transition"
+                                    onClick={() => {
+                                        if (item.quantity < (item.estoque || 999)) {
+                                            addToCart(item);
+                                        } else {
+                                            alert?.('⚠️ Limite Atingido', `Ops! Temos apenas ${item.estoque} unidades deste produto em estoque.`, 'warning');
+                                        }
+                                    }}
+                                    disabled={item.quantity >= (item.estoque || 999)}
+                                    className={`font-bold w-8 h-8 flex items-center justify-center rounded transition ${item.quantity >= (item.estoque || 0)
+                                        ? 'text-gray-300 cursor-not-allowed'
+                                        : 'text-[#FF4B82] hover:bg-pink-50'
+                                        }`}
                                 >
                                     +
                                 </button>

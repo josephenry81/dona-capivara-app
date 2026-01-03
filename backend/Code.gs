@@ -539,21 +539,55 @@ function createOrder(d) {
 
   if (d.cart) {
     const gData = G.getDataRange().getValues();
-    const idIdx = gData[0].indexOf('ID_Geladinho');
-    const stkIdx = gData[0].findIndex(h => String(h).trim() === 'Estoque_Atual');
+    const gHeaders = gData[0].map(h => String(h).trim());
+    const idIdx = gHeaders.indexOf('ID_Geladinho');
+    const stkIdx = gHeaders.indexOf('Estoque_Atual');
+    const nomeIdx = gHeaders.indexOf('Nome_Geladinho');
 
+    if (idIdx === -1 || stkIdx === -1) {
+      return { success: false, message: "Erro interno: Colunas de estoque não encontradas." };
+    }
+
+    // --- QI 145: VALIDAÇÃO ATÔMICA DE ESTOQUE ---
+    const stockMap = {};
+    for (let i = 1; i < gData.length; i++) {
+        const pId = String(gData[i][idIdx]).trim();
+        if (pId) stockMap[pId] = { 
+            current: Number(gData[i][stkIdx]) || 0, 
+            row: i + 1,
+            nome: gData[i][nomeIdx] || pId
+        };
+    }
+
+    // 1. Verificar se todos os itens têm estoque
+    for (const item of d.cart) {
+        const qtdPedida = Number(item.quantity) || 1;
+        const prodId = String(item.id).trim();
+        const info = stockMap[prodId];
+
+        if (!info) {
+            return { success: false, message: `Produto não encontrado: ${item.nome || prodId}` };
+        }
+
+        if (info.current < qtdPedida) {
+            return { 
+                success: false, 
+                message: `Estoque insuficiente para ${info.nome}. Disponível: ${info.current}, Pedido: ${qtdPedida}` 
+            };
+        }
+    }
+
+    // 2. Se chegou aqui, todos têm estoque. Agora sim, processar baixa e itens.
     d.cart.forEach(item => {
       const qtd = Number(item.quantity) || 1;
-      I.appendRow([Utilities.getUuid(), id, item.id, qtd, item.price, qtd * item.price]);
+      const prodId = String(item.id).trim();
+      const info = stockMap[prodId];
 
-      if (idIdx > -1 && stkIdx > -1) {
-        for (let i = 1; i < gData.length; i++) {
-          if (String(gData[i][idIdx]).trim() == String(item.id).trim()) {
-            G.getRange(i + 1, stkIdx + 1).setValue(Number(gData[i][stkIdx]) - qtd);
-            break;
-          }
-        }
-      }
+      // Registrar item da venda
+      I.appendRow([Utilities.getUuid(), id, prodId, qtd, item.price, qtd * item.price]);
+
+      // Baixar estoque (setValue atômico na linha correta)
+      G.getRange(info.row, stkIdx + 1).setValue(info.current - qtd);
     });
   }
 

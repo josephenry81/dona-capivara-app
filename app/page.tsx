@@ -138,10 +138,21 @@ export default function Page() {
     // ⚡ MEMOIZED: Add to cart function
     const addToCart = useCallback((product: any, qtyToAdd = 1, additions?: any[]) => {
         setCart(prev => {
-            // If additions are present, treat as unique item even if same product
+            // Se additions estiverem presentes, tratar como item único, MESMO que seja o mesmo produto base
             const hasAdditions = additions && additions.length > 0;
 
-            // For items with additions, always create new cart item (no merging)
+            // --- QI 145: VALIDAÇÃO DE ESTOQUE UNIFICADA ---
+            // Calcular quanto desse produto já existe no carrinho (com ou sem adicionais)
+            const currentInCart = prev
+                .filter(item => item.id === product.id)
+                .reduce((total, item) => total + item.quantity, 0);
+
+            if (currentInCart + qtyToAdd > product.estoque) {
+                showToast(`Estoque insuficiente! Você já tem ${currentInCart} no carrinho e o estoque total é ${product.estoque}.`, 'error');
+                return prev;
+            }
+
+            // Para itens com adicionais, sempre criar novo item de carrinho (não agrupar)
             if (hasAdditions) {
                 const additionsSubtotal = additions.reduce((sum: number, a: any) => sum + a.option_price, 0);
                 const unitPrice = product.price + additionsSubtotal;
@@ -152,25 +163,27 @@ export default function Page() {
                     selected_additions: additions,
                     additions_subtotal: additionsSubtotal,
                     unit_price: unitPrice,
-                    cart_item_id: `${product.id}-${Date.now()}` // Unique ID for items with additions
+                    cart_item_id: `${product.id}-${Date.now()}` // ID único
                 };
 
                 showToast(`Adicionado ao carrinho!`, 'success');
                 return [...prev, newItem];
             }
 
-            // For items without additions, merge as before
-            const existingItem = prev.find(item => item.id === product.id && !item.selected_additions);
-            const currentQty = existingItem ? existingItem.quantity : 0;
-            if (currentQty + qtyToAdd > product.estoque) {
-                showToast(`Estoque insuficiente! Apenas ${product.estoque} disponíveis.`, 'error');
-                return prev;
-            }
-            let newCart;
-            if (existingItem) newCart = prev.map(item => item.id === product.id && !item.selected_additions ? { ...item, quantity: item.quantity + qtyToAdd } : item);
-            else newCart = [...prev, { ...product, quantity: qtyToAdd }];
+            // Para itens sem adicionais, agrupar se já existir
+            const existingSimpleItem = prev.find(item => item.id === product.id && !item.selected_additions);
+
             showToast(`Adicionado ao carrinho!`, 'success');
-            return newCart;
+
+            if (existingSimpleItem) {
+                return prev.map(item =>
+                    (item.id === product.id && !item.selected_additions)
+                        ? { ...item, quantity: item.quantity + qtyToAdd }
+                        : item
+                );
+            } else {
+                return [...prev, { ...product, quantity: qtyToAdd }];
+            }
         });
     }, [showToast]);
 
@@ -293,6 +306,15 @@ export default function Page() {
         if (isSubmitting) {
             console.warn('⚠️ Pedido já está sendo processado. Ignorando nova tentativa.');
             return;
+        }
+
+        // --- QI 145: FINAL SAFETY CHECK (FRONTEND) ---
+        // Garante que o estado do carrinho ainda é válido contra o estoque carregado
+        for (const item of orderData.cart) {
+            if (item.quantity > (item.estoque || 0)) {
+                showToast(`Erro Crítico: ${item.nome} excedeu o estoque durante a finalização.`, 'error');
+                return;
+            }
         }
 
         setIsSubmitting(true);
