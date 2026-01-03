@@ -1,5 +1,5 @@
 // Keeping all other functions, but providing the full file for safety
-const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || 'https://script.google.com/macros/s/AKfycbw3PypxJiF8y6fVbVfZkW-2Vda6NiQp7YIjM9hHmjClD_Jw-EQypkMdKTpzJloY19dxGg/exec';
+const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || 'https://script.google.com/macros/s/AKfycbwZ70Ty6dOOibDe5q5d74NqLZiQBwNRWEYgDLvbntWlztLe0ufqsgLas65ioEbZNFnOqQ/exec';
 
 // 🧠 CACHE VERSION - Incrementar quando houver mudanças importantes no backend
 // Isso força todos os clientes a recarregar dados quando necessário
