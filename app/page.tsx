@@ -328,12 +328,12 @@ export default function Page() {
 
                 // Construção da mensagem baseada em array
                 const msgLines = [];
-                msgLines.push(`*Novo Pedido Dona Capivara* \uD83E\uDDC9`);
+                msgLines.push(`*Novo Pedido Dona Capivara* 🧉`);
                 msgLines.push(`ID: ${shortId}`);
                 msgLines.push(`----------------`);
 
                 if (orderData.scheduling && orderData.scheduling !== 'Imediata') {
-                    msgLines.push(`\uD83D\uDCC5 *AGENDADO:* ${sanitize(orderData.scheduling)}\n`);
+                    msgLines.push(`📅 *AGENDADO:* ${sanitize(orderData.scheduling)}\n`);
                 }
 
                 orderData.cart.forEach((item: any) => {
@@ -369,15 +369,15 @@ export default function Page() {
 
                 // Exibição detalhada de descontos
                 if (orderData.couponCode && orderData.couponDiscount > 0) {
-                    msgLines.push(`\uD83C\uDF81 Cupom: ${sanitize(orderData.couponCode)} (-${formatCurrency(orderData.couponDiscount)})`);
+                    msgLines.push(`🎁 Cupom: ${sanitize(orderData.couponCode)} (-${formatCurrency(orderData.couponDiscount)})`);
                 }
 
                 if (orderData.pointsDiscount > 0) {
-                    msgLines.push(`\uD83D\uDC51 Pontos: -${formatCurrency(orderData.pointsDiscount)}`);
+                    msgLines.push(`👑 Pontos: -${formatCurrency(orderData.pointsDiscount)}`);
                 }
 
                 if (orderData.referralCode) {
-                    msgLines.push(`\uD83E\uDD1D Ref: ${sanitize(orderData.referralCode)}`);
+                    msgLines.push(`🤝 Ref: ${sanitize(orderData.referralCode)}`);
                 }
 
                 if (orderData.customer.fullAddress) {
@@ -395,7 +395,7 @@ export default function Page() {
                 const earned = userId !== 'GUEST' ? Math.floor(orderData.total) + (orderData.bonusPoints || 0) : 0;
 
                 if (userId !== 'GUEST') {
-                    msgLines.push(`\u2B50 Pontos Ganhos: +${earned}`);
+                    msgLines.push(`⭐ Pontos Ganhos: +${earned}`);
                 }
 
                 console.log(`✅ Pedido ${shortId} processado com sucesso. Redirecionando para WhatsApp...`);
