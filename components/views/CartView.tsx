@@ -69,19 +69,73 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
         }
     }, [user]);
 
-    useEffect(() => {
-        if (referralCode.length > 3) {
-            const normalizedCode = referralCode.toUpperCase().trim();
-            const userCode = user?.inviteCode?.toUpperCase().trim();
+    // 🔒 VALIDAÇÃO DE CÓDIGO DE INDICAÇÃO VIA BACKEND
+    const [referralLoading, setReferralLoading] = useState(false);
+    const [referralFeedback, setReferralFeedback] = useState<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
+    const referralTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-            if ((userCode && normalizedCode === userCode) || !/^[A-Z0-9-]+$/.test(normalizedCode)) {
-                setBonusPoints(0);
-            } else {
-                setBonusPoints(50);
-            }
-        } else {
+    useEffect(() => {
+        // Limpar timer anterior
+        if (referralTimerRef.current) clearTimeout(referralTimerRef.current);
+
+        // Resetar estados se código vazio
+        if (referralCode.length < 4) {
             setBonusPoints(0);
+            setReferralFeedback(null);
+            return;
         }
+
+        const normalizedCode = referralCode.toUpperCase().trim();
+        const userCode = user?.inviteCode?.toUpperCase().trim();
+
+        // Validação local rápida: auto-indicação
+        if (userCode && normalizedCode === userCode) {
+            setBonusPoints(0);
+            setReferralFeedback({ type: 'error', message: 'Você não pode usar seu próprio código' });
+            return;
+        }
+
+        // Validação local rápida: formato inválido
+        if (!/^[A-Z0-9-]+$/.test(normalizedCode)) {
+            setBonusPoints(0);
+            setReferralFeedback({ type: 'error', message: 'Código inválido' });
+            return;
+        }
+
+        // Visitante não pode usar indicação
+        if (user?.isGuest) {
+            setBonusPoints(0);
+            setReferralFeedback({ type: 'warning', message: 'Faça login para usar indicação' });
+            return;
+        }
+
+        // Debounce: chamar API após 500ms
+        setReferralLoading(true);
+        referralTimerRef.current = setTimeout(async () => {
+            try {
+                const customerId = user?.id || user?.ID_Cliente || 'GUEST';
+                const result = await API.validateReferralCode(normalizedCode, customerId);
+
+                if (result.valid) {
+                    setBonusPoints(50);
+                    setReferralFeedback({ type: 'success', message: result.message });
+                } else {
+                    setBonusPoints(0);
+                    // Feedback específico para quem já usou indicação
+                    if (result.alreadyUsed) {
+                        setReferralFeedback({ type: 'warning', message: result.message });
+                    } else {
+                        setReferralFeedback({ type: 'error', message: result.message });
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao validar código:', error);
+                setBonusPoints(0);
+                setReferralFeedback({ type: 'error', message: 'Erro ao validar código' });
+            } finally {
+                setReferralLoading(false);
+            }
+        }, 500);
     }, [referralCode, user]);
 
     // OPTIMIZED: Debounced CEP lookup (500ms delay)
@@ -628,22 +682,37 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                         {/* Referral Code */}
                         <div className="mt-4 bg-[#FFF8E1] border border-[#FFE082] p-3 rounded-xl">
                             <label className="text-xs font-bold text-[#F57F17] mb-2 block">🎁 Código de Indicação (Opcional)</label>
-                            <input
-                                type="text"
-                                placeholder="Ex: ABC123"
-                                value={referralCode}
-                                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                                maxLength={10}
-                                className="w-full bg-white border border-[#FFE082] rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-[#FFB300] transition"
-                            />
-                            {bonusPoints > 0 && (
-                                <div className="text-[#F57F17] text-xs font-bold mt-2 flex items-center gap-1">
-                                    <span className="text-base">✨</span> +{bonusPoints} pontos de bônus!
-                                </div>
-                            )}
-                            {referralCode.length > 3 && bonusPoints === 0 && (
-                                <div className="text-red-500 text-xs font-bold mt-2 flex items-center gap-1">
-                                    <span>⚠️</span> Código inválido ou auto-indicação
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="Ex: DCAP-XXXX"
+                                    value={referralCode}
+                                    onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                                    maxLength={12}
+                                    className="w-full bg-white border border-[#FFE082] rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-[#FFB300] transition pr-10"
+                                />
+                                {referralLoading && (
+                                    <div className="absolute right-3 top-2.5">
+                                        <div className="w-4 h-4 border-2 border-[#F57F17] border-t-transparent rounded-full animate-spin"></div>
+                                    </div>
+                                )}
+                                {!referralLoading && bonusPoints > 0 && (
+                                    <span className="absolute right-3 top-2 text-green-500 text-lg">✓</span>
+                                )}
+                            </div>
+
+                            {/* Feedback dinâmico baseado no estado */}
+                            {referralFeedback && (
+                                <div className={`text-xs font-bold mt-2 flex items-center gap-1 ${referralFeedback.type === 'success' ? 'text-green-600' :
+                                        referralFeedback.type === 'warning' ? 'text-orange-500' :
+                                            'text-red-500'
+                                    }`}>
+                                    <span className="text-base">
+                                        {referralFeedback.type === 'success' ? '✨' :
+                                            referralFeedback.type === 'warning' ? '⚠️' : '❌'}
+                                    </span>
+                                    {referralFeedback.message}
+                                    {bonusPoints > 0 && ` (+${bonusPoints} pts)`}
                                 </div>
                             )}
                         </div>

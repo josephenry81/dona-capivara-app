@@ -129,6 +129,9 @@ function handleRequest(e) {
       // --- PROMOTION/RAFFLE SYSTEM ---
       case 'getMinhasChances': result = getMinhasChances(e.parameter.customerId); break;
 
+      // --- REFERRAL CODE VALIDATION ---
+      case 'validateReferralCode': result = validateReferralCode(e.parameter.code, e.parameter.customerId); break;
+
       default: result = { error: 'Ação inválida' };
     }
 
@@ -513,6 +516,91 @@ function createCustomer(d) {
     id, d.name, d.phone, '', '', '', '', '', 0, new Date(), 'SIM', d.password, code, '', ''
   ]);
   return { success: true, customer: { id, name: d.name, phone: d.phone, points: 0, inviteCode: code, favorites: [] } };
+}
+
+/**
+ * 🔒 VALIDAÇÃO DE CÓDIGO DE INDICAÇÃO
+ * Verifica se código é válido e se cliente ainda pode usar indicação
+ * @param {string} code - Código de indicação
+ * @param {string} customerId - ID do cliente que quer usar o código
+ * @returns {Object} { valid: boolean, message: string, alreadyUsed?: boolean }
+ */
+function validateReferralCode(code, customerId) {
+  if (!code || !customerId || customerId === 'GUEST') {
+    return { valid: false, message: 'Dados inválidos', alreadyUsed: false };
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('CLIENTES');
+  const clients = sheetToJSON(sheet);
+  const headers = sheet.getDataRange().getValues()[0];
+  
+  const normalizedCode = String(code).trim().toUpperCase();
+  const normalizedCustomerId = String(customerId).trim();
+  
+  // Índices das colunas
+  const idIdx = headers.indexOf('ID_Cliente');
+  const codeIdx = headers.indexOf('Codigo_Convite');
+  const indicadoPorIdx = headers.indexOf('Indicado_Por');
+  
+  // 1. Verificar se coluna Indicado_Por existe
+  if (indicadoPorIdx === -1) {
+    Logger.log('⚠️ Coluna Indicado_Por não encontrada na planilha CLIENTES');
+    return { valid: false, message: 'Sistema de indicação indisponível', alreadyUsed: false };
+  }
+  
+  // 2. Verificar se o código existe e pertence a outro cliente
+  let codeExists = false;
+  let ownerName = '';
+  
+  for (const client of clients) {
+    const clientCode = String(client.Codigo_Convite || '').trim().toUpperCase();
+    const clientId = String(client.ID_Cliente || '').trim();
+    
+    if (clientCode === normalizedCode) {
+      // Código encontrado
+      if (clientId === normalizedCustomerId) {
+        // Auto-indicação
+        return { valid: false, message: 'Você não pode usar seu próprio código', alreadyUsed: false };
+      }
+      codeExists = true;
+      ownerName = client.Nome || 'Cliente';
+      break;
+    }
+  }
+  
+  if (!codeExists) {
+    return { valid: false, message: 'Código de indicação não encontrado', alreadyUsed: false };
+  }
+  
+  // 3. Verificar se o cliente já usou algum código de indicação antes
+  for (const client of clients) {
+    const clientId = String(client.ID_Cliente || '').trim();
+    
+    if (clientId === normalizedCustomerId) {
+      const jaIndicado = String(client.Indicado_Por || '').trim();
+      
+      if (jaIndicado !== '') {
+        Logger.log(`🚫 Cliente ${normalizedCustomerId} já foi indicado por ${jaIndicado}`);
+        return { 
+          valid: false, 
+          message: 'Você já utilizou um código de indicação anteriormente', 
+          alreadyUsed: true,
+          usedCode: jaIndicado
+        };
+      }
+      break;
+    }
+  }
+  
+  // 4. Código válido e cliente pode usar
+  Logger.log(`✅ Código ${normalizedCode} válido para cliente ${normalizedCustomerId}`);
+  return { 
+    valid: true, 
+    message: `Código válido! Você ganhará 50 pontos de bônus.`,
+    alreadyUsed: false,
+    ownerName: ownerName
+  };
 }
 
 function updateFavorites(d) {

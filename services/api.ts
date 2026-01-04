@@ -1,5 +1,5 @@
 // Keeping all other functions, but providing the full file for safety
-const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || 'https://script.google.com/macros/s/AKfycbzOwpkao5aXAd0-P8YROCCSgTEnRZyDgloavG9xxtdJRNhEcc496Bbp4_KPLixtloq48g/exec';
+const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || 'https://script.google.com/macros/s/AKfycbx7aVUHKI56mgmEhAcztAljVWAmfbcHLPZH4Yt5aPwizAfEwoZ8RCNhaG1D0qOXaCT46g/exec';
 
 // 🧠 CACHE VERSION - Incrementar quando houver mudanças importantes no backend
 // Isso força todos os clientes a recarregar dados quando necessário
@@ -659,6 +659,40 @@ export const API = {
                 metaAtual: 18,
                 faltam: 18
             };
+        }
+    },
+
+    // ========================================
+    // REFERRAL CODE VALIDATION
+    // ========================================
+
+    /**
+     * Validate referral code - checks if code exists and if customer hasn't used one before
+     * @param code - Referral code to validate
+     * @param customerId - ID of the customer trying to use the code
+     * @returns { valid: boolean, message: string, alreadyUsed?: boolean }
+     */
+    async validateReferralCode(code: string, customerId: string): Promise<{
+        valid: boolean;
+        message: string;
+        alreadyUsed?: boolean;
+        ownerName?: string;
+    }> {
+        try {
+            if (!code || !customerId || customerId === 'GUEST') {
+                return { valid: false, message: 'Dados inválidos', alreadyUsed: false };
+            }
+
+            const timestamp = Date.now();
+            const response = await fetch(
+                `${API_URL}?action=validateReferralCode&code=${encodeURIComponent(code)}&customerId=${encodeURIComponent(customerId)}&_t=${timestamp}`,
+                { cache: 'no-store' }
+            );
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error validating referral code:', error);
+            return { valid: false, message: 'Erro ao validar código', alreadyUsed: false };
         }
     },
 
