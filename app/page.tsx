@@ -428,21 +428,30 @@ export default function Page() {
 
                 // Codificação robusta da mensagem
                 const encodedMsg = encodeURIComponent(msgLines.join('\n'));
-                const whatsappUrl = `https://wa.me/${WHATSAPP_PHONE}?text=${encodedMsg}`;
+
+                // Detectar se é mobile para usar protocolo nativo
+                const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
                 // Redirecionamento unificado e seguro com tratamento de erro
                 try {
-                    const link = document.createElement('a');
-                    link.href = whatsappUrl;
-                    link.target = '_blank';
-                    link.rel = 'noopener noreferrer';
-                    document.body.appendChild(link);
-                    link.click();
-                    setTimeout(() => document.body.removeChild(link), LINK_CLEANUP_DELAY_MS);
+                    if (isMobile) {
+                        // Protocolo nativo - abre direto no app do WhatsApp
+                        window.location.href = `whatsapp://send?phone=${WHATSAPP_PHONE}&text=${encodedMsg}`;
+                    } else {
+                        // Desktop - usa link com fallback
+                        const whatsappUrl = `https://wa.me/${WHATSAPP_PHONE}?text=${encodedMsg}`;
+                        const link = document.createElement('a');
+                        link.href = whatsappUrl;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        document.body.appendChild(link);
+                        link.click();
+                        setTimeout(() => document.body.removeChild(link), LINK_CLEANUP_DELAY_MS);
+                    }
                 } catch (linkError) {
                     console.error('❌ Erro ao abrir WhatsApp:', linkError);
                     // Fallback: tentar window.open direto
-                    window.open(whatsappUrl, '_blank');
+                    window.open(`https://wa.me/${WHATSAPP_PHONE}?text=${encodedMsg}`, '_blank');
                 }
 
                 alert(

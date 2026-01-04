@@ -221,7 +221,24 @@ export default function ProfileView({ user, onLogout, onNavigate, onUpdateUser }
                     <span className="text-gray-300">›</span>
                 </button>
 
-                <button onClick={() => window.open('https://wa.me/5541991480096?text=Suporte', '_blank')} className="w-full bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center hover:bg-green-50">
+                <button
+                    onClick={() => {
+                        const phone = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || '5541991480096';
+                        const message = encodeURIComponent('Olá! Preciso de ajuda 💬');
+
+                        // Detectar se é mobile para usar protocolo nativo
+                        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+                        if (isMobile) {
+                            // Protocolo nativo - abre direto no app
+                            window.location.href = `whatsapp://send?phone=${phone}&text=${message}`;
+                        } else {
+                            // Desktop - abre WhatsApp Web
+                            window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+                        }
+                    }}
+                    className="w-full bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center hover:bg-green-50"
+                >
                     <div className="flex items-center gap-3"><span className="text-green-500">💬</span><span className="text-gray-700 font-medium text-sm">Fale com a Dona Capivara</span></div>
                     <span className="text-gray-300">›</span>
                 </button>
