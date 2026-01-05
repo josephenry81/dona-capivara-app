@@ -272,8 +272,8 @@ function getProducts() {
 // 🚀 OTIMIZAÇÃO CRÍTICA: Endpoint consolidado com cache agressivo
 function getCatalogData() {
   const cache = CacheService.getScriptCache();
-  const CACHE_KEY = 'catalog_data_v1';
-  const CACHE_TTL = 120; // ⚡ OTIMIZADO: 2 minutos para refletir mudanças de estoque mais rápido
+  const CACHE_KEY = 'catalog_data_v2'; // v2 para invalidar caches antigos
+  const CACHE_TTL = 300; // ⚡ 5 minutos - cache mais agressivo para reduzir cold starts
   
   // Tentar buscar do cache primeiro
   const cached = cache.get(CACHE_KEY);

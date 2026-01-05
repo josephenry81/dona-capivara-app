@@ -1,5 +1,5 @@
 // Keeping all other functions, but providing the full file for safety
-const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || 'https://script.google.com/macros/s/AKfycbx7aVUHKI56mgmEhAcztAljVWAmfbcHLPZH4Yt5aPwizAfEwoZ8RCNhaG1D0qOXaCT46g/exec';
+const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || 'https://script.google.com/macros/s/AKfycbzzMX-QGWAbW40wAMl4sDaZZdtBTNFxiFndKMu171H4k7v0xuKb_pGCRlUB7K4kotPHcw/exec';
 
 // 🧠 CACHE VERSION - Incrementar quando houver mudanças importantes no backend
 // Isso força todos os clientes a recarregar dados quando necessário
@@ -8,16 +8,31 @@ const CACHE_VERSION = '1.0.0';
 export const API = {
 
     // ========================================
-    // CATALOG CACHE (5 min TTL) - ⚡ OTIMIZADO
+    // CATALOG CACHE - STALE-WHILE-REVALIDATE
     // ========================================
     _catalogCache: null as { data: any; timestamp: number; version: string } | null,
-    _catalogTTL: 5 * 60 * 1000, // ⚡ Reduzido de 30 min para 5 min
+    _catalogTTL: 15 * 60 * 1000, // ⚡ 15 min - dados frescos
+    _catalogStaleTTL: 60 * 60 * 1000, // 🔄 1 hora - dados podem ser usados enquanto revalida
     _pendingCatalogFetch: null as Promise<any> | null, // 🧠 SINGLETON PROMISE (Deduplicação)
+    _isRevalidating: false, // 🔄 Flag para SWR
 
     // 🗑️ Função para invalidar cache local (usar após pedido)
     invalidateCatalogCache() {
         console.log('🗑️ [API] Invalidando cache local do catálogo...');
         this._catalogCache = null;
+    },
+
+    // 🔄 Revalidação em background (SWR pattern)
+    async _revalidateInBackground() {
+        try {
+            console.log('🔄 [SWR] Iniciando revalidação em background...');
+            const data = await this._executeFetchCatalog(false); // Força fetch sem cache
+            console.log('✅ [SWR] Cache atualizado em background!');
+            return data;
+        } catch (error) {
+            console.warn('⚠️ [SWR] Falha na revalidação em background:', error);
+            // Não propaga erro - revalidação é opcional
+        }
     },
 
     async fetchCatalogData(useCache = true) {
@@ -53,14 +68,28 @@ export const API = {
             }
         }
 
-        // Check internal memory cache
+        // Check internal memory cache with Stale-While-Revalidate
         if (useCache && this._catalogCache) {
             const age = Date.now() - this._catalogCache.timestamp;
             const isVersionValid = this._catalogCache.version === CACHE_VERSION;
 
+            // 🚀 FRESH: Dados dentro do TTL - usar direto
             if (age < this._catalogTTL && isVersionValid) {
-                console.log(`⚡ [Catalog Cache HIT] Age: ${Math.round(age / 1000)}s`);
+                console.log(`⚡ [Cache FRESH] Age: ${Math.round(age / 1000)}s`);
                 return this._catalogCache.data;
+            }
+
+            // 🔄 STALE-WHILE-REVALIDATE: Dados velhos mas usáveis - retornar E revalidar em background
+            if (age < this._catalogStaleTTL && isVersionValid && !this._isRevalidating) {
+                console.log(`🔄 [SWR] Retornando dados stale (${Math.round(age / 1000)}s) e revalidando...`);
+
+                // Disparar revalidação em background (não bloqueia)
+                this._isRevalidating = true;
+                this._revalidateInBackground().finally(() => {
+                    this._isRevalidating = false;
+                });
+
+                return this._catalogCache.data; // Retorna dados antigos imediatamente
             }
         }
 

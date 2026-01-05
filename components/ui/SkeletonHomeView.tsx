@@ -1,9 +1,14 @@
 import React from 'react';
 
+// 🎨 Componente Shimmer - efeito de brilho deslizante
+const Shimmer = ({ className }: { className?: string }) => (
+    <div className={`bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer ${className || ''}`}></div>
+);
+
 export default function SkeletonHomeView() {
     return (
         <div className="min-h-screen bg-[#F5F6FA] pb-24">
-            {/* Header Skeleton */}
+            {/* Header Skeleton - Mantém gradiente original para identidade visual */}
             <div className="bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] pt-12 pb-24 px-6 rounded-b-[40px]">
                 <div className="flex justify-between items-start">
                     <div className="space-y-2">
@@ -16,37 +21,48 @@ export default function SkeletonHomeView() {
 
             {/* Search Skeleton */}
             <div className="-mt-8 mx-6 relative z-20">
-                <div className="bg-white rounded-full shadow-lg p-4 h-14 animate-pulse"></div>
+                <Shimmer className="rounded-full shadow-lg h-14" />
             </div>
 
-            {/* Banner Skeleton */}
+            {/* Banner Skeleton - Com shimmer effect */}
             <div className="mx-6 mt-6">
-                <div className="bg-gray-200 rounded-2xl h-48 animate-pulse"></div>
+                <Shimmer className="rounded-2xl h-48" />
             </div>
 
             {/* Categories Skeleton */}
             <div className="flex gap-3 px-6 pb-4 mt-6 overflow-x-auto">
                 {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="h-10 w-24 bg-gray-200 rounded-full animate-pulse flex-shrink-0"></div>
+                    <Shimmer key={i} className="h-10 w-24 rounded-full flex-shrink-0" />
                 ))}
             </div>
 
-            {/* Products Grid Skeleton */}
+            {/* Products Grid Skeleton - Com shimmer effect premium */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 px-6 mt-4">
                 {[1, 2, 3, 4, 5, 6].map(i => (
                     <div key={i} className="bg-white rounded-2xl p-4 space-y-3 shadow-sm">
-                        <div className="w-full h-32 bg-gray-200 rounded-xl animate-pulse"></div>
-                        <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                        <div className="h-3 w-3/4 bg-gray-200 rounded animate-pulse"></div>
-                        <div className="h-8 bg-gray-200 rounded-lg animate-pulse mt-2"></div>
+                        <Shimmer className="w-full h-32 rounded-xl" />
+                        <Shimmer className="h-4 rounded" />
+                        <Shimmer className="h-3 w-3/4 rounded" />
+                        <Shimmer className="h-8 rounded-lg mt-2" />
                     </div>
                 ))}
             </div>
 
-            {/* Loading Text */}
+            {/* Loading Text - Animação mais suave */}
             <div className="text-center mt-8">
                 <p className="text-[#FF4B82] font-bold animate-pulse">Carregando delícias...</p>
             </div>
+
+            {/* CSS para animação shimmer */}
+            <style jsx>{`
+                @keyframes shimmer {
+                    0% { background-position: 200% 0; }
+                    100% { background-position: -200% 0; }
+                }
+                :global(.animate-shimmer) {
+                    animation: shimmer 1.5s ease-in-out infinite;
+                }
+            `}</style>
         </div>
     );
 }
