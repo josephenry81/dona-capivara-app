@@ -1,5 +1,7 @@
 // Keeping all other functions, but providing the full file for safety
-const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || 'https://script.google.com/macros/s/AKfycbzzMX-QGWAbW40wAMl4sDaZZdtBTNFxiFndKMu171H4k7v0xuKb_pGCRlUB7K4kotPHcw/exec';
+import { isSupabaseConfigured, fetchCatalogFromSupabase } from './supabase';
+
+const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || 'https://script.google.com/macros/s/AKfycbyERlX2hhpwqAlyBBYHugEkZtiOfEIsHzM9XdShnB2W1EUTBbSvZisDkn2LKwxZtNbvOw/exec';
 
 // 🧠 CACHE VERSION - Incrementar quando houver mudanças importantes no backend
 // Isso força todos os clientes a recarregar dados quando necessário
@@ -93,7 +95,37 @@ export const API = {
             }
         }
 
-        // 🚀 EXECUÇÃO COM RETRY LOGIC (Máximo 2 tentativas)
+        // 🚀 ESTRATÉGIA: Supabase primeiro (ultra-rápido), GAS como fallback
+
+        // 1️⃣ TENTAR SUPABASE PRIMEIRO (se configurado)
+        if (isSupabaseConfigured()) {
+            try {
+                console.log('⚡ [Supabase] Tentando buscar catálogo...');
+                const startTime = Date.now();
+
+                const catalogData = await fetchCatalogFromSupabase();
+
+                const elapsed = Date.now() - startTime;
+                console.log(`✅ [Supabase] Catálogo carregado em ${elapsed}ms`);
+
+                // Armazenar no cache local
+                this._catalogCache = {
+                    data: catalogData,
+                    timestamp: Date.now(),
+                    version: CACHE_VERSION
+                };
+
+                return catalogData;
+
+            } catch (supabaseError: any) {
+                console.warn('⚠️ [Supabase] Falha, usando fallback GAS:', supabaseError.message);
+                // Continua para o fallback do Google Apps Script
+            }
+        } else {
+            console.log('📁 [Supabase] Não configurado, usando Google Apps Script');
+        }
+
+        // 2️⃣ FALLBACK: Google Apps Script (código original)
         let attempts = 0;
         const maxAttempts = 2;
         const timeoutMs = 15000; // ⏱️ Aumentado para 15s (Google Cold Start)

@@ -2,6 +2,161 @@ const ADMIN_LOGIN = "admin";
 const ADMIN_PASS = "Jxd701852@";
 
 // ============================================================================
+// 🚀 SUPABASE SYNC - Configuração para cache ultra-rápido
+// ============================================================================
+// INSTRUÇÕES: Substitua os valores abaixo pelas suas credenciais do Supabase
+// 1. Crie um projeto em https://supabase.com
+// 2. Copie a URL e a anon key do projeto
+const SUPABASE_URL = 'https://zuecbccyuflfkczzyrpd.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1ZWNiY2N5dWZsZmtjenp5cnBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2NjgxNDcsImV4cCI6MjA4MzI0NDE0N30.vkyybk9_KXieXKJLEHrGWS29dR8RDdUfE6B1lD5bdcE';
+
+/**
+ * 🔄 Sincroniza todos os produtos ativos para o Supabase
+ */
+function syncProductsToSupabase() {
+  if (SUPABASE_URL.includes('SEU_PROJECT')) {
+    Logger.log('⚠️ Supabase não configurado. Pule esta etapa ou configure SUPABASE_URL/KEY.');
+    return;
+  }
+  
+  const products = getProducts();
+  
+  if (products.length === 0) {
+    Logger.log('⚠️ Nenhum produto para sincronizar');
+    return;
+  }
+  
+  const supabaseData = products.map(p => ({
+    id: p.ID_Geladinho,
+    nome: p.Nome_Geladinho,
+    preco: Number(p.Preco_Venda) || 0,
+    estoque: Number(p.Estoque_Atual) || 0,
+    categoria_id: p.ID_Categoria,
+    descricao: p.Descricao || '',
+    imagem_url: p.URL_IMAGEM_CACHE || '',
+    ativo: true,
+    updated_at: new Date().toISOString()
+  }));
+  
+  const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/products`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates'
+    },
+    payload: JSON.stringify(supabaseData),
+    muteHttpExceptions: true
+  });
+  
+  if (response.getResponseCode() === 201 || response.getResponseCode() === 200) {
+    Logger.log(`✅ ${supabaseData.length} produtos sincronizados com Supabase`);
+  } else {
+    Logger.log(`❌ Erro sync produtos: ${response.getContentText()}`);
+  }
+}
+
+/**
+ * 🔄 Sincroniza categorias para o Supabase
+ */
+function syncCategoriesToSupabase() {
+  if (SUPABASE_URL.includes('SEU_PROJECT')) return;
+  
+  const categories = getCategories();
+  
+  const supabaseData = categories.map((c, idx) => ({
+    id: c.ID_Categoria,
+    nome: c.Nome_Categoria,
+    ordem: idx
+  }));
+  
+  const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/categories`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates'
+    },
+    payload: JSON.stringify(supabaseData),
+    muteHttpExceptions: true
+  });
+  
+  Logger.log(`📦 Categorias sync: ${response.getResponseCode()}`);
+}
+
+/**
+ * 🔄 Sincroniza banners para o Supabase
+ */
+function syncBannersToSupabase() {
+  if (SUPABASE_URL.includes('SEU_PROJECT')) return;
+  
+  const banners = getBanners();
+  
+  const supabaseData = banners.map((b, idx) => ({
+    id: b.ID_Banner || `banner-${idx}`,
+    titulo: b.Titulo || '',
+    subtitulo: b.Subtitulo || '',
+    imagem_url: b.URL_Imagem || '',
+    cta_text: b.Texto_CTA || '',
+    ativo: true,
+    ordem: idx
+  }));
+  
+  const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/banners`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates'
+    },
+    payload: JSON.stringify(supabaseData),
+    muteHttpExceptions: true
+  });
+  
+  Logger.log(`🖼️ Banners sync: ${response.getResponseCode()}`);
+}
+
+/**
+ * 🚀 SYNC COMPLETO - Executar manualmente ou via trigger
+ * Sincroniza produtos, categorias e banners de uma vez
+ */
+function fullSyncToSupabase() {
+  Logger.log('🚀 Iniciando sincronização completa para Supabase...');
+  
+  syncProductsToSupabase();
+  syncCategoriesToSupabase();
+  syncBannersToSupabase();
+  
+  Logger.log('✅ Sincronização completa finalizada!');
+}
+
+/**
+ * 🎯 TRIGGER AUTOMÁTICO: Executar após qualquer edição na planilha
+ * Configurar em: Gatilhos > Adicionar gatilho > onChange
+ */
+function onSheetChange(e) {
+  if (SUPABASE_URL.includes('SEU_PROJECT')) return; // Não executar se não configurado
+  
+  const sheetName = e.source.getActiveSheet().getName();
+  
+  if (['GELADINHOS', 'CATEGORIAS_GELADINHO', 'BANNERS'].includes(sheetName)) {
+    Logger.log(`📝 Mudança em ${sheetName}, sincronizando...`);
+    
+    Utilities.sleep(2000); // Aguardar edição ser salva
+    
+    switch(sheetName) {
+      case 'GELADINHOS': syncProductsToSupabase(); break;
+      case 'CATEGORIAS_GELADINHO': syncCategoriesToSupabase(); break;
+      case 'BANNERS': syncBannersToSupabase(); break;
+    }
+  }
+}
+
+
+// ============================================================================
 // ⚡ NOVA FUNÇÃO: Atualiza Produto_Ativo instantaneamente após baixa de estoque
 // ============================================================================
 /**

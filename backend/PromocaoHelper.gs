@@ -54,7 +54,6 @@ function atualizarGastoPromoClienteComRegistroSorteio(customerId, valorCompra) {
   
   if (!clientesSheet || !sorteiosSheet) return { success: false, numerosGanhos: [] };
 
-  // 🔒 CORREÇÃO: Só acumular gasto se a promoção estiver ATIVA
   const promoConfig = getPromoConfig();
   if (!promoConfig.ativa) {
     Logger.log('🚫 Promoção desativada. Gasto não acumulado para: ' + customerId);
@@ -93,21 +92,9 @@ function atualizarGastoPromoClienteComRegistroSorteio(customerId, valorCompra) {
     const numeroSorte = gerarNumeroSorte(promoId);
     const idSorteio = Utilities.getUuid();
     sorteiosSheet.appendRow([
-      idSorteio,
-      promoId,
-      customerId,
-      cliente.Nome || 'Cliente',
-      numeroSorte,
-      '',
-      cliente.Email || '',
-      cliente.Telefone || '',
-      'Ativo',
-      new Date(),
-      '',
-      false,
-      '',
-      '',
-      ''
+      idSorteio, promoId, customerId, cliente.Nome || 'Cliente', numeroSorte,
+      '', cliente.Email || '', cliente.Telefone || '', 'Ativo', new Date(),
+      '', false, '', '', ''
     ]);
     numerosRegistrados.push(numeroSorte);
   }
@@ -115,9 +102,6 @@ function atualizarGastoPromoClienteComRegistroSorteio(customerId, valorCompra) {
   return { success: true, numerosGanhos: numerosRegistrados, gastoTotal: novoGasto };
 }
 
-/**
- * Generates unique 5-character raffle number
- */
 function gerarNumeroSorte(promoId) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sorteiosSheet = ss.getSheetByName('SORTEIOS');
@@ -142,9 +126,6 @@ function gerarNumeroSorte(promoId) {
   return codigo;
 }
 
-/**
- * Generates random 5-character code (letters + numbers)
- */
 function gerarCodigoAleatorio() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   const usados = new Set();
@@ -166,45 +147,28 @@ function gerarCodigoAleatorio() {
   return codigo;
 }
 
-/**
- * ✅ NEW: Gets customer's raffle numbers and promotion progress
- */
 function getMinhasChances(customerId) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const clientesSheet = ss.getSheetByName('CLIENTES');
   const sorteiosSheet = ss.getSheetByName('SORTEIOS');
   
   if (!clientesSheet || !sorteiosSheet) {
-    return {
-      success: false,
-      message: 'Sistema de promoção não configurado'
-    };
+    return { success: false, message: 'Sistema de promoção não configurado' };
   }
 
   const promoConfig = getPromoConfig();
   
-  // If promotion is not active, return early
   if (!promoConfig.ativa) {
     return {
-      success: true,
-      promocao: promoConfig,
-      numeros: [],
-      gastoAtual: 0,
-      metaAtual: promoConfig.valorMeta,
-      faltam: promoConfig.valorMeta
+      success: true, promocao: promoConfig, numeros: [],
+      gastoAtual: 0, metaAtual: promoConfig.valorMeta, faltam: promoConfig.valorMeta
     };
   }
 
-  // Get customer data
   const clientes = sheetToJSON(clientesSheet);
   const cliente = clientes.find(c => String(c.ID_Cliente).trim() === String(customerId).trim());
   
-  if (!cliente) {
-    return {
-      success: false,
-      message: 'Cliente não encontrado'
-    };
-  }
+  if (!cliente) return { success: false, message: 'Cliente não encontrado' };
 
   const gastoAtual = Number(cliente.Gasto_Acumulado_Promo || 0);
   const META_POR_NUMERO = promoConfig.valorMeta;
@@ -212,7 +176,6 @@ function getMinhasChances(customerId) {
   const proximaMeta = (numerosTotais + 1) * META_POR_NUMERO;
   const faltam = proximaMeta - gastoAtual;
 
-  // Get customer's raffle numbers
   const sorteios = sheetToJSON(sorteiosSheet);
   const numeros = sorteios
     .filter(s => 
@@ -220,27 +183,16 @@ function getMinhasChances(customerId) {
       String(s.ID_Promo).trim() === String(promoConfig.id).trim() &&
       String(s.Status_Sorteio).toUpperCase() === 'ATIVO'
     )
-    .map(s => ({
-      id: s.ID_Sorteio,
-      numero: s.Numero_Sorte,
-      data: s.Data_Sorteio
-    }))
+    .map(s => ({ id: s.ID_Sorteio, numero: s.Numero_Sorte, data: s.Data_Sorteio }))
     .sort((a, b) => new Date(b.data) - new Date(a.data));
 
   return {
-    success: true,
-    promocao: promoConfig,
-    numeros: numeros,
-    gastoAtual: gastoAtual,
-    metaAtual: META_POR_NUMERO,
-    faltam: Math.max(0, faltam),
-    proximoNumero: numerosTotais + 1
+    success: true, promocao: promoConfig, numeros: numeros,
+    gastoAtual: gastoAtual, metaAtual: META_POR_NUMERO,
+    faltam: Math.max(0, faltam), proximoNumero: numerosTotais + 1
   };
 }
 
-/**
- * Performs the raffle and selects a random winner
- */
 function realizarSorteio(promoId) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sorteiosSheet = ss.getSheetByName('SORTEIOS');
@@ -258,41 +210,92 @@ function realizarSorteio(promoId) {
   );
   
   if (participantes.length === 0) {
-    Logger.log('⚠️ Nenhum participante encontrado para a promoção: ' + promoId);
+    Logger.log('⚠️ Nenhum participante encontrado para: ' + promoId);
     return null;
   }
   
-  const indiceVencedor = Math.floor(Math.random() * participantes.length);
-  const vencedor = participantes[indiceVencedor];
+  const vencedor = participantes[Math.floor(Math.random() * participantes.length)];
   
   const sorteioData = sorteiosSheet.getDataRange().getValues();
   const headers = sorteioData[0];
   const idIdx = headers.indexOf('ID_Sorteio');
   const ganhouIdx = headers.indexOf('Ganhou');
-  const numeroSorteadoIdx = headers.indexOf('Numero_Sorteado');
-  
-  if (idIdx === -1 || ganhouIdx === -1) {
-    Logger.log('⚠️ Colunas necessárias não encontradas');
-    return null;
-  }
   
   for (let i = 1; i < sorteioData.length; i++) {
     if (String(sorteioData[i][idIdx]) === String(vencedor.ID_Sorteio)) {
       sorteiosSheet.getRange(i + 1, ganhouIdx + 1).setValue(true);
-      if (numeroSorteadoIdx !== -1) {
-        sorteiosSheet.getRange(i + 1, numeroSorteadoIdx + 1).setValue(new Date());
-      }
       break;
     }
   }
   
-  Logger.log(`🎉 Vencedor sorteado: ${vencedor.Nome_Cliente} - Número: ${vencedor.Numero_Sorte}`);
+  Logger.log(`🎉 Vencedor: ${vencedor.Nome_Cliente} - ${vencedor.Numero_Sorte}`);
   
   return {
-    ID_Sorteio: vencedor.ID_Sorteio,
-    Nome_Cliente: vencedor.Nome_Cliente,
-    Telefone_Cliente: vencedor.Telefone_Cliente,
-    Numero_Sorte: vencedor.Numero_Sorte,
+    ID_Sorteio: vencedor.ID_Sorteio, Nome_Cliente: vencedor.Nome_Cliente,
+    Telefone_Cliente: vencedor.Telefone_Cliente, Numero_Sorte: vencedor.Numero_Sorte,
     ID_Cliente: vencedor.ID_Cliente
   };
+}
+
+// ======================================================
+// 🚀 SUPABASE SYNC - Promoções e Sorteios
+// ======================================================
+
+function syncPromoConfigToSupabase() {
+  if (SUPABASE_URL.includes('SEU_PROJECT')) return;
+  
+  const promoConfig = getPromoConfig();
+  const supabaseData = [{
+    id: promoConfig.id, nome: promoConfig.nome, icone: promoConfig.icone,
+    descricao: promoConfig.descricao || '', valor_meta: promoConfig.valorMeta,
+    ativa: promoConfig.ativa, updated_at: new Date().toISOString()
+  }];
+  
+  const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/promotions`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'
+    },
+    payload: JSON.stringify(supabaseData), muteHttpExceptions: true
+  });
+  
+  Logger.log(`🎁 Promoção sync: ${response.getResponseCode()}`);
+}
+
+function syncSorteiosToSupabase() {
+  if (SUPABASE_URL.includes('SEU_PROJECT')) return;
+  
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sorteiosSheet = ss.getSheetByName('SORTEIOS');
+  if (!sorteiosSheet) return;
+  
+  const sorteios = sheetToJSON(sorteiosSheet);
+  const supabaseData = sorteios.map(s => ({
+    id: s.ID_Sorteio, promo_id: s.ID_Promo, cliente_id: s.ID_Cliente,
+    cliente_nome: s.Nome_Cliente || '', numero_sorte: s.Numero_Sorte,
+    status: s.Status_Sorteio || 'Ativo',
+    ganhou: s.Ganhou === true || String(s.Ganhou).toUpperCase() === 'TRUE',
+    data_sorteio: s.Data_Sorteio || new Date().toISOString()
+  }));
+  
+  if (supabaseData.length === 0) return;
+  
+  const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/raffles`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'
+    },
+    payload: JSON.stringify(supabaseData), muteHttpExceptions: true
+  });
+  
+  Logger.log(`🎰 Sorteios sync (${supabaseData.length}): ${response.getResponseCode()}`);
+}
+
+function fullSyncPromosToSupabase() {
+  Logger.log('🎁 Iniciando sincronização de promoções...');
+  syncPromoConfigToSupabase();
+  syncSorteiosToSupabase();
+  Logger.log('✅ Sincronização de promoções finalizada!');
 }
