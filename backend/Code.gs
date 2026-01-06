@@ -11,7 +11,7 @@ const SUPABASE_URL = 'https://zuecbccyuflfkczzyrpd.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1ZWNiY2N5dWZsZmtjenp5cnBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2NjgxNDcsImV4cCI6MjA4MzI0NDE0N30.vkyybk9_KXieXKJLEHrGWS29dR8RDdUfE6B1lD5bdcE';
 
 /**
- * 🔄 Sincroniza todos os produtos ativos para o Supabase
+ * 🔄 Sincroniza TODOS os produtos para o Supabase (ativos e inativos)
  */
 function syncProductsToSupabase() {
   if (SUPABASE_URL.includes('SEU_PROJECT')) {
@@ -19,24 +19,45 @@ function syncProductsToSupabase() {
     return;
   }
   
-  const products = getProducts();
+  // 🔥 CORREÇÃO: Buscar TODOS os produtos, não apenas os ativos
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GELADINHOS');
+  if (!sheet) {
+    Logger.log('⚠️ Sheet GELADINHOS não encontrada');
+    return;
+  }
   
-  if (products.length === 0) {
+  const allProducts = sheetToJSON(sheet);
+  
+  if (allProducts.length === 0) {
     Logger.log('⚠️ Nenhum produto para sincronizar');
     return;
   }
   
-  const supabaseData = products.map(p => ({
-    id: p.ID_Geladinho,
-    nome: p.Nome_Geladinho,
-    preco: Number(p.Preco_Venda) || 0,
-    estoque: Number(p.Estoque_Atual) || 0,
-    categoria_id: p.ID_Categoria,
-    descricao: p.Descricao || '',
-    imagem_url: p.URL_IMAGEM_CACHE || '',
-    ativo: true,
-    updated_at: new Date().toISOString()
-  }));
+  const supabaseData = allProducts.map(p => {
+    // ✅ CORREÇÃO: Usar valor REAL de Produto_Ativo do Google Sheets
+    let isActive = false;
+    const ativoValue = p.Produto_Ativo;
+    if (ativoValue === true) {
+      isActive = true;
+    } else if (ativoValue !== null && ativoValue !== undefined) {
+      const strVal = String(ativoValue).toUpperCase().trim();
+      isActive = strVal === 'TRUE' || strVal === 'SIM' || strVal === 'YES' || strVal === '1' || strVal === 'S' || strVal === 'OK';
+    }
+    
+    return {
+      id: p.ID_Geladinho,
+      nome: p.Nome_Geladinho,
+      preco: Number(p.Preco_Venda) || 0,
+      estoque: Number(p.Estoque_Atual) || 0,
+      categoria_id: p.ID_Categoria,
+      descricao: p.Descricao || '',
+      imagem_url: normalizarUrlImagem(p) || '',
+      ativo: isActive, // ✅ Agora usa valor real!
+      updated_at: new Date().toISOString()
+    };
+  });
+  
+  Logger.log(`📦 Sincronizando ${supabaseData.length} produtos (ativos: ${supabaseData.filter(p => p.ativo).length}, inativos: ${supabaseData.filter(p => !p.ativo).length})`);
   
   const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/products`, {
     method: 'POST',
