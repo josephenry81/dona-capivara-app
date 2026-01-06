@@ -1010,6 +1010,15 @@ function createOrder(d) {
     }
   }
 
+  // 🚀 SYNC IMEDIATO: Atualiza estoque no Supabase após cada pedido
+  try {
+    Logger.log('🔄 Sincronizando estoque com Supabase após pedido...');
+    syncProductsToSupabase();
+    Logger.log('✅ Estoque sincronizado com Supabase!');
+  } catch (syncError) {
+    Logger.log('⚠️ Erro ao sincronizar Supabase (não crítico): ' + syncError.toString());
+  }
+
   return { success: true, idVenda: id };
 }
 
