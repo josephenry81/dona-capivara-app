@@ -11,6 +11,71 @@ const SUPABASE_URL = 'https://zuecbccyuflfkczzyrpd.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1ZWNiY2N5dWZsZmtjenp5cnBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2NjgxNDcsImV4cCI6MjA4MzI0NDE0N30.vkyybk9_KXieXKJLEHrGWS29dR8RDdUfE6B1lD5bdcE';
 
 /**
+ * 🗑️ Busca IDs existentes no Supabase e deleta os que não existem mais no Google Sheets
+ * @param {string} tableName - Nome da tabela no Supabase (products, categories, banners, etc)
+ * @param {Array<string>} currentIds - Array de IDs que existem atualmente no Google Sheets
+ */
+function deleteOrphanedFromSupabase(tableName, currentIds) {
+  if (SUPABASE_URL.includes('SEU_PROJECT')) return;
+  if (!currentIds || currentIds.length === 0) return;
+  
+  try {
+    // 1. Buscar todos os IDs que existem no Supabase
+    const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/${tableName}?select=id`, {
+      method: 'GET',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      },
+      muteHttpExceptions: true
+    });
+    
+    if (response.getResponseCode() !== 200) {
+      Logger.log(`⚠️ Erro ao buscar IDs do Supabase (${tableName}): ${response.getContentText()}`);
+      return;
+    }
+    
+    const supabaseData = JSON.parse(response.getContentText());
+    const supabaseIds = supabaseData.map(item => String(item.id));
+    
+    // 2. Encontrar IDs que estão no Supabase mas não no Google Sheets (órfãos)
+    const currentIdsSet = new Set(currentIds.map(id => String(id)));
+    const orphanedIds = supabaseIds.filter(id => !currentIdsSet.has(id));
+    
+    if (orphanedIds.length === 0) {
+      Logger.log(`✅ [${tableName}] Nenhum item órfão para deletar`);
+      return;
+    }
+    
+    Logger.log(`🗑️ [${tableName}] Deletando ${orphanedIds.length} itens órfãos: ${orphanedIds.join(', ')}`);
+    
+    // 3. Deletar cada item órfão do Supabase
+    for (const orphanId of orphanedIds) {
+      const deleteResponse = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/${tableName}?id=eq.${encodeURIComponent(orphanId)}`, {
+        method: 'DELETE',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        },
+        muteHttpExceptions: true
+      });
+      
+      if (deleteResponse.getResponseCode() === 204 || deleteResponse.getResponseCode() === 200) {
+        Logger.log(`  ✓ Deletado: ${orphanId}`);
+      } else {
+        Logger.log(`  ✗ Erro ao deletar ${orphanId}: ${deleteResponse.getContentText()}`);
+      }
+    }
+    
+    Logger.log(`✅ [${tableName}] ${orphanedIds.length} itens órfãos removidos`);
+    
+  } catch (error) {
+    Logger.log(`❌ Erro ao deletar órfãos de ${tableName}: ${error.toString()}`);
+  }
+}
+
+
+/**
  * 🔄 Sincroniza TODOS os produtos para o Supabase (ativos e inativos)
  */
 function syncProductsToSupabase() {
@@ -73,6 +138,10 @@ function syncProductsToSupabase() {
   
   if (response.getResponseCode() === 201 || response.getResponseCode() === 200) {
     Logger.log(`✅ ${supabaseData.length} produtos sincronizados com Supabase`);
+    
+    // 🗑️ Deletar produtos que foram removidos do Google Sheets
+    const currentIds = allProducts.map(p => String(p.ID_Geladinho)).filter(id => id);
+    deleteOrphanedFromSupabase('products', currentIds);
   } else {
     Logger.log(`❌ Erro sync produtos: ${response.getContentText()}`);
   }
@@ -92,6 +161,8 @@ function syncCategoriesToSupabase() {
     ordem: idx
   }));
   
+  Logger.log(`📦 Sincronizando ${supabaseData.length} categorias`);
+  
   const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/categories`, {
     method: 'POST',
     headers: {
@@ -104,26 +175,55 @@ function syncCategoriesToSupabase() {
     muteHttpExceptions: true
   });
   
-  Logger.log(`📦 Categorias sync: ${response.getResponseCode()}`);
+  if (response.getResponseCode() === 201 || response.getResponseCode() === 200) {
+    Logger.log(`✅ Categorias sincronizadas: ${response.getResponseCode()}`);
+    
+    // 🗑️ Deletar categorias que foram removidas do Google Sheets
+    const currentIds = categories.map(c => String(c.ID_Categoria)).filter(id => id);
+    deleteOrphanedFromSupabase('categories', currentIds);
+  } else {
+    Logger.log(`❌ Erro sync categorias: ${response.getContentText()}`);
+  }
 }
 
 /**
- * 🔄 Sincroniza banners para o Supabase
+ * 🔄 Sincroniza TODOS os banners para o Supabase (ativos e inativos)
  */
 function syncBannersToSupabase() {
   if (SUPABASE_URL.includes('SEU_PROJECT')) return;
   
-  const banners = getBanners();
+  // 🔥 CORREÇÃO: Buscar TODOS os banners, não apenas os ativos
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('BANNERS');
+  if (!sheet) {
+    Logger.log('⚠️ Sheet BANNERS não encontrada');
+    return;
+  }
   
-  const supabaseData = banners.map((b, idx) => ({
-    id: b.ID_Banner || `banner-${idx}`,
-    titulo: b.Titulo || '',
-    subtitulo: b.Subtitulo || '',
-    imagem_url: b.URL_Imagem || '',
-    cta_text: b.Texto_CTA || '',
-    ativo: true,
-    ordem: idx
-  }));
+  const allBanners = sheetToJSON(sheet);
+  
+  const supabaseData = allBanners.map((b, idx) => {
+    // ✅ CORREÇÃO: Usar valor REAL de Ativo do Google Sheets
+    let isActive = false;
+    const ativoValue = b.Ativo;
+    if (ativoValue === true) {
+      isActive = true;
+    } else if (ativoValue !== null && ativoValue !== undefined) {
+      const strVal = String(ativoValue).toUpperCase().trim();
+      isActive = strVal === 'TRUE' || strVal === 'SIM' || strVal === 'YES' || strVal === '1' || strVal === 'S' || strVal === 'OK';
+    }
+    
+    return {
+      id: b.ID_Banner || `banner-${idx}`,
+      titulo: b.Titulo || '',
+      subtitulo: b.Subtitulo || '',
+      imagem_url: normalizarUrlImagem(b) || '',
+      cta_text: b.Texto_CTA || '',
+      ativo: isActive, // ✅ Agora usa valor real!
+      ordem: idx
+    };
+  });
+  
+  Logger.log(`🖼️ Sincronizando ${supabaseData.length} banners (ativos: ${supabaseData.filter(b => b.ativo).length}, inativos: ${supabaseData.filter(b => !b.ativo).length})`);
   
   const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/banners`, {
     method: 'POST',
@@ -137,7 +237,15 @@ function syncBannersToSupabase() {
     muteHttpExceptions: true
   });
   
-  Logger.log(`🖼️ Banners sync: ${response.getResponseCode()}`);
+  if (response.getResponseCode() === 201 || response.getResponseCode() === 200) {
+    Logger.log(`✅ Banners sincronizados: ${response.getResponseCode()}`);
+    
+    // 🗑️ Deletar banners que foram removidos do Google Sheets
+    const currentIds = allBanners.map(b => String(b.ID_Banner)).filter(id => id);
+    deleteOrphanedFromSupabase('banners', currentIds);
+  } else {
+    Logger.log(`❌ Erro sync banners: ${response.getContentText()}`);
+  }
 }
 
 /**

@@ -1,7 +1,7 @@
 // Keeping all other functions, but providing the full file for safety
 import { isSupabaseConfigured, fetchCatalogFromSupabase } from './supabase';
 
-const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || 'https://script.google.com/macros/s/AKfycbz_uKu_GwuWvFTPFde2TTs1CmUloRH6HTw6uksTy_P3D9tq2zaEThsHOm9o-8DeGZB5Fw/exec';
+const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || 'https://script.google.com/macros/s/AKfycbx9OFhHqg0gMWJ6VawyNnu6vMHcyu6TRzT8eo0JkTBrFQJUiKzIALbUVW-UTQ6qogC9-A/exec';
 
 // 🧠 CACHE VERSION - Incrementar quando houver mudanças importantes no backend
 // Isso força todos os clientes a recarregar dados quando necessário

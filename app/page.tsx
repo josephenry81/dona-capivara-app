@@ -417,6 +417,11 @@ export default function Page() {
 
                 msgLines.push(`Pgto: ${sanitize(orderData.paymentMethod)}`);
 
+                // Observações do cliente
+                if (orderData.observacoes && orderData.observacoes.trim()) {
+                    msgLines.push(`📝 Obs: ${sanitize(orderData.observacoes)}`);
+                }
+
                 // Cálculo de pontos fidelidade
                 const earned = userId !== 'GUEST' ? Math.floor(orderData.total) + (orderData.bonusPoints || 0) : 0;
 

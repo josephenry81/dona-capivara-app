@@ -447,7 +447,7 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
                         {[
                             { icon: '🔥', label: 'Calorias', val: product.calorias, color: 'orange' },
                             { icon: '⚖️', label: 'Peso', val: product.peso, color: 'blue' },
-                            { icon: '⚡', label: 'Entrega', val: product.tempo || 'Imediata', color: 'green' }
+                            { icon: '⭐', label: 'Avaliação', val: averageRating > 0 ? averageRating.toFixed(1) : 'Novo', color: 'yellow' }
                         ].map((badge, idx) => (
                             <div key={idx} className={`bg-${badge.color}-50 border border-${badge.color}-100 px-3 py-2 rounded-xl flex items-center gap-3 min-w-[110px] lg:min-w-[120px]`}>
                                 <span className="text-xl">{badge.icon}</span>

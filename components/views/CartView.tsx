@@ -47,7 +47,7 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
     const [isScheduled, setIsScheduled] = useState(false);
     const [scheduleDate, setScheduleDate] = useState('');
     const [scheduleTime, setScheduleTime] = useState('');
-    const [addressData, setAddressData] = useState({ nome: '', torre: '', apto: '', rua: '', numero: '', bairro: '', complemento: '', cep: '' });
+    const [addressData, setAddressData] = useState({ nome: '', torre: '', apto: '', rua: '', numero: '', bairro: '', complemento: '', cep: '', observacoes: '' });
     const [cepLoading, setCepLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { confirm, alert, Modal: CustomModal } = useModal();
@@ -325,6 +325,7 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                 pointsDiscount: discountValue, // Detalhe para WhatsApp
                 couponDiscount: couponDiscount, // Detalhe para WhatsApp
                 couponCode: appliedCoupon ? couponCode : '',
+                observacoes: addressData.observacoes || '',
                 customer: { name: addressData.nome, fullAddress: finalAddress, details: addressData }
             });
         } finally {
@@ -704,8 +705,8 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                             {/* Feedback dinâmico baseado no estado */}
                             {referralFeedback && (
                                 <div className={`text-xs font-bold mt-2 flex items-center gap-1 ${referralFeedback.type === 'success' ? 'text-green-600' :
-                                        referralFeedback.type === 'warning' ? 'text-orange-500' :
-                                            'text-red-500'
+                                    referralFeedback.type === 'warning' ? 'text-orange-500' :
+                                        'text-red-500'
                                     }`}>
                                     <span className="text-base">
                                         {referralFeedback.type === 'success' ? '✨' :
@@ -715,6 +716,20 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                                     {bonusPoints > 0 && ` (+${bonusPoints} pts)`}
                                 </div>
                             )}
+                        </div>
+
+                        {/* Observações do Pedido */}
+                        <div className="mt-4">
+                            <label className="text-xs font-bold text-gray-400 ml-1 uppercase block mb-2">📝 Observações (Opcional)</label>
+                            <textarea
+                                name="observacoes"
+                                value={addressData.observacoes}
+                                onChange={handleInputChange}
+                                maxLength={500}
+                                rows={3}
+                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition resize-none"
+                                placeholder="Ex: Deixar na portaria com fulano, retirar ingrediente X do pedido..."
+                            />
                         </div>
                     </div>
 

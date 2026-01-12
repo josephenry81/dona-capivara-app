@@ -244,12 +244,42 @@ function realizarSorteio(promoId) {
 function syncPromoConfigToSupabase() {
   if (SUPABASE_URL.includes('SEU_PROJECT')) return;
   
-  const promoConfig = getPromoConfig();
-  const supabaseData = [{
-    id: promoConfig.id, nome: promoConfig.nome, icone: promoConfig.icone,
-    descricao: promoConfig.descricao || '', valor_meta: promoConfig.valorMeta,
-    ativa: promoConfig.ativa, updated_at: new Date().toISOString()
-  }];
+  // Buscar TODAS as promoções da planilha
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const configSheet = ss.getSheetByName('CONFIGURACAO_PROMO');
+  
+  if (!configSheet) {
+    // Se não há planilha, sincronizar apenas o default
+    const promoConfig = getPromoConfig();
+    const supabaseData = [{
+      id: promoConfig.id, nome: promoConfig.nome, icone: promoConfig.icone,
+      descricao: promoConfig.descricao || '', valor_meta: promoConfig.valorMeta,
+      ativa: promoConfig.ativa, updated_at: new Date().toISOString()
+    }];
+    
+    UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/promotions`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'
+      },
+      payload: JSON.stringify(supabaseData), muteHttpExceptions: true
+    });
+    return;
+  }
+  
+  const allPromos = sheetToJSON(configSheet);
+  const supabaseData = allPromos.map(p => ({
+    id: p.ID_Config || 'PROMO_DEFAULT',
+    nome: p.Nome_Promocao || 'Promoção',
+    icone: p.Icone || '🎁',
+    descricao: p.Descricao_Curta || '',
+    valor_meta: Number(p.Valor_Meta || 18),
+    ativa: String(p.Promocao_Ativa).toUpperCase() === 'TRUE',
+    updated_at: new Date().toISOString()
+  }));
+  
+  Logger.log(`🎁 Sincronizando ${supabaseData.length} promoções`);
   
   const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/promotions`, {
     method: 'POST',
@@ -260,7 +290,15 @@ function syncPromoConfigToSupabase() {
     payload: JSON.stringify(supabaseData), muteHttpExceptions: true
   });
   
-  Logger.log(`🎁 Promoção sync: ${response.getResponseCode()}`);
+  if (response.getResponseCode() === 201 || response.getResponseCode() === 200) {
+    Logger.log(`✅ Promoções sincronizadas: ${response.getResponseCode()}`);
+    
+    // 🗑️ Deletar promoções que foram removidas do Google Sheets
+    const currentIds = allPromos.map(p => String(p.ID_Config || 'PROMO_DEFAULT')).filter(id => id);
+    deleteOrphanedFromSupabase('promotions', currentIds);
+  } else {
+    Logger.log(`❌ Erro sync promoções: ${response.getContentText()}`);
+  }
 }
 
 function syncSorteiosToSupabase() {
@@ -279,7 +317,13 @@ function syncSorteiosToSupabase() {
     data_sorteio: s.Data_Sorteio || new Date().toISOString()
   }));
   
-  if (supabaseData.length === 0) return;
+  Logger.log(`🎰 Sincronizando ${supabaseData.length} sorteios`);
+  
+  if (supabaseData.length === 0) {
+    // Se não há sorteios, apenas deletar órfãos
+    deleteOrphanedFromSupabase('raffles', []);
+    return;
+  }
   
   const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/raffles`, {
     method: 'POST',
@@ -290,7 +334,15 @@ function syncSorteiosToSupabase() {
     payload: JSON.stringify(supabaseData), muteHttpExceptions: true
   });
   
-  Logger.log(`🎰 Sorteios sync (${supabaseData.length}): ${response.getResponseCode()}`);
+  if (response.getResponseCode() === 201 || response.getResponseCode() === 200) {
+    Logger.log(`✅ Sorteios sincronizados: ${response.getResponseCode()}`);
+    
+    // 🗑️ Deletar sorteios que foram removidos do Google Sheets
+    const currentIds = sorteios.map(s => String(s.ID_Sorteio)).filter(id => id);
+    deleteOrphanedFromSupabase('raffles', currentIds);
+  } else {
+    Logger.log(`❌ Erro sync sorteios: ${response.getContentText()}`);
+  }
 }
 
 function fullSyncPromosToSupabase() {
@@ -299,3 +351,4 @@ function fullSyncPromosToSupabase() {
   syncSorteiosToSupabase();
   Logger.log('✅ Sincronização de promoções finalizada!');
 }
+
