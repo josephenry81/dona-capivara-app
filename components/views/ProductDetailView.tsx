@@ -399,171 +399,237 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
         <div className="min-h-screen bg-white flex flex-col relative animate-in slide-in-from-right duration-300">
             <CustomModal />
 
-            {/* Navigation Button */}
+            {/* ═══════════════════════════════════════════════════════════════ */}
+            {/* HEADER - Fundo Rosa com Imagem */}
+            {/* ═══════════════════════════════════════════════════════════════ */}
+            <div className="relative bg-gradient-to-br from-[#FF4B82] to-[#FF9E3D] pt-4 pb-24">
+
+                {/* Botão Voltar */}
+                <button
+                    onClick={onBack}
+                    className="absolute top-4 left-4 z-50 bg-white/20 backdrop-blur-md p-3 rounded-full hover:bg-white/30 transition active:scale-95"
+                    aria-label="Voltar"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                </button>
+
+                {/* Botão Share/Menu */}
+                <div className="absolute top-4 right-4 z-50">
+                    <ShareButton product={product} variant="icon" />
+                </div>
+
+                {/* Imagem do Produto - Centralizada com Sombra */}
+                <div className="flex justify-center mt-8">
+                    <div className="relative w-64 h-64 lg:w-80 lg:h-80">
+                        <Image
+                            src={product.imagem || 'https://via.placeholder.com/500'}
+                            alt={product.nome}
+                            fill
+                            sizes="(max-width: 1024px) 256px, 320px"
+                            className="object-cover rounded-3xl shadow-2xl"
+                            quality={85}
+                            priority
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Botão Favorito - Posição Absoluta na borda */}
             <button
-                onClick={onBack}
-                className="fixed top-4 left-4 z-50 bg-white/90 backdrop-blur-md p-3 rounded-full shadow-lg border border-gray-100 hover:scale-110 transition active:scale-95"
-                aria-label="Voltar"
+                className="absolute top-[280px] lg:top-[340px] right-6 z-30 bg-white p-3 rounded-full shadow-lg hover:scale-110 transition-all active:scale-95 border border-gray-100"
+                title="Favoritar"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
+                🤍
             </button>
 
-            {/* main container - Responsive Grid */}
-            <div className="flex-1 lg:grid lg:grid-cols-2 lg:gap-8 lg:p-12 lg:max-w-7xl lg:mx-auto lg:items-start">
+            {/* ═══════════════════════════════════════════════════════════════ */}
+            {/* CONTENT BODY - Fundo Branco */}
+            {/* ═══════════════════════════════════════════════════════════════ */}
+            <div className="flex-1 bg-white -mt-8 rounded-t-[35px] relative z-10 px-6 pt-8 pb-32">
 
-                {/* Left Column: Image (Desktop) / Top Section (Mobile) */}
-                <div className="relative h-[40vh] lg:h-[600px] w-full bg-gray-200 lg:rounded-3xl lg:overflow-hidden lg:shadow-2xl">
-                    <Image
-                        src={product.imagem || 'https://via.placeholder.com/500'}
-                        alt={product.nome}
-                        fill
-                        sizes="(max-width: 1024px) 100vw, 50vw"
-                        className="object-cover"
-                        quality={85}
-                        priority
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/5"></div>
+                {/* Handle decorativo */}
+                <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6 opacity-50"></div>
+
+                {/* Título do Produto */}
+                <h1 className="text-2xl lg:text-3xl font-bold text-gray-800 mb-1">{product.nome}</h1>
+
+                {/* Subtítulo / Categoria */}
+                <p className="text-gray-400 text-sm mb-4">Geladinho Gourmet • Dona Capivara</p>
+
+                {/* Bloco de Avaliações */}
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="flex items-center gap-1">
+                        <RatingStars rating={averageRating || 5} size="sm" />
+                        <span className="text-sm font-semibold text-gray-700 ml-1">
+                            {averageRating > 0 ? averageRating.toFixed(1) : '5.0'}
+                        </span>
+                    </div>
+                    <span className="text-gray-300">|</span>
+                    <span className="text-sm text-gray-500">
+                        {reviews.length > 0 ? `${reviews.length} avaliações` : 'Novo produto'}
+                    </span>
+                    {product.estoque > 0 && product.estoque < 10 && (
+                        <>
+                            <span className="text-gray-300">|</span>
+                            <span className="text-sm text-orange-500 font-medium">Restam {product.estoque}!</span>
+                        </>
+                    )}
                 </div>
 
-                {/* Right Column: Content Body */}
-                <div className="flex-1 p-6 lg:p-0 flex flex-col -mt-8 lg:mt-0 bg-white rounded-t-[35px] lg:rounded-none relative z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] lg:shadow-none">
-
-                    {/* Handle for mobile only */}
-                    <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6 opacity-50 lg:hidden"></div>
-
-                    {/* Header: Name + Price */}
-                    <div className="flex justify-between items-start mb-6">
-                        <h1 className="text-2xl lg:text-3xl font-bold text-gray-800 w-3/4 leading-tight">{product.nome}</h1>
-                        <div className="text-right">
-                            <span className="text-2xl lg:text-3xl font-bold text-[#FF4B82] whitespace-nowrap">R$ {basePrice.toFixed(2)}</span>
-                            {hasAdditions && <p className="text-xs text-gray-400">base</p>}
-                        </div>
+                {/* Row: Preço e Quantidade (Pill) */}
+                <div className="flex items-center justify-between mb-8 bg-gray-50 p-4 rounded-2xl">
+                    <div>
+                        <p className="text-sm text-gray-400 mb-1">Preço unitário</p>
+                        <p className="text-3xl font-bold text-[#FF4B82]">
+                            R$ {basePrice.toFixed(2).replace('.', ',')}
+                        </p>
+                        {hasAdditions && selectedAdditions.length > 0 && (
+                            <p className="text-xs text-gray-500 mt-1">
+                                + R$ {selectedAdditions.reduce((sum, a) => sum + a.option_price, 0).toFixed(2).replace('.', ',')} em adicionais
+                            </p>
+                        )}
                     </div>
 
-                    {/* Badges */}
-                    <div className="flex gap-3 mb-6 overflow-x-auto lg:overflow-visible pb-2 scrollbar-hide">
-                        {[
-                            { icon: '🔥', label: 'Calorias', val: product.calorias, color: 'orange' },
-                            { icon: '⚖️', label: 'Peso', val: product.peso, color: 'blue' },
-                            { icon: '⭐', label: 'Avaliação', val: averageRating > 0 ? averageRating.toFixed(1) : 'Novo', color: 'yellow' }
-                        ].map((badge, idx) => (
-                            <div key={idx} className={`bg-${badge.color}-50 border border-${badge.color}-100 px-3 py-2 rounded-xl flex items-center gap-3 min-w-[110px] lg:min-w-[120px]`}>
-                                <span className="text-xl">{badge.icon}</span>
+                    {/* Pill de Quantidade */}
+                    <div className="flex items-center bg-white rounded-full px-2 py-2 shadow-md border border-gray-100">
+                        <button
+                            onClick={handleDecrement}
+                            className="w-10 h-10 rounded-full bg-[#FF4B82] text-white text-xl font-bold flex items-center justify-center hover:bg-[#e03a6d] transition active:scale-90"
+                        >
+                            −
+                        </button>
+                        <span className="w-12 text-center font-bold text-gray-800 text-xl">{quantity}</span>
+                        <button
+                            onClick={handleIncrement}
+                            className="w-10 h-10 rounded-full bg-[#FF4B82] text-white text-xl font-bold flex items-center justify-center hover:bg-[#e03a6d] transition active:scale-90"
+                        >
+                            +
+                        </button>
+                    </div>
+                </div>
+
+                {/* Sobre o Produto */}
+                <div className="mb-6">
+                    <h3 className="font-bold text-gray-800 text-lg mb-3">📝 Sobre o Produto</h3>
+                    <p className="text-gray-600 leading-relaxed">
+                        {product.descricao || 'Sabor inigualável da Dona Capivara. Feito com ingredientes selecionados e muito amor!'}
+                    </p>
+                </div>
+
+                {/* Ingredientes */}
+                {product.ingredientes && (
+                    <div className="mb-6">
+                        <h3 className="font-bold text-gray-800 text-lg mb-3">🧾 Ingredientes</h3>
+                        <p className="text-gray-500 text-sm leading-relaxed bg-gray-50 p-4 rounded-xl border border-gray-100">
+                            {product.ingredientes}
+                        </p>
+                    </div>
+                )}
+
+                {/* Info Badges */}
+                {(product.calorias || product.peso) && (
+                    <div className="flex gap-3 mb-6 flex-wrap">
+                        {product.calorias && (
+                            <div className="bg-orange-50 border border-orange-100 px-4 py-3 rounded-xl flex items-center gap-2">
+                                <span className="text-xl">🔥</span>
                                 <div>
-                                    <p className="text-[10px] text-gray-400 font-bold uppercase">{badge.label}</p>
-                                    <p className={`text-sm font-bold text-${badge.color}-500 whitespace-nowrap`}>{badge.val}</p>
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase">Calorias</p>
+                                    <p className="text-sm font-bold text-orange-500">{product.calorias}</p>
                                 </div>
                             </div>
+                        )}
+                        {product.peso && (
+                            <div className="bg-blue-50 border border-blue-100 px-4 py-3 rounded-xl flex items-center gap-2">
+                                <span className="text-xl">⚖️</span>
+                                <div>
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase">Peso</p>
+                                    <p className="text-sm font-bold text-blue-500">{product.peso}</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Additions Section - Loading Skeleton */}
+                {loadingAdditions && (
+                    <div className="space-y-4 mb-6">
+                        <h3 className="font-bold text-gray-800 mb-3">🎨 Personalize seu pedido</h3>
+                        <div className="bg-white p-4 rounded-2xl shadow-sm animate-pulse border border-gray-100">
+                            <div className="h-4 bg-gray-200 rounded w-1/3 mb-3"></div>
+                            <div className="space-y-2">
+                                <div className="h-12 bg-gray-100 rounded-xl"></div>
+                                <div className="h-12 bg-gray-100 rounded-xl"></div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Additions Section - Loaded */}
+                {!loadingAdditions && hasAdditions && (
+                    <div className="space-y-4 mb-6">
+                        <h3 className="font-bold text-gray-800 text-lg mb-3">🎨 Personalize seu pedido</h3>
+                        {productWithAdditions!.addition_groups!.map(group => (
+                            <AdditionGroup
+                                key={group.id}
+                                group={group}
+                                selectedOptions={selectedOptionsByGroup[group.id] || []}
+                                onSelectionChange={(optionId) => handleAdditionSelection(group.id, optionId, group)}
+                            />
                         ))}
+
+                        <PriceCalculator
+                            basePrice={basePrice}
+                            selectedAdditions={selectedAdditions}
+                            quantity={quantity}
+                        />
                     </div>
+                )}
 
-                    <h3 className="font-bold text-gray-800 mb-2">Descrição</h3>
-                    <p className="text-gray-500 text-sm lg:text-base leading-relaxed mb-6">
-                        {product.descricao || 'Sabor inigualável da Dona Capivara.'}
-                    </p>
-
-                    <h3 className="font-bold text-gray-800 mb-2">Ingredientes</h3>
-                    <p className="text-gray-500 text-xs lg:text-sm leading-relaxed mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                        {product.ingredientes || 'Informação não disponível.'}
-                    </p>
-
-                    {/* Additions Section - Loading Skeleton */}
-                    {loadingAdditions && (
-                        <div className="space-y-4 mb-6">
-                            <h3 className="font-bold text-gray-800 mb-3">🎨 Personalize seu pedido</h3>
-                            <div className="bg-white p-4 rounded-2xl shadow-sm animate-pulse border border-gray-100">
-                                <div className="h-4 bg-gray-200 rounded w-1/3 mb-3"></div>
-                                <div className="space-y-2">
-                                    <div className="h-12 bg-gray-100 rounded-xl"></div>
-                                    <div className="h-12 bg-gray-100 rounded-xl"></div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Additions Section - Loaded */}
-                    {!loadingAdditions && hasAdditions && (
-                        <div className="space-y-4 mb-6">
-                            <h3 className="font-bold text-gray-800 mb-3">Personalize seu pedido</h3>
-                            {productWithAdditions!.addition_groups!.map(group => (
-                                <AdditionGroup
-                                    key={group.id}
-                                    group={group}
-                                    selectedOptions={selectedOptionsByGroup[group.id] || []}
-                                    onSelectionChange={(optionId) => handleAdditionSelection(group.id, optionId, group)}
-                                />
-                            ))}
-
-                            <PriceCalculator
-                                basePrice={basePrice}
-                                selectedAdditions={selectedAdditions}
-                                quantity={quantity}
-                            />
-                        </div>
-                    )}
-
-                    {/* Footer Actions - Integrated on Desktop, Fixed on Mobile */}
-                    <div className="lg:mt-auto lg:pt-8 bg-white lg:bg-transparent pb-32 lg:pb-0">
-
-                        {/* Rating Summary */}
-                        {averageRating > 0 && (
-                            <div className="flex items-center gap-2 mb-4">
-                                <RatingStars rating={averageRating} size="md" />
-                                <span className="text-sm text-gray-600">
-                                    ({reviews.length} {reviews.length === 1 ? 'avaliação' : 'avaliações'})
-                                </span>
-                            </div>
-                        )}
-
-                        {/* Review Button */}
-                        {user && user.id && !user.isGuest && (
-                            <button
-                                onClick={() => setShowReviewForm(true)}
-                                className="w-full bg-white border-2 border-[#FF4B82] text-[#FF4B82] font-bold py-3 rounded-xl mb-4 hover:bg-[#FFF0F5] transition active:scale-95"
-                            >
-                                ⭐️ Avaliar Produto
-                            </button>
-                        )}
-
-                        {/* Main Action Bar */}
-                        <div className="flex items-center gap-4 fixed bottom-0 left-0 w-full lg:static lg:w-auto bg-white border-t lg:border-none border-gray-100 p-4 pb-8 lg:p-0 z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] lg:shadow-none">
-                            <div className="flex items-center bg-gray-100 rounded-xl px-3 py-2 h-14">
-                                <button onClick={handleDecrement} className="w-8 text-xl font-bold text-gray-500 hover:text-[#FF4B82] transition">-</button>
-                                <span className="w-8 text-center font-bold text-gray-800 text-lg">{quantity}</span>
-                                <button onClick={handleIncrement} className="w-8 text-xl font-bold text-gray-500 hover:text-[#FF4B82] transition">+</button>
-                            </div>
-
-                            <ShareButton
-                                product={product}
-                                variant="icon"
-                            />
-
-                            <button
-                                onClick={handleAddToCart}
-                                disabled={product.estoque < 1}
-                                className={`flex-1 h-14 font-bold rounded-xl shadow-lg transition flex justify-between items-center px-6 active:scale-95 ${product.estoque > 0
-                                    ? 'bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white shadow-orange-200 hover:opacity-90'
-                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
-                                    }`}
-                            >
-                                <span>{product.estoque > 0 ? 'Adicionar' : 'Esgotado'}</span>
-                                {product.estoque > 0 && (
-                                    <span className="bg-white/20 px-2 py-1 rounded text-sm whitespace-nowrap">
-                                        R$ {((basePrice + selectedAdditions.reduce((sum, a) => sum + a.option_price, 0)) * quantity).toFixed(2)}
-                                    </span>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Reviews Section at the end on Desktop */}
-                    <div className="mt-12 lg:mt-16 pb-12">
-                        <h3 className="font-bold text-gray-800 mb-4 text-xl">Avaliações</h3>
+                {/* Seção de Avaliações */}
+                {reviews.length > 0 && (
+                    <div className="mb-6">
+                        <h3 className="font-bold text-gray-800 text-lg mb-4">⭐ Avaliações dos Clientes</h3>
                         <ReviewsList reviews={reviews} averageRating={averageRating} />
                     </div>
-                </div>
+                )}
+
+                {/* Review Button */}
+                {user && user.id && !user.isGuest && (
+                    <button
+                        onClick={() => setShowReviewForm(true)}
+                        className="w-full bg-white border-2 border-[#FF4B82] text-[#FF4B82] font-bold py-3 rounded-xl mb-6 hover:bg-[#FFF0F5] transition active:scale-95"
+                    >
+                        ⭐️ Avaliar este Produto
+                    </button>
+                )}
+            </div>
+
+            {/* ═══════════════════════════════════════════════════════════════ */}
+            {/* FOOTER - Botão Adicionar ao Carrinho (Fixo) */}
+            {/* ═══════════════════════════════════════════════════════════════ */}
+            <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 p-4 pb-8 z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.08)]">
+                <button
+                    onClick={handleAddToCart}
+                    disabled={product.estoque < 1}
+                    className={`w-full h-14 font-bold rounded-2xl shadow-lg transition flex justify-center items-center gap-3 active:scale-[0.98] ${product.estoque > 0
+                            ? 'bg-[#FF4B82] text-white hover:bg-[#e03a6d] shadow-pink-200'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
+                        }`}
+                >
+                    {product.estoque > 0 ? (
+                        <>
+                            <span className="text-lg">🛒</span>
+                            <span>Adicionar ao Carrinho</span>
+                            <span className="bg-white/20 px-3 py-1 rounded-lg text-sm font-bold ml-2">
+                                R$ {((basePrice + selectedAdditions.reduce((sum, a) => sum + a.option_price, 0)) * quantity).toFixed(2).replace('.', ',')}
+                            </span>
+                        </>
+                    ) : (
+                        <span>Produto Esgotado</span>
+                    )}
+                </button>
             </div>
 
             {/* Review Form Modal */}
@@ -577,6 +643,5 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
                 />
             )}
         </div>
-
     );
 }
