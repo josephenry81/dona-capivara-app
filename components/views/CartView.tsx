@@ -680,7 +680,13 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                             </>
                         )}
 
-                        {/* Referral Code */}
+                        {/* 
+                        ════════════════════════════════════════════════════════════════════
+                        CÓDIGO DE INDICAÇÃO - OCULTO TEMPORARIAMENTE
+                        Motivo: Clientes confundem com campo de cupom
+                        Para reativar: Descomente este bloco
+                        ════════════════════════════════════════════════════════════════════
+                        
                         <div className="mt-4 bg-[#FFF8E1] border border-[#FFE082] p-3 rounded-xl">
                             <label className="text-xs font-bold text-[#F57F17] mb-2 block">🎁 Código de Indicação (Opcional)</label>
                             <div className="relative">
@@ -702,7 +708,6 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                                 )}
                             </div>
 
-                            {/* Feedback dinâmico baseado no estado */}
                             {referralFeedback && (
                                 <div className={`text-xs font-bold mt-2 flex items-center gap-1 ${referralFeedback.type === 'success' ? 'text-green-600' :
                                     referralFeedback.type === 'warning' ? 'text-orange-500' :
@@ -717,6 +722,7 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                                 </div>
                             )}
                         </div>
+                        */}
 
                         {/* Observações do Pedido */}
                         <div className="mt-4">

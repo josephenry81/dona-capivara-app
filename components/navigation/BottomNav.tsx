@@ -29,6 +29,7 @@ export default function BottomNav({ activeTab, onTabChange, cartCount, favoriteC
                         <button
                             key={item.id}
                             onClick={() => onTabChange(item.id)}
+                            data-tour={item.id === 'cart' ? 'cart-icon' : item.id === 'profile' ? 'profile-icon' : undefined}
                             className={`relative flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-[#FF4B82]' : 'text-gray-400 hover:text-gray-600'
                                 }`}
                         >

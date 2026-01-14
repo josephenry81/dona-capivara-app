@@ -126,7 +126,7 @@ export default function HomeView({
             )}
 
             {/* Categories */}
-            <div className="flex gap-3 overflow-x-auto px-6 pb-4 scrollbar-hide">
+            <div data-tour="categories" className="flex gap-3 overflow-x-auto px-6 pb-4 scrollbar-hide">
                 <button onClick={() => setActiveCategory('todos')} className={`px-6 py-2 rounded-full whitespace-nowrap font-bold text-sm transition-all ${activeCategory === 'todos' ? 'bg-[#FF4B82] text-white shadow-md' : 'bg-white text-gray-500 border border-gray-100'}`}>🔥 Todos</button>
                 {categories.map(cat => (
                     <button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={`px-6 py-2 rounded-full whitespace-nowrap font-bold text-sm transition-all ${activeCategory === cat.id ? 'bg-[#FF4B82] text-white shadow-md' : 'bg-white text-gray-500 border border-gray-100'}`}>{cat.nome}</button>

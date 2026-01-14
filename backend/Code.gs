@@ -122,7 +122,23 @@ function syncProductsToSupabase() {
     };
   });
   
-  Logger.log(`📦 Sincronizando ${supabaseData.length} produtos (ativos: ${supabaseData.filter(p => p.ativo).length}, inativos: ${supabaseData.filter(p => !p.ativo).length})`);
+  // 🔥 FILTRAR DUPLICATAS: Remove produtos com IDs duplicados (mantém o primeiro)
+  const seenIds = new Set();
+  const uniqueProducts = [];
+  for (const product of supabaseData) {
+    const id = String(product.id);
+    if (id && !seenIds.has(id)) {
+      seenIds.add(id);
+      uniqueProducts.push(product);
+    } else if (seenIds.has(id)) {
+      Logger.log(`⚠️ ID duplicado ignorado: ${id} (${product.nome})`);
+    }
+  }
+  
+  Logger.log(`📦 Sincronizando ${uniqueProducts.length} produtos únicos (ativos: ${uniqueProducts.filter(p => p.ativo).length}, inativos: ${uniqueProducts.filter(p => !p.ativo).length})`);
+  if (uniqueProducts.length < supabaseData.length) {
+    Logger.log(`⚠️ ${supabaseData.length - uniqueProducts.length} produtos com IDs duplicados foram ignorados`);
+  }
   
   const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/products`, {
     method: 'POST',
@@ -132,15 +148,15 @@ function syncProductsToSupabase() {
       'Content-Type': 'application/json',
       'Prefer': 'resolution=merge-duplicates'
     },
-    payload: JSON.stringify(supabaseData),
+    payload: JSON.stringify(uniqueProducts),
     muteHttpExceptions: true
   });
   
   if (response.getResponseCode() === 201 || response.getResponseCode() === 200) {
-    Logger.log(`✅ ${supabaseData.length} produtos sincronizados com Supabase`);
+    Logger.log(`✅ ${uniqueProducts.length} produtos sincronizados com Supabase`);
     
     // 🗑️ Deletar produtos que foram removidos do Google Sheets
-    const currentIds = allProducts.map(p => String(p.ID_Geladinho)).filter(id => id);
+    const currentIds = uniqueProducts.map(p => String(p.id)).filter(id => id);
     deleteOrphanedFromSupabase('products', currentIds);
   } else {
     Logger.log(`❌ Erro sync produtos: ${response.getContentText()}`);

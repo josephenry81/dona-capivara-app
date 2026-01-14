@@ -11,6 +11,7 @@ import InstallPrompt from '../components/ui/InstallPrompt';
 import LoadingCapybara from '../components/ui/LoadingCapybara';
 import { API } from '../services/api';
 import { useModal } from '../components/ui/Modal';
+import { OnboardingModal, GuidedTour, HelpButton } from '../components/onboarding';
 
 // ⚡ DYNAMIC IMPORTS - Lazy load heavy components
 const CartView = dynamic(() => import('../components/views/CartView'), {
@@ -62,6 +63,10 @@ export default function Page() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as any, ts: 0 });
     const { modalState, hideModal, confirm, alert, Modal: CustomModal } = useModal();
+
+    // 🎓 ONBOARDING STATES
+    const [showOnboarding, setShowOnboarding] = useState(false);
+    const [showTour, setShowTour] = useState(false);
 
     const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
         setToast({ visible: true, message, type, ts: Date.now() });
@@ -583,6 +588,26 @@ export default function Page() {
                     {activeTab !== 'orders' && <BottomNav activeTab={activeTab} onTabChange={setActiveTab} cartCount={cart.length} favoriteCount={favorites.length} isGuest={user.isGuest} />}
                 </>
             )}
+
+            {/* 🎓 SISTEMA DE ONBOARDING */}
+            <OnboardingModal
+                onComplete={() => setShowOnboarding(false)}
+                onStartTour={() => setShowTour(true)}
+            />
+
+            <GuidedTour
+                isActive={showTour}
+                onComplete={() => setShowTour(false)}
+            />
+
+            <HelpButton
+                onRestartTutorial={() => {
+                    setShowOnboarding(true);
+                    // Force remount by clearing and setting
+                    setTimeout(() => setShowOnboarding(true), 100);
+                }}
+                whatsappNumber={WHATSAPP_PHONE}
+            />
         </main>
     );
 }

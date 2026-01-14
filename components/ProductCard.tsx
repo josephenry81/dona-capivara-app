@@ -78,7 +78,7 @@ export default function ProductCard({ product, isFavorite, onToggleFavorite, onA
     };
 
     return (
-        <div className="flex flex-col bg-white rounded-2xl shadow-md overflow-hidden relative h-full hover:shadow-lg transition-shadow group">
+        <div data-tour="product-card" className="flex flex-col bg-white rounded-2xl shadow-md overflow-hidden relative h-full hover:shadow-lg transition-shadow group">
             <CustomModal />
 
             {/* TOPO - Badges e Favorito */}
@@ -174,6 +174,7 @@ export default function ProductCard({ product, isFavorite, onToggleFavorite, onA
                     <button
                         onClick={handleAddToCart}
                         disabled={!hasStock}
+                        data-tour="add-to-cart"
                         className={`w-full py-3 rounded-xl font-bold text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${hasStock
                             ? 'bg-[#FF4B82] text-white hover:bg-[#e03a6d] shadow-lg shadow-pink-200/50'
                             : 'bg-gray-200 text-gray-400 cursor-not-allowed'
