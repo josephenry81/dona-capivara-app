@@ -614,13 +614,13 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
                     onClick={handleAddToCart}
                     disabled={product.estoque < 1}
                     className={`w-full h-14 font-bold rounded-2xl shadow-lg transition flex justify-center items-center gap-3 active:scale-[0.98] ${product.estoque > 0
-                            ? 'bg-[#FF4B82] text-white hover:bg-[#e03a6d] shadow-pink-200'
-                            : 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
+                        ? 'bg-[#FF4B82] text-white hover:bg-[#e03a6d] shadow-pink-200'
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
                         }`}
                 >
                     {product.estoque > 0 ? (
                         <>
-                            <span className="text-lg">🛒</span>
+                            <img src="/cart-icon-white.png" alt="" className="w-5 h-5" />
                             <span>Adicionar ao Carrinho</span>
                             <span className="bg-white/20 px-3 py-1 rounded-lg text-sm font-bold ml-2">
                                 R$ {((basePrice + selectedAdditions.reduce((sum, a) => sum + a.option_price, 0)) * quantity).toFixed(2).replace('.', ',')}

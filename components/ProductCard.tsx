@@ -184,7 +184,7 @@ export default function ProductCard({ product, isFavorite, onToggleFavorite, onA
                             isMix ? (
                                 <>🎨 Monte o Seu</>
                             ) : (
-                                <>🛒 Adicionar ao Carrinho</>
+                                <><img src="/cart-icon-white.png" alt="" className="w-5 h-5 inline-block mr-1" /> Adicionar ao Carrinho</>
                             )
                         ) : (
                             'Indisponível'
