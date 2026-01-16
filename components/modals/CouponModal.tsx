@@ -37,6 +37,7 @@ export default function CouponModal({
     const [isValidating, setIsValidating] = useState(false);
 
     const inputRef = useRef<HTMLInputElement>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
     const validateTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     // Formatar moeda
@@ -77,6 +78,13 @@ export default function CouponModal({
         window.addEventListener('keydown', handleEsc);
         return () => window.removeEventListener('keydown', handleEsc);
     }, [isOpen, onClose]);
+
+    // Scroll input into view when keyboard opens
+    const handleInputFocus = () => {
+        setTimeout(() => {
+            inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+    };
 
     // Validação em tempo real (debounced)
     useEffect(() => {
@@ -142,6 +150,8 @@ export default function CouponModal({
     const handleContinue = () => {
         if (validatedCoupon) {
             setStep(2);
+            // Scroll to top of content
+            contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
 
@@ -150,7 +160,7 @@ export default function CouponModal({
         if (validatedCoupon) {
             setStep(3);
 
-            // Após 2 segundos, aplica e fecha
+            // Após 1.5 segundos, aplica e fecha
             setTimeout(() => {
                 const discount = calculateDiscount(validatedCoupon);
                 onApplyCoupon({
@@ -173,6 +183,57 @@ export default function CouponModal({
 
     if (!isOpen) return null;
 
+    // Render buttons based on current step
+    const renderButtons = () => {
+        if (step === 3) return null; // No buttons on success step
+
+        if (step === 1) {
+            return (
+                <div className={styles.buttonsFooter}>
+                    <div className={styles.buttons}>
+                        <button
+                            onClick={handleClear}
+                            className={styles.btnSecondary}
+                            disabled={!couponCode}
+                        >
+                            Limpar
+                        </button>
+                        <button
+                            onClick={handleContinue}
+                            className={styles.btnPrimary}
+                            disabled={!validatedCoupon || isValidating}
+                        >
+                            Continuar
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        if (step === 2) {
+            return (
+                <div className={styles.buttonsFooter}>
+                    <div className={styles.buttons}>
+                        <button
+                            onClick={() => setStep(1)}
+                            className={styles.btnSecondary}
+                        >
+                            Voltar
+                        </button>
+                        <button
+                            onClick={handleApply}
+                            className={styles.btnPrimary}
+                        >
+                            <span>🎟️</span> Aplicar Cupom
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        return null;
+    };
+
     return (
         <>
             {/* Overlay */}
@@ -182,217 +243,188 @@ export default function CouponModal({
                 role="presentation"
             />
 
-            {/* Modal */}
-            <div className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="coupon-modal-title">
-                {/* Header */}
-                <div className={styles.header}>
-                    <div className={styles.headerContent}>
-                        <span className={styles.headerIcon}>🎟️</span>
-                        <div>
-                            <h2 id="coupon-modal-title" className={styles.headerTitle}>
-                                Cupom de Desconto
-                            </h2>
-                            <p className={styles.headerSubtitle}>
-                                Aplique seu cupom e economize
-                            </p>
-                        </div>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className={styles.closeButton}
-                        aria-label="Fechar"
-                    >
-                        ✕
-                    </button>
-                </div>
-
-                {/* Progress Steps */}
-                <div className={styles.progress}>
-                    <div className={`${styles.progressStep} ${step >= 1 ? styles.active : ''}`}>
-                        <span className={styles.stepNumber}>1</span>
-                        <span className={styles.stepLabel}>Escolher</span>
-                    </div>
-                    <div className={styles.progressLine} />
-                    <div className={`${styles.progressStep} ${step >= 2 ? styles.active : ''}`}>
-                        <span className={styles.stepNumber}>2</span>
-                        <span className={styles.stepLabel}>Validar</span>
-                    </div>
-                    <div className={styles.progressLine} />
-                    <div className={`${styles.progressStep} ${step >= 3 ? styles.active : ''}`}>
-                        <span className={styles.stepNumber}>3</span>
-                        <span className={styles.stepLabel}>Aplicar</span>
-                    </div>
-                </div>
-
-                {/* Step Content */}
-                <div className={styles.content}>
-                    {/* STEP 1: Escolher */}
-                    {step === 1 && (
-                        <div className={styles.stepContent}>
-                            <label htmlFor="coupon-input" className={styles.inputLabel}>
-                                Insira seu cupom
-                            </label>
-                            <div className={styles.inputWrapper}>
-                                <input
-                                    ref={inputRef}
-                                    id="coupon-input"
-                                    type="text"
-                                    value={couponCode}
-                                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                                    placeholder="Ex: BEMVINDO10"
-                                    className={`${styles.input} ${feedback.type === 'success' ? styles.inputSuccess : ''} ${feedback.type === 'error' ? styles.inputError : ''
-                                        }`}
-                                    autoComplete="off"
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && validatedCoupon) {
-                                            handleContinue();
-                                        }
-                                    }}
-                                />
-                                {isValidating && (
-                                    <div className={styles.inputSpinner}>
-                                        <div className={styles.spinner} />
-                                    </div>
-                                )}
-                                {!isValidating && feedback.type === 'success' && (
-                                    <span className={styles.inputIcon}>✓</span>
-                                )}
-                                {!isValidating && feedback.type === 'error' && (
-                                    <span className={`${styles.inputIcon} ${styles.iconError}`}>✕</span>
-                                )}
-                            </div>
-
-                            {/* Feedback */}
-                            {feedback.message && feedback.type !== 'loading' && (
-                                <div
-                                    className={`${styles.feedback} ${styles[`feedback${feedback.type?.charAt(0).toUpperCase()}${feedback.type?.slice(1)}`]
-                                        }`}
-                                    role="alert"
-                                >
-                                    {feedback.type === 'success' && '✓ '}
-                                    {feedback.type === 'error' && '⚠️ '}
-                                    {feedback.type === 'warning' && '⚠ '}
-                                    {feedback.message}
-                                </div>
-                            )}
-
-                            {/* Subtotal Info */}
-                            <div className={styles.subtotalInfo}>
-                                <span>Subtotal do pedido:</span>
-                                <span className={styles.subtotalValue}>{formatCurrency(cartTotal)}</span>
-                            </div>
-
-                            {/* Buttons */}
-                            <div className={styles.buttons}>
-                                <button
-                                    onClick={handleClear}
-                                    className={styles.btnSecondary}
-                                    disabled={!couponCode}
-                                >
-                                    Limpar
-                                </button>
-                                <button
-                                    onClick={handleContinue}
-                                    className={styles.btnPrimary}
-                                    disabled={!validatedCoupon || isValidating}
-                                >
-                                    Continuar
-                                </button>
+            {/* Modal Wrapper - Flex container for positioning */}
+            <div className={styles.modalWrapper}>
+                {/* Modal */}
+                <div className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="coupon-modal-title">
+                    {/* Header */}
+                    <div className={styles.header}>
+                        <div className={styles.headerContent}>
+                            <span className={styles.headerIcon}>🎟️</span>
+                            <div>
+                                <h2 id="coupon-modal-title" className={styles.headerTitle}>
+                                    Cupom de Desconto
+                                </h2>
+                                <p className={styles.headerSubtitle}>
+                                    Aplique seu cupom e economize
+                                </p>
                             </div>
                         </div>
-                    )}
+                        <button
+                            onClick={onClose}
+                            className={styles.closeButton}
+                            aria-label="Fechar"
+                        >
+                            ✕
+                        </button>
+                    </div>
 
-                    {/* STEP 2: Validar */}
-                    {step === 2 && validatedCoupon && (
-                        <div className={styles.stepContent}>
-                            <div className={styles.couponCard}>
-                                <div className={styles.couponCardHeader}>
-                                    <span className={styles.couponCardIcon}>🏷️</span>
-                                    <span className={styles.couponCardCode}>{validatedCoupon.code}</span>
-                                </div>
-                                <div className={styles.couponCardBody}>
-                                    <div className={styles.couponDetailRow}>
-                                        <span>Tipo de desconto:</span>
-                                        <span className={styles.couponDetailValue}>
-                                            {validatedCoupon.type === 'PORCENTAGEM' ? 'Porcentagem' : 'Valor Fixo'}
-                                        </span>
-                                    </div>
-                                    <div className={styles.couponDetailRow}>
-                                        <span>Desconto:</span>
-                                        <span className={styles.couponDetailHighlight}>
-                                            {validatedCoupon.type === 'PORCENTAGEM'
-                                                ? `${validatedCoupon.value}%`
-                                                : formatCurrency(validatedCoupon.value)
+                    {/* Progress Steps */}
+                    <div className={styles.progress}>
+                        <div className={`${styles.progressStep} ${step >= 1 ? styles.active : ''}`}>
+                            <span className={styles.stepNumber}>1</span>
+                            <span className={styles.stepLabel}>Escolher</span>
+                        </div>
+                        <div className={styles.progressLine} />
+                        <div className={`${styles.progressStep} ${step >= 2 ? styles.active : ''}`}>
+                            <span className={styles.stepNumber}>2</span>
+                            <span className={styles.stepLabel}>Validar</span>
+                        </div>
+                        <div className={styles.progressLine} />
+                        <div className={`${styles.progressStep} ${step >= 3 ? styles.active : ''}`}>
+                            <span className={styles.stepNumber}>3</span>
+                            <span className={styles.stepLabel}>Aplicar</span>
+                        </div>
+                    </div>
+
+                    {/* Scrollable Content */}
+                    <div className={styles.content} ref={contentRef}>
+                        {/* STEP 1: Escolher */}
+                        {step === 1 && (
+                            <div className={styles.stepContent}>
+                                <label htmlFor="coupon-input" className={styles.inputLabel}>
+                                    Insira seu cupom
+                                </label>
+                                <div className={styles.inputWrapper}>
+                                    <input
+                                        ref={inputRef}
+                                        id="coupon-input"
+                                        type="text"
+                                        value={couponCode}
+                                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                        placeholder="Ex: BEMVINDO10"
+                                        className={`${styles.input} ${feedback.type === 'success' ? styles.inputSuccess : ''} ${feedback.type === 'error' ? styles.inputError : ''}`}
+                                        autoComplete="off"
+                                        onFocus={handleInputFocus}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && validatedCoupon) {
+                                                handleContinue();
                                             }
-                                        </span>
-                                    </div>
-                                    {validatedCoupon.tipoUso === 'UNICO' && (
-                                        <div className={styles.couponWarning}>
-                                            ⚠️ Cupom de uso único
+                                        }}
+                                    />
+                                    {isValidating && (
+                                        <div className={styles.inputSpinner}>
+                                            <div className={styles.spinner} />
                                         </div>
                                     )}
+                                    {!isValidating && feedback.type === 'success' && (
+                                        <span className={styles.inputIcon}>✓</span>
+                                    )}
+                                    {!isValidating && feedback.type === 'error' && (
+                                        <span className={`${styles.inputIcon} ${styles.iconError}`}>✕</span>
+                                    )}
                                 </div>
-                                <div className={styles.couponCardFooter}>
-                                    <span>Você economiza:</span>
-                                    <span className={styles.discountAmount}>
-                                        -{formatCurrency(calculateDiscount(validatedCoupon))}
+
+                                {/* Feedback */}
+                                {feedback.message && feedback.type !== 'loading' && (
+                                    <div
+                                        className={`${styles.feedback} ${styles[`feedback${feedback.type?.charAt(0).toUpperCase()}${feedback.type?.slice(1)}`]}`}
+                                        role="alert"
+                                    >
+                                        {feedback.type === 'success' && '✓ '}
+                                        {feedback.type === 'error' && '⚠️ '}
+                                        {feedback.type === 'warning' && '⚠ '}
+                                        {feedback.message}
+                                    </div>
+                                )}
+
+                                {/* Subtotal Info */}
+                                <div className={styles.subtotalInfo}>
+                                    <span>Subtotal do pedido:</span>
+                                    <span className={styles.subtotalValue}>{formatCurrency(cartTotal)}</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* STEP 2: Validar */}
+                        {step === 2 && validatedCoupon && (
+                            <div className={styles.stepContent}>
+                                <div className={styles.couponCard}>
+                                    <div className={styles.couponCardHeader}>
+                                        <span className={styles.couponCardIcon}>🏷️</span>
+                                        <span className={styles.couponCardCode}>{validatedCoupon.code}</span>
+                                    </div>
+                                    <div className={styles.couponCardBody}>
+                                        <div className={styles.couponDetailRow}>
+                                            <span>Tipo de desconto:</span>
+                                            <span className={styles.couponDetailValue}>
+                                                {validatedCoupon.type === 'PORCENTAGEM' ? 'Porcentagem' : 'Valor Fixo'}
+                                            </span>
+                                        </div>
+                                        <div className={styles.couponDetailRow}>
+                                            <span>Desconto:</span>
+                                            <span className={styles.couponDetailHighlight}>
+                                                {validatedCoupon.type === 'PORCENTAGEM'
+                                                    ? `${validatedCoupon.value}%`
+                                                    : formatCurrency(validatedCoupon.value)
+                                                }
+                                            </span>
+                                        </div>
+                                        {validatedCoupon.tipoUso === 'UNICO' && (
+                                            <div className={styles.couponWarning}>
+                                                ⚠️ Cupom de uso único
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className={styles.couponCardFooter}>
+                                        <span>Você economiza:</span>
+                                        <span className={styles.discountAmount}>
+                                            -{formatCurrency(calculateDiscount(validatedCoupon))}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Summary */}
+                                <div className={styles.summary}>
+                                    <div className={styles.summaryRow}>
+                                        <span>Subtotal:</span>
+                                        <span>{formatCurrency(cartTotal)}</span>
+                                    </div>
+                                    <div className={`${styles.summaryRow} ${styles.summaryDiscount}`}>
+                                        <span>Desconto:</span>
+                                        <span>-{formatCurrency(calculateDiscount(validatedCoupon))}</span>
+                                    </div>
+                                    <div className={`${styles.summaryRow} ${styles.summaryTotal}`}>
+                                        <span>Novo total:</span>
+                                        <span>{formatCurrency(cartTotal - calculateDiscount(validatedCoupon))}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* STEP 3: Sucesso */}
+                        {step === 3 && validatedCoupon && (
+                            <div className={`${styles.stepContent} ${styles.successStep}`}>
+                                <div className={styles.successIcon}>
+                                    <span>✓</span>
+                                </div>
+                                <h3 className={styles.successTitle}>Cupom Aplicado!</h3>
+                                <p className={styles.successMessage}>
+                                    {validatedCoupon.code} • Desconto de{' '}
+                                    <strong>{formatCurrency(calculateDiscount(validatedCoupon))}</strong>
+                                </p>
+                                <div className={styles.successTotal}>
+                                    <span>Novo total:</span>
+                                    <span className={styles.successTotalValue}>
+                                        {formatCurrency(cartTotal - calculateDiscount(validatedCoupon))}
                                     </span>
                                 </div>
                             </div>
+                        )}
+                    </div>
 
-                            {/* Summary */}
-                            <div className={styles.summary}>
-                                <div className={styles.summaryRow}>
-                                    <span>Subtotal:</span>
-                                    <span>{formatCurrency(cartTotal)}</span>
-                                </div>
-                                <div className={`${styles.summaryRow} ${styles.summaryDiscount}`}>
-                                    <span>Desconto:</span>
-                                    <span>-{formatCurrency(calculateDiscount(validatedCoupon))}</span>
-                                </div>
-                                <div className={`${styles.summaryRow} ${styles.summaryTotal}`}>
-                                    <span>Novo total:</span>
-                                    <span>{formatCurrency(cartTotal - calculateDiscount(validatedCoupon))}</span>
-                                </div>
-                            </div>
-
-                            {/* Buttons */}
-                            <div className={styles.buttons}>
-                                <button
-                                    onClick={() => setStep(1)}
-                                    className={styles.btnSecondary}
-                                >
-                                    Voltar
-                                </button>
-                                <button
-                                    onClick={handleApply}
-                                    className={styles.btnPrimary}
-                                >
-                                    🎟️ Aplicar Cupom
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* STEP 3: Sucesso */}
-                    {step === 3 && validatedCoupon && (
-                        <div className={`${styles.stepContent} ${styles.successStep}`}>
-                            <div className={styles.successIcon}>
-                                <span>✓</span>
-                            </div>
-                            <h3 className={styles.successTitle}>Cupom Aplicado!</h3>
-                            <p className={styles.successMessage}>
-                                {validatedCoupon.code} • Desconto de{' '}
-                                <strong>{formatCurrency(calculateDiscount(validatedCoupon))}</strong>
-                            </p>
-                            <div className={styles.successTotal}>
-                                <span>Novo total:</span>
-                                <span className={styles.successTotalValue}>
-                                    {formatCurrency(cartTotal - calculateDiscount(validatedCoupon))}
-                                </span>
-                            </div>
-                        </div>
-                    )}
+                    {/* Sticky Footer with Buttons */}
+                    {renderButtons()}
                 </div>
             </div>
         </>

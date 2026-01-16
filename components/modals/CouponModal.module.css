@@ -1,140 +1,142 @@
 /* ===========================================
    COUPON MODAL - DONA CAPIVARA DESIGN SYSTEM
+   Mobile-First Responsive Bottom Sheet
    =========================================== */
 
-/* CSS Variables - Design System */
-.modal {
-    --color-primary: #FF6B35;
-    --color-secondary: #F7931E;
-    --color-success: #4CAF50;
-    --color-error: #F44336;
-    --color-warning: #FF9800;
-    --color-bg: #F5F5F5;
-    --color-text: #2C3E50;
-    --color-text-light: #7F8C8D;
-    --color-white: #FFFFFF;
-
-    --font-heading: 'Montserrat', sans-serif;
-    --font-body: 'Inter', sans-serif;
-
-    --radius-sm: 4px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
-    --radius-xl: 16px;
-
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
-    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.2);
-
-    --transition-fast: 0.2s ease;
-    --transition-normal: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-/* Overlay */
+/* ==========================================
+   OVERLAY - Full screen backdrop
+   ========================================== */
 .overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(2px);
     z-index: 999;
     animation: fadeIn 0.2s ease;
+    touch-action: none;
 }
 
-/* Modal Container */
-.modal {
+/* ==========================================
+   MODAL WRAPPER - Flex container for positioning
+   ========================================== */
+.modalWrapper {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    max-height: 90vh;
-    background: var(--color-white);
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
     z-index: 1000;
+    pointer-events: none;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* ==========================================
+   MODAL - Bottom sheet container
+   ========================================== */
+.modal {
+    width: 100%;
+    max-width: 480px;
+    max-height: 80vh;
+    max-height: 80dvh;
+    background: #FFFFFF;
+    border-radius: 16px 16px 0 0;
     overflow: hidden;
     animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     display: flex;
     flex-direction: column;
+    pointer-events: auto;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
 }
 
 @media (min-width: 481px) {
     .modal {
-        max-width: 480px;
         margin: 0 auto;
-        left: 50%;
-        transform: translateX(-50%);
     }
 }
 
-/* Header */
+/* ==========================================
+   HEADER
+   ========================================== */
 .header {
-    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-    padding: 16px 20px;
+    background: linear-gradient(135deg, #FF6B35, #F7931E);
+    padding: 14px 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-shrink: 0;
 }
 
 .headerContent {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
+    min-width: 0;
 }
 
 .headerIcon {
-    font-size: 32px;
+    font-size: 28px;
+    flex-shrink: 0;
 }
 
 .headerTitle {
-    font-family: var(--font-heading);
+    font-family: 'Montserrat', sans-serif;
     font-weight: 700;
-    font-size: 18px;
-    color: var(--color-white);
+    font-size: 16px;
+    color: #FFFFFF;
     margin: 0;
+    white-space: nowrap;
 }
 
 .headerSubtitle {
-    font-family: var(--font-body);
-    font-size: 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
     color: rgba(255, 255, 255, 0.85);
     margin: 2px 0 0 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .closeButton {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.2);
     border: none;
-    color: var(--color-white);
-    font-size: 16px;
+    color: #FFFFFF;
+    font-size: 14px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: var(--transition-fast);
+    transition: 0.2s ease;
+    flex-shrink: 0;
 }
 
-.closeButton:hover {
+.closeButton:hover,
+.closeButton:active {
     background: rgba(255, 255, 255, 0.3);
-    transform: scale(1.1);
 }
 
-/* Progress Steps */
+/* ==========================================
+   PROGRESS STEPS
+   ========================================== */
 .progress {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 16px 20px;
-    background: var(--color-bg);
-    gap: 8px;
+    padding: 12px 16px;
+    background: #F5F5F5;
+    gap: 6px;
+    flex-shrink: 0;
 }
 
 .progressStep {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     opacity: 0.4;
-    transition: var(--transition-fast);
+    transition: 0.2s ease;
 }
 
 .progressStep.active {
@@ -142,58 +144,65 @@
 }
 
 .stepNumber {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
-    background: var(--color-text-light);
-    color: var(--color-white);
-    font-size: 12px;
+    background: #7F8C8D;
+    color: #FFFFFF;
+    font-size: 11px;
     font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: var(--transition-fast);
+    flex-shrink: 0;
 }
 
 .progressStep.active .stepNumber {
-    background: var(--color-primary);
+    background: #FF6B35;
 }
 
 .stepLabel {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
-    color: var(--color-text-light);
+    color: #7F8C8D;
 }
 
 .progressStep.active .stepLabel {
-    color: var(--color-text);
+    color: #2C3E50;
 }
 
 .progressLine {
-    width: 24px;
+    width: 16px;
     height: 2px;
     background: #DDD;
     border-radius: 1px;
 }
 
-/* Content */
+/* ==========================================
+   CONTENT - Scrollable main area
+   ========================================== */
 .content {
-    padding: 20px;
+    padding: 16px;
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    min-height: 0;
 }
 
 .stepContent {
     animation: fadeIn 0.3s ease;
 }
 
-/* Input */
+/* ==========================================
+   INPUT SECTION
+   ========================================== */
 .inputLabel {
     display: block;
-    font-family: var(--font-body);
-    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
     font-weight: 600;
-    color: var(--color-text);
+    color: #2C3E50;
     margin-bottom: 8px;
 }
 
@@ -203,17 +212,17 @@
 
 .input {
     width: 100%;
-    padding: 14px 48px 14px 16px;
+    padding: 12px 44px 12px 14px;
     font-family: 'Courier New', monospace;
     font-size: 16px;
     font-weight: 600;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
     text-transform: uppercase;
     border: 2px solid #E0E0E0;
-    border-radius: var(--radius-md);
-    background: var(--color-white);
-    color: var(--color-text);
-    transition: var(--transition-fast);
+    border-radius: 8px;
+    background: #FFFFFF;
+    color: #2C3E50;
+    transition: 0.2s ease;
     outline: none;
 }
 
@@ -221,15 +230,16 @@
     color: #BDBDBD;
     font-weight: 400;
     letter-spacing: 0;
+    font-size: 14px;
 }
 
 .input:focus {
-    border-color: var(--color-primary);
+    border-color: #FF6B35;
     box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.15);
 }
 
 .inputSuccess {
-    border-color: var(--color-success);
+    border-color: #4CAF50;
 }
 
 .inputSuccess:focus {
@@ -237,7 +247,7 @@
 }
 
 .inputError {
-    border-color: var(--color-error);
+    border-color: #F44336;
 }
 
 .inputError:focus {
@@ -246,15 +256,15 @@
 
 .inputSpinner {
     position: absolute;
-    right: 14px;
+    right: 12px;
     top: 50%;
     transform: translateY(-50%);
 }
 
 .spinner {
-    width: 20px;
-    height: 20px;
-    border: 2px solid var(--color-primary);
+    width: 18px;
+    height: 18px;
+    border: 2px solid #FF6B35;
     border-top-color: transparent;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
@@ -262,92 +272,110 @@
 
 .inputIcon {
     position: absolute;
-    right: 14px;
+    right: 12px;
     top: 50%;
     transform: translateY(-50%);
-    font-size: 18px;
-    color: var(--color-success);
+    font-size: 16px;
+    color: #4CAF50;
 }
 
 .iconError {
-    color: var(--color-error);
+    color: #F44336;
 }
 
-/* Feedback */
+/* ==========================================
+   FEEDBACK MESSAGES
+   ========================================== */
 .feedback {
-    margin-top: 10px;
-    padding: 10px 14px;
-    border-radius: var(--radius-md);
-    font-size: 13px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
     font-weight: 600;
     animation: slideInLeft 0.3s ease;
 }
 
 .feedbackSuccess {
     background: rgba(76, 175, 80, 0.1);
-    color: var(--color-success);
+    color: #4CAF50;
     border: 1px solid rgba(76, 175, 80, 0.2);
 }
 
 .feedbackError {
     background: rgba(244, 67, 54, 0.1);
-    color: var(--color-error);
+    color: #F44336;
     border: 1px solid rgba(244, 67, 54, 0.2);
 }
 
 .feedbackWarning {
     background: rgba(255, 152, 0, 0.1);
-    color: var(--color-warning);
+    color: #FF9800;
     border: 1px solid rgba(255, 152, 0, 0.2);
 }
 
-/* Subtotal Info */
+/* ==========================================
+   SUBTOTAL INFO
+   ========================================== */
 .subtotalInfo {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 16px;
-    padding: 12px;
-    background: var(--color-bg);
-    border-radius: var(--radius-md);
-    font-size: 13px;
-    color: var(--color-text-light);
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: #F5F5F5;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #7F8C8D;
 }
 
 .subtotalValue {
     font-weight: 700;
-    color: var(--color-text);
+    color: #2C3E50;
 }
 
-/* Buttons */
+/* ==========================================
+   BUTTONS FOOTER - Sticky at bottom
+   ========================================== */
+.buttonsFooter {
+    position: sticky;
+    bottom: 0;
+    background: #FFFFFF;
+    padding: 12px 16px;
+    border-top: 1px solid #EEEEEE;
+    flex-shrink: 0;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0));
+}
+
 .buttons {
     display: flex;
-    gap: 12px;
-    margin-top: 20px;
+    gap: 10px;
 }
 
 .btnPrimary,
 .btnSecondary {
     flex: 1;
-    padding: 14px 20px;
-    border-radius: var(--radius-md);
-    font-family: var(--font-body);
-    font-size: 14px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
     font-weight: 700;
     cursor: pointer;
-    transition: var(--transition-normal);
+    transition: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
 }
 
 .btnPrimary {
-    background: var(--color-primary);
-    color: var(--color-white);
+    background: #FF6B35;
+    color: #FFFFFF;
 }
 
-.btnPrimary:hover:not(:disabled) {
-    background: var(--color-secondary);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+.btnPrimary:hover:not(:disabled),
+.btnPrimary:active:not(:disabled) {
+    background: #F7931E;
 }
 
 .btnPrimary:disabled {
@@ -356,12 +384,13 @@
 }
 
 .btnSecondary {
-    background: var(--color-bg);
-    color: var(--color-text-light);
+    background: #F5F5F5;
+    color: #7F8C8D;
     border: 1px solid #E0E0E0;
 }
 
-.btnSecondary:hover:not(:disabled) {
+.btnSecondary:hover:not(:disabled),
+.btnSecondary:active:not(:disabled) {
     background: #E8E8E8;
 }
 
@@ -370,45 +399,47 @@
     cursor: not-allowed;
 }
 
-/* Coupon Card (Step 2) */
+/* ==========================================
+   COUPON CARD (Step 2)
+   ========================================== */
 .couponCard {
     background: linear-gradient(135deg, #FFF5F0, #FFF0E6);
-    border: 2px dashed var(--color-primary);
-    border-radius: var(--radius-lg);
+    border: 2px dashed #FF6B35;
+    border-radius: 12px;
     overflow: hidden;
 }
 
 .couponCardHeader {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 14px 16px;
+    gap: 8px;
+    padding: 10px 12px;
     background: rgba(255, 107, 53, 0.1);
 }
 
 .couponCardIcon {
-    font-size: 24px;
+    font-size: 20px;
 }
 
 .couponCardCode {
     font-family: 'Courier New', monospace;
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 700;
-    color: var(--color-primary);
-    letter-spacing: 1px;
+    color: #FF6B35;
+    letter-spacing: 0.5px;
 }
 
 .couponCardBody {
-    padding: 16px;
+    padding: 12px;
 }
 
 .couponDetailRow {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 0;
-    font-size: 13px;
-    color: var(--color-text-light);
+    padding: 6px 0;
+    font-size: 12px;
+    color: #7F8C8D;
 }
 
 .couponDetailRow:not(:last-child) {
@@ -417,107 +448,111 @@
 
 .couponDetailValue {
     font-weight: 600;
-    color: var(--color-text);
+    color: #2C3E50;
 }
 
 .couponDetailHighlight {
     font-weight: 700;
-    color: var(--color-primary);
-    font-size: 15px;
+    color: #FF6B35;
+    font-size: 14px;
 }
 
 .couponWarning {
-    margin-top: 8px;
-    padding: 8px 12px;
+    margin-top: 6px;
+    padding: 6px 10px;
     background: rgba(255, 152, 0, 0.1);
-    border-radius: var(--radius-sm);
-    font-size: 12px;
+    border-radius: 4px;
+    font-size: 11px;
     font-weight: 600;
-    color: var(--color-warning);
+    color: #FF9800;
 }
 
 .couponCardFooter {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 14px 16px;
-    background: var(--color-primary);
-    color: var(--color-white);
-    font-size: 14px;
+    padding: 10px 12px;
+    background: #FF6B35;
+    color: #FFFFFF;
+    font-size: 13px;
 }
 
 .discountAmount {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
 }
 
-/* Summary */
+/* ==========================================
+   SUMMARY (Step 2)
+   ========================================== */
 .summary {
-    margin-top: 20px;
-    padding: 16px;
-    background: var(--color-bg);
-    border-radius: var(--radius-md);
+    margin-top: 12px;
+    padding: 12px;
+    background: #F5F5F5;
+    border-radius: 8px;
 }
 
 .summaryRow {
     display: flex;
     justify-content: space-between;
-    padding: 6px 0;
-    font-size: 13px;
-    color: var(--color-text-light);
+    padding: 4px 0;
+    font-size: 12px;
+    color: #7F8C8D;
 }
 
 .summaryDiscount {
-    color: var(--color-success);
+    color: #4CAF50;
     font-weight: 600;
 }
 
 .summaryTotal {
-    margin-top: 8px;
-    padding-top: 10px;
+    margin-top: 6px;
+    padding-top: 8px;
     border-top: 1px dashed #DDD;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
-    color: var(--color-text);
+    color: #2C3E50;
 }
 
-/* Success Step (Step 3) */
+/* ==========================================
+   SUCCESS STEP (Step 3)
+   ========================================== */
 .successStep {
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: 32px 20px;
+    padding: 24px 16px;
 }
 
 .successIcon {
-    width: 80px;
-    height: 80px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--color-success), #66BB6A);
+    background: linear-gradient(135deg, #4CAF50, #66BB6A);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
     animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .successIcon span {
-    font-size: 40px;
-    color: var(--color-white);
+    font-size: 32px;
+    color: #FFFFFF;
 }
 
 .successTitle {
-    font-family: var(--font-heading);
-    font-size: 22px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 18px;
     font-weight: 700;
-    color: var(--color-success);
-    margin: 0 0 8px 0;
+    color: #4CAF50;
+    margin: 0 0 6px 0;
 }
 
 .successMessage {
-    font-size: 14px;
-    color: var(--color-text-light);
+    font-size: 13px;
+    color: #7F8C8D;
     margin: 0;
 }
 
@@ -525,31 +560,245 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-top: 24px;
-    padding: 16px 32px;
-    background: var(--color-bg);
-    border-radius: var(--radius-md);
+    margin-top: 16px;
+    padding: 12px 24px;
+    background: #F5F5F5;
+    border-radius: 8px;
 }
 
 .successTotal span:first-child {
-    font-size: 12px;
-    color: var(--color-text-light);
+    font-size: 11px;
+    color: #7F8C8D;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
 }
 
 .successTotalValue {
-    font-size: 28px;
+    font-size: 24px;
     font-weight: 700;
-    color: var(--color-primary);
+    color: #FF6B35;
     margin-top: 4px;
 }
 
-/* Animations */
+/* ==========================================
+   MOBILE BREAKPOINTS (< 480px)
+   ========================================== */
+@media (max-width: 480px) {
+    .modal {
+        max-height: 80vh;
+        max-height: 80dvh;
+    }
+
+    .header {
+        padding: 12px 14px;
+    }
+
+    .headerIcon {
+        font-size: 24px;
+    }
+
+    .headerTitle {
+        font-size: 15px;
+    }
+
+    .headerSubtitle {
+        font-size: 10px;
+    }
+
+    .closeButton {
+        width: 26px;
+        height: 26px;
+        font-size: 12px;
+    }
+
+    .progress {
+        padding: 10px 12px;
+        gap: 4px;
+    }
+
+    .stepNumber {
+        width: 18px;
+        height: 18px;
+        font-size: 10px;
+    }
+
+    .stepLabel {
+        font-size: 10px;
+    }
+
+    .progressLine {
+        width: 12px;
+    }
+
+    .content {
+        padding: 14px;
+    }
+
+    .inputLabel {
+        font-size: 12px;
+        margin-bottom: 6px;
+    }
+
+    .input {
+        padding: 10px 40px 10px 12px;
+    }
+
+    .feedback {
+        margin-top: 6px;
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+
+    .subtotalInfo {
+        margin-top: 10px;
+        padding: 8px 10px;
+        font-size: 11px;
+    }
+
+    .buttonsFooter {
+        padding: 10px 14px;
+        padding-bottom: calc(10px + env(safe-area-inset-bottom, 0));
+    }
+
+    .buttons {
+        gap: 8px;
+    }
+
+    .btnPrimary,
+    .btnSecondary {
+        padding: 10px 12px;
+        font-size: 12px;
+    }
+
+    .couponCardHeader {
+        padding: 8px 10px;
+    }
+
+    .couponCardIcon {
+        font-size: 18px;
+    }
+
+    .couponCardCode {
+        font-size: 14px;
+    }
+
+    .couponCardBody {
+        padding: 10px;
+    }
+
+    .couponDetailRow {
+        padding: 5px 0;
+        font-size: 11px;
+    }
+
+    .couponDetailHighlight {
+        font-size: 13px;
+    }
+
+    .couponCardFooter {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+
+    .discountAmount {
+        font-size: 14px;
+    }
+
+    .summary {
+        margin-top: 10px;
+        padding: 10px;
+    }
+
+    .summaryRow {
+        padding: 3px 0;
+        font-size: 11px;
+    }
+
+    .summaryTotal {
+        margin-top: 4px;
+        padding-top: 6px;
+        font-size: 13px;
+    }
+
+    .successStep {
+        padding: 20px 14px;
+    }
+
+    .successIcon {
+        width: 56px;
+        height: 56px;
+        margin-bottom: 12px;
+    }
+
+    .successIcon span {
+        font-size: 28px;
+    }
+
+    .successTitle {
+        font-size: 16px;
+    }
+
+    .successMessage {
+        font-size: 12px;
+    }
+
+    .successTotal {
+        margin-top: 12px;
+        padding: 10px 20px;
+    }
+
+    .successTotal span:first-child {
+        font-size: 10px;
+    }
+
+    .successTotalValue {
+        font-size: 20px;
+    }
+}
+
+/* ==========================================
+   VERY SMALL SCREENS (< 360px)
+   ========================================== */
+@media (max-width: 360px) {
+    .header {
+        padding: 10px 12px;
+    }
+
+    .headerIcon {
+        font-size: 22px;
+    }
+
+    .headerTitle {
+        font-size: 14px;
+    }
+
+    .progress {
+        padding: 8px 10px;
+    }
+
+    .stepLabel {
+        display: none;
+    }
+
+    .content {
+        padding: 12px;
+    }
+
+    .btnPrimary,
+    .btnSecondary {
+        padding: 10px 8px;
+        font-size: 11px;
+    }
+}
+
+/* ==========================================
+   ANIMATIONS
+   ========================================== */
 @keyframes fadeIn {
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
@@ -560,6 +809,7 @@
         transform: translateY(100%);
         opacity: 0;
     }
+
     to {
         transform: translateY(0);
         opacity: 1;
@@ -571,6 +821,7 @@
         transform: translateX(-10px);
         opacity: 0;
     }
+
     to {
         transform: translateX(0);
         opacity: 1;
@@ -582,6 +833,7 @@
         transform: scale(0);
         opacity: 0;
     }
+
     to {
         transform: scale(1);
         opacity: 1;

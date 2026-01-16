@@ -11,6 +11,29 @@ const SUPABASE_URL = 'https://zuecbccyuflfkczzyrpd.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1ZWNiY2N5dWZsZmtjenp5cnBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2NjgxNDcsImV4cCI6MjA4MzI0NDE0N30.vkyybk9_KXieXKJLEHrGWS29dR8RDdUfE6B1lD5bdcE';
 
 /**
+ * =====================================================
+ * 🎟️ COUPON CACHE SYSTEM - SUPABASE + GOOGLE SHEETS
+ * =====================================================
+ * 
+ * ARQUITETURA:
+ * - Google Sheets (CUPONS) = FONTE DE VERDADE
+ * - Supabase (coupons) = Cache/espelho para leitura rápida
+ * - Sincronização: Sheets → Supabase (one-way)
+ * 
+ * FLUXO DE VALIDAÇÃO:
+ * 1. Tenta ler do Supabase (rápido, ~50ms)
+ * 2. Se não encontrar, fallback para Sheets (~500ms)
+ * 3. Se validar via Sheets, sincroniza para Supabase
+ * 
+ * REGRAS:
+ * - Toda alteração parte da planilha CUPONS
+ * - Supabase NUNCA é fonte primária de alteração
+ * - Frontend lê apenas, nunca escreve diretamente
+ * =====================================================
+ */
+
+
+/**
  * 🗑️ Busca IDs existentes no Supabase e deleta os que não existem mais no Google Sheets
  * @param {string} tableName - Nome da tabela no Supabase (products, categories, banners, etc)
  * @param {Array<string>} currentIds - Array de IDs que existem atualmente no Google Sheets
@@ -72,6 +95,238 @@ function deleteOrphanedFromSupabase(tableName, currentIds) {
   } catch (error) {
     Logger.log(`❌ Erro ao deletar órfãos de ${tableName}: ${error.toString()}`);
   }
+}
+
+
+// ============================================================================
+// 🎟️ COUPON SYNC FUNCTIONS - Sincronização Sheets → Supabase
+// ============================================================================
+
+/**
+ * 🔄 Sincroniza TODOS os cupons para o Supabase
+ * Lê planilha CUPONS e faz upsert em batch, depois remove órfãos
+ */
+function syncAllCouponsToSupabase() {
+  if (SUPABASE_URL.includes('SEU_PROJECT')) {
+    Logger.log('⚠️ Supabase não configurado');
+    return;
+  }
+
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CUPONS');
+  if (!sheet) {
+    Logger.log('⚠️ Planilha CUPONS não encontrada');
+    return;
+  }
+
+  const cupons = sheetToJSON(sheet);
+  
+  if (cupons.length === 0) {
+    Logger.log('⚠️ Nenhum cupom para sincronizar');
+    return;
+  }
+
+  Logger.log(`🎟️ Sincronizando ${cupons.length} cupons para Supabase...`);
+
+  // Converter para formato Supabase
+  const supabaseData = cupons.map(c => ({
+    code: String(c.Codigo || '').trim().toUpperCase(),
+    type: String(c.Tipo || 'VALOR_FIXO'),
+    value: Number(c.Valor || 0),
+    usage_type: String(c.Tipo_Uso || 'MULTIPLO'),
+    min_value: Number(c.Valor_Minimo_Pedido || 0),
+    active: String(c.Ativo || '').toUpperCase() === 'TRUE',
+    valid_until: c.Data_Validade ? new Date(c.Data_Validade).toISOString() : null,
+    max_usage: Number(c.Uso_Maximo || 0),
+    updated_at: new Date().toISOString()
+  })).filter(c => c.code); // Filtrar cupons sem código
+
+  if (supabaseData.length === 0) {
+    Logger.log('⚠️ Nenhum cupom válido para sincronizar');
+    return;
+  }
+
+  try {
+    // Upsert em batch
+    const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/coupons`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      payload: JSON.stringify(supabaseData),
+      muteHttpExceptions: true
+    });
+
+    if (response.getResponseCode() === 200 || response.getResponseCode() === 201) {
+      Logger.log(`✅ ${supabaseData.length} cupons sincronizados com Supabase`);
+      
+      // Remover cupons órfãos (que não existem mais na planilha)
+      deleteOrphanedCouponsFromSupabase(supabaseData.map(c => c.code));
+    } else {
+      Logger.log(`❌ Erro ao sincronizar cupons: ${response.getContentText()}`);
+    }
+  } catch (error) {
+    Logger.log(`❌ Erro ao sincronizar cupons: ${error.toString()}`);
+  }
+}
+
+/**
+ * 🔄 Sincroniza um único cupom para o Supabase
+ * @param {Object} coupon - Objeto de cupom da planilha
+ */
+function syncSingleCouponToSupabase(coupon) {
+  if (SUPABASE_URL.includes('SEU_PROJECT')) return;
+  if (!coupon || !coupon.Codigo) return;
+
+  const supabaseData = {
+    code: String(coupon.Codigo).trim().toUpperCase(),
+    type: String(coupon.Tipo || 'VALOR_FIXO'),
+    value: Number(coupon.Valor || 0),
+    usage_type: String(coupon.Tipo_Uso || 'MULTIPLO'),
+    min_value: Number(coupon.Valor_Minimo_Pedido || 0),
+    active: String(coupon.Ativo || '').toUpperCase() === 'TRUE',
+    valid_until: coupon.Data_Validade ? new Date(coupon.Data_Validade).toISOString() : null,
+    max_usage: Number(coupon.Uso_Maximo || 0),
+    updated_at: new Date().toISOString()
+  };
+
+  try {
+    const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/coupons`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      payload: JSON.stringify([supabaseData]),
+      muteHttpExceptions: true
+    });
+
+    if (response.getResponseCode() === 200 || response.getResponseCode() === 201) {
+      Logger.log(`✅ Cupom ${supabaseData.code} sincronizado com Supabase`);
+    }
+  } catch (error) {
+    Logger.log(`⚠️ Erro ao sincronizar cupom ${supabaseData.code}: ${error.toString()}`);
+  }
+}
+
+/**
+ * 🗑️ Deleta um cupom do Supabase por código
+ * @param {string} code - Código do cupom
+ */
+function deleteCouponFromSupabase(code) {
+  if (SUPABASE_URL.includes('SEU_PROJECT')) return;
+  if (!code) return;
+
+  const normalizedCode = String(code).trim().toUpperCase();
+
+  try {
+    const response = UrlFetchApp.fetch(
+      `${SUPABASE_URL}/rest/v1/coupons?code=eq.${encodeURIComponent(normalizedCode)}`, 
+      {
+        method: 'DELETE',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        },
+        muteHttpExceptions: true
+      }
+    );
+
+    if (response.getResponseCode() === 204 || response.getResponseCode() === 200) {
+      Logger.log(`✅ Cupom ${normalizedCode} deletado do Supabase`);
+    }
+  } catch (error) {
+    Logger.log(`⚠️ Erro ao deletar cupom ${normalizedCode}: ${error.toString()}`);
+  }
+}
+
+/**
+ * 🗑️ Remove cupons órfãos do Supabase (que não existem mais na planilha)
+ * @param {Array<string>} currentCodes - Códigos que existem atualmente na planilha
+ */
+function deleteOrphanedCouponsFromSupabase(currentCodes) {
+  if (SUPABASE_URL.includes('SEU_PROJECT')) return;
+  if (!currentCodes || currentCodes.length === 0) return;
+
+  try {
+    // Buscar todos os codes no Supabase
+    const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/coupons?select=code`, {
+      method: 'GET',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      },
+      muteHttpExceptions: true
+    });
+
+    if (response.getResponseCode() !== 200) return;
+
+    const supabaseCoupons = JSON.parse(response.getContentText());
+    const supabaseCodes = supabaseCoupons.map(c => c.code);
+    const currentCodesSet = new Set(currentCodes.map(c => String(c).toUpperCase()));
+
+    // Encontrar órfãos
+    const orphanCodes = supabaseCodes.filter(code => !currentCodesSet.has(code));
+
+    if (orphanCodes.length === 0) {
+      Logger.log('✅ Nenhum cupom órfão para deletar');
+      return;
+    }
+
+    Logger.log(`🗑️ Deletando ${orphanCodes.length} cupons órfãos...`);
+
+    for (const code of orphanCodes) {
+      deleteCouponFromSupabase(code);
+    }
+
+    Logger.log(`✅ ${orphanCodes.length} cupons órfãos removidos`);
+
+  } catch (error) {
+    Logger.log(`⚠️ Erro ao limpar cupons órfãos: ${error.toString()}`);
+  }
+}
+
+/**
+ * ⚡ Busca cupom do Supabase (leitura rápida)
+ * @param {string} code - Código do cupom
+ * @returns {Object|null} Dados do cupom ou null se não encontrado
+ */
+function getCouponFromSupabase(code) {
+  if (SUPABASE_URL.includes('SEU_PROJECT')) return null;
+  if (!code) return null;
+
+  const normalizedCode = String(code).trim().toUpperCase();
+
+  try {
+    const response = UrlFetchApp.fetch(
+      `${SUPABASE_URL}/rest/v1/coupons?code=eq.${encodeURIComponent(normalizedCode)}&select=*`,
+      {
+        method: 'GET',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        },
+        muteHttpExceptions: true
+      }
+    );
+
+    if (response.getResponseCode() === 200) {
+      const data = JSON.parse(response.getContentText());
+      if (data && data.length > 0) {
+        Logger.log(`⚡ [Supabase HIT] Cupom ${normalizedCode} encontrado`);
+        return data[0];
+      }
+    }
+  } catch (error) {
+    Logger.log(`⚠️ Erro ao buscar cupom do Supabase: ${error.toString()}`);
+  }
+
+  Logger.log(`🔍 [Supabase MISS] Cupom ${normalizedCode} não encontrado`);
+  return null;
 }
 
 
@@ -266,7 +521,7 @@ function syncBannersToSupabase() {
 
 /**
  * 🚀 SYNC COMPLETO - Executar manualmente ou via trigger
- * Sincroniza produtos, categorias e banners de uma vez
+ * Sincroniza produtos, categorias, banners e cupons de uma vez
  */
 function fullSyncToSupabase() {
   Logger.log('🚀 Iniciando sincronização completa para Supabase...');
@@ -274,6 +529,7 @@ function fullSyncToSupabase() {
   syncProductsToSupabase();
   syncCategoriesToSupabase();
   syncBannersToSupabase();
+  syncAllCouponsToSupabase(); // 🎟️ NOVO: Sincronizar cupons
   
   Logger.log('✅ Sincronização completa finalizada!');
 }
@@ -287,7 +543,7 @@ function onSheetChange(e) {
   
   const sheetName = e.source.getActiveSheet().getName();
   
-  if (['GELADINHOS', 'CATEGORIAS_GELADINHO', 'BANNERS'].includes(sheetName)) {
+  if (['GELADINHOS', 'CATEGORIAS_GELADINHO', 'BANNERS', 'CUPONS'].includes(sheetName)) {
     Logger.log(`📝 Mudança em ${sheetName}, sincronizando...`);
     
     Utilities.sleep(2000); // Aguardar edição ser salva
@@ -296,6 +552,7 @@ function onSheetChange(e) {
       case 'GELADINHOS': syncProductsToSupabase(); break;
       case 'CATEGORIAS_GELADINHO': syncCategoriesToSupabase(); break;
       case 'BANNERS': syncBannersToSupabase(); break;
+      case 'CUPONS': syncAllCouponsToSupabase(); break; // 🎟️ NOVO
     }
   }
 }
@@ -706,7 +963,38 @@ function validateCoupon(code) {
   return { success: false, message: 'Inválido' };
 }
 
+/**
+ * ⚡ VALIDAÇÃO OTIMIZADA DE CUPOM
+ * Fluxo: Supabase (rápido) → Fallback Google Sheets
+ * 
+ * @param {Object} data - { code, customerId, subtotal }
+ * @returns {Object} Mesmo formato: { success, type, value, codigo, tipoUso, message }
+ */
 function validateCouponWithContext(data) {
+  const code = String(data.code || '').trim().toUpperCase();
+  const customerId = String(data.customerId || '').trim();
+  const subtotal = Number(data.subtotal || 0);
+
+  if (!code) {
+    return { success: false, message: 'Código do cupom não informado' };
+  }
+
+  // 1️⃣ TENTAR SUPABASE PRIMEIRO (rápido, ~50ms)
+  const supabaseCoupon = getCouponFromSupabase(code);
+  
+  if (supabaseCoupon) {
+    Logger.log(`⚡ [Supabase] Validando cupom ${code}`);
+    
+    // Validar regras de negócio com dados do Supabase
+    const validation = validateCouponRulesFromCache(supabaseCoupon, code, customerId, subtotal);
+    if (validation) {
+      return validation;
+    }
+  }
+
+  // 2️⃣ FALLBACK: GOOGLE SHEETS (mais lento, ~500ms)
+  Logger.log(`📊 [Sheets Fallback] Validando cupom ${code}`);
+  
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const cuponsSheet = ss.getSheetByName('CUPONS');
   const historicoSheet = ss.getSheetByName('CUPONS_HISTORICO');
@@ -717,10 +1005,6 @@ function validateCouponWithContext(data) {
   const cupons = sheetToJSON(cuponsSheet);
   const historico = sheetToJSON(historicoSheet);
 
-  const code = String(data.code || '').trim().toUpperCase();
-  const customerId = String(data.customerId || '').trim();
-  const subtotal = Number(data.subtotal || 0);
-
   const coupon = cupons.find(c =>
     String(c.Codigo).trim().toUpperCase() === code &&
     String(c.Ativo).toUpperCase() === 'TRUE'
@@ -730,6 +1014,7 @@ function validateCouponWithContext(data) {
     return { success: false, message: 'Cupom inválido ou inativo' };
   }
 
+  // Validar data de validade
   if (coupon.Data_Validade) {
     const validade = new Date(coupon.Data_Validade);
     const hoje = new Date();
@@ -738,6 +1023,7 @@ function validateCouponWithContext(data) {
     }
   }
 
+  // Validar valor mínimo
   const valorMinimo = Number(coupon.Valor_Minimo_Pedido || 0);
   if (valorMinimo > 0 && subtotal < valorMinimo) {
     return {
@@ -746,6 +1032,7 @@ function validateCouponWithContext(data) {
     };
   }
 
+  // Validar uso único
   if (String(coupon.Tipo_Uso).toUpperCase() === 'UNICO' && customerId && customerId !== 'GUEST') {
     const jaUsou = historico.some(h =>
       String(h.Codigo_Cupom).trim().toUpperCase() === code &&
@@ -757,6 +1044,7 @@ function validateCouponWithContext(data) {
     }
   }
 
+  // Validar uso máximo global
   const usoMaximo = Number(coupon.Uso_Maximo || 0);
   if (usoMaximo > 0) {
     const totalUsos = historico.filter(h =>
@@ -768,6 +1056,9 @@ function validateCouponWithContext(data) {
     }
   }
 
+  // ✅ Cupom válido - Sincronizar para Supabase (para próximas consultas serem rápidas)
+  syncSingleCouponToSupabase(coupon);
+
   return {
     success: true,
     type: coupon.Tipo,
@@ -775,6 +1066,86 @@ function validateCouponWithContext(data) {
     codigo: code,
     tipoUso: coupon.Tipo_Uso
   };
+}
+
+/**
+ * ⚡ Valida regras de negócio usando dados do cache Supabase
+ * @returns {Object|null} Resultado da validação ou null se precisa fallback
+ */
+function validateCouponRulesFromCache(supabaseCoupon, code, customerId, subtotal) {
+  try {
+    // Verificar se está ativo
+    if (!supabaseCoupon.active) {
+      return { success: false, message: 'Cupom inválido ou inativo' };
+    }
+
+    // Verificar validade
+    if (supabaseCoupon.valid_until) {
+      const validade = new Date(supabaseCoupon.valid_until);
+      const hoje = new Date();
+      if (hoje > validade) {
+        return { success: false, message: 'Cupom expirado' };
+      }
+    }
+
+    // Verificar valor mínimo
+    const valorMinimo = Number(supabaseCoupon.min_value || 0);
+    if (valorMinimo > 0 && subtotal < valorMinimo) {
+      return {
+        success: false,
+        message: `Valor mínimo: R$ ${valorMinimo.toFixed(2)}`
+      };
+    }
+
+    // Para uso único e uso máximo, precisamos verificar histórico (ainda do Sheets)
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const historicoSheet = ss.getSheetByName('CUPONS_HISTORICO');
+    
+    if (!historicoSheet) {
+      return null; // Fallback para validação completa via Sheets
+    }
+    
+    const historico = sheetToJSON(historicoSheet);
+
+    // Verificar uso único
+    if (String(supabaseCoupon.usage_type).toUpperCase() === 'UNICO' && customerId && customerId !== 'GUEST') {
+      const jaUsou = historico.some(h =>
+        String(h.Codigo_Cupom).trim().toUpperCase() === code &&
+        String(h.ID_Cliente).trim() === customerId
+      );
+
+      if (jaUsou) {
+        return { success: false, message: 'Cupom já utilizado por você' };
+      }
+    }
+
+    // Verificar uso máximo global
+    const usoMaximo = Number(supabaseCoupon.max_usage || 0);
+    if (usoMaximo > 0) {
+      const totalUsos = historico.filter(h =>
+        String(h.Codigo_Cupom).trim().toUpperCase() === code
+      ).length;
+
+      if (totalUsos >= usoMaximo) {
+        return { success: false, message: 'Cupom esgotado' };
+      }
+    }
+
+    // ✅ Cupom válido via cache
+    Logger.log(`✅ [Cache] Cupom ${code} validado com sucesso`);
+    
+    return {
+      success: true,
+      type: supabaseCoupon.type,
+      value: Number(supabaseCoupon.value || 0),
+      codigo: code,
+      tipoUso: supabaseCoupon.usage_type
+    };
+
+  } catch (error) {
+    Logger.log(`⚠️ Erro na validação via cache: ${error.toString()}`);
+    return null; // Fallback para validação completa via Sheets
+  }
 }
 
 function loginCustomer(d) {
