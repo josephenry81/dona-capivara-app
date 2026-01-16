@@ -274,4 +274,3 @@ Branch: main
 
 *Gerado automaticamente pelo Sistema de Auditoria de Qualidade*  
 *Última atualização: 2026-01-02 21:17:43 (America/Sao_Paulo)*
-

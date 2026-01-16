@@ -218,7 +218,7 @@ npm run dev
 
 1. ✅ Código corrigido em `BannerCarousel.tsx`
 2. 🔄 Aguardar hot-reload do Next.js
-3. 🌐 Abrir https://dona-capivara-app.vercel.app no navegador
+3. 🌐 Abrir http://localhost:3000 no navegador
 4. 🔍 Inspecionar o banner (F12)
 5. 📏 Verificar se `aspect-ratio: 16 / 9` está aplicado
 6. ✨ Confirmar visualmente que está proporcional
@@ -228,4 +228,3 @@ npm run dev
 - [MDN: aspect-ratio](https://developer.mozilla.org/en-US/docs/Web/CSS/aspect-ratio)
 - [Tailwind CSS: Aspect Ratio](https://tailwindcss.com/docs/aspect-ratio)
 - [Can I Use: aspect-ratio](https://caniuse.com/mdn-css_properties_aspect-ratio)
-

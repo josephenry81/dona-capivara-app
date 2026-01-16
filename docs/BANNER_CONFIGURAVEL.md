@@ -227,4 +227,3 @@ Se precisar de ajuda, consulte:
 - `components/common/BannerCarousel.tsx` - Componente do banner
 - `components/views/HomeView.tsx` - Lógica de carregamento
 - Este documento para instruções detalhadas
-

@@ -51,7 +51,7 @@ Proporção = 281 ÷ 375 = 0.75 = 3/4 ✅
 
 1. Abra no navegador:
    ```
-   https://dona-capivara-app.vercel.app/teste-banner-16-9.html
+   http://localhost:3000/teste-banner-16-9.html
    ```
 
 2. Redimensione a janela e veja:
@@ -61,7 +61,7 @@ Proporção = 281 ÷ 375 = 0.75 = 3/4 ✅
 
 ### Opção 2: Inspeção no Site Real
 
-1. Abra https://dona-capivara-app.vercel.app
+1. Abra http://localhost:3000
 2. Pressione F12 (DevTools)
 3. Inspecione o banner
 4. Na aba **Computed**, verifique:
@@ -124,7 +124,7 @@ if (banner) {
 
 1. ✅ Código corrigido
 2. 🔄 Servidor Next.js deve fazer hot-reload automaticamente
-3. 🌐 Abra https://dona-capivara-app.vercel.app no navegador
+3. 🌐 Abra http://localhost:3000 no navegador
 4. 🔍 Verifique se o banner está proporcional
 5. 📏 Use uma das 3 opções de verificação acima
 
@@ -155,11 +155,10 @@ Se o problema persistir, verifique:
 1. Console do navegador (F12) para erros
 2. Terminal do Next.js para erros de compilação
 3. Se o arquivo foi salvo corretamente
-4. Se o servidor está rodando (https://dona-capivara-app.vercel.app)
+4. Se o servidor está rodando (http://localhost:3000)
 
 ---
 
 **Autor:** Antigravity AI  
 **Data:** 27/12/2025  
 **Versão:** 1.0
-

@@ -132,7 +132,7 @@ console.log('Altura limitada?', rect.height >= 500 ? '⚠️ SIM' : '✅ NÃO');
 ```
 
 ### 2. Teste Visual:
-1. Abra https://dona-capivara-app.vercel.app
+1. Abra http://localhost:3000
 2. Redimensione a janela
 3. **Largura < 888px:** Banner mantém 16:9 perfeito
 4. **Largura > 888px:** Banner limita altura em 500px
@@ -184,11 +184,10 @@ console.log('Altura limitada?', rect.height >= 500 ? '⚠️ SIM' : '✅ NÃO');
 
 1. ✅ Código atualizado com `max-h`
 2. 🔄 Next.js fará hot-reload
-3. 🌐 Teste em https://dona-capivara-app.vercel.app
+3. 🌐 Teste em http://localhost:3000
 4. 📏 Banner agora tem altura controlada
 5. ✨ UX muito melhor em todas as resoluções
 
 ---
 
 **Conclusão:** O banner estava tecnicamente correto em 16:9, mas a UX era ruim em telas grandes. A solução com `max-h` equilibra perfeição matemática com usabilidade prática.
-

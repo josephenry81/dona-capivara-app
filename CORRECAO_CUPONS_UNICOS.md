@@ -304,4 +304,3 @@ O backend (Code.gs) já tinha a lógica correta, apenas não estava sendo chamad
 **Data:** 26/12/2025  
 **Status:** ✅ CORRIGIDO  
 **Teste:** Pendente de validação em produção
-
