@@ -8,7 +8,6 @@ import html2canvas from 'html2canvas';
 import StatCard from '../admin/StatCard';
 import RevenueChart from '../admin/RevenueChart';
 import TopFlavorsChart from '../admin/TopFlavorsChart';
-import CouponLinkGenerator from '../admin/CouponLinkGenerator';
 
 interface AdminViewProps {
     onLogout: () => void;
@@ -16,7 +15,7 @@ interface AdminViewProps {
 }
 
 export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
-    const [activeTab, setActiveTab] = useState<'orders' | 'analytics' | 'coupons'>('orders');
+    const [activeTab, setActiveTab] = useState<'orders' | 'analytics'>('orders');
     const [orders, setOrders] = useState<any[]>([]);
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(false);
@@ -192,12 +191,6 @@ export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
                             >
                                 📊 Relatórios
                             </button>
-                            <button
-                                onClick={() => setActiveTab('coupons')}
-                                className={`font-bold ${activeTab === 'coupons' ? 'text-[#FF4B82]' : 'text-gray-400'}`}
-                            >
-                                🎟️ Cupons
-                            </button>
                         </div>
                     </div>
                     <div className="flex gap-2">
@@ -225,23 +218,6 @@ export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
                         <div className="grid md:grid-cols-2 gap-4">
                             <RevenueChart data={stats.weeklyChart || []} />
                             <TopFlavorsChart data={stats.topFlavors || []} />
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'coupons' && (
-                    <div className="space-y-4">
-                        <CouponLinkGenerator />
-
-                        {/* Dicas de uso */}
-                        <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-2xl border border-purple-100">
-                            <h4 className="font-bold text-purple-800 mb-2 flex items-center gap-2">
-                                <span>💡</span> Dica Rápida
-                            </h4>
-                            <p className="text-sm text-purple-700">
-                                Compartilhe links de cupom nas suas redes sociais ou grupos de WhatsApp.
-                                Quando o cliente clicar, o desconto é aplicado automaticamente no carrinho!
-                            </p>
                         </div>
                     </div>
                 )}
