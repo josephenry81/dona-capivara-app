@@ -183,3 +183,4 @@ Se algo der errado, basta:
 **Prioridade:** 🔴 ALTA  
 **Risco:** 🟢 BAIXO  
 **Tempo estimado:** 5 minutos
+

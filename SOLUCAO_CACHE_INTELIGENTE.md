@@ -178,3 +178,4 @@ Esta solução combina o melhor dos dois mundos:
 - **Controle total** para administradores (versionamento)
 
 **Sem comprometer a velocidade de carregamento!** 🚀
+

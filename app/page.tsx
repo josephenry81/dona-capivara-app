@@ -93,6 +93,14 @@ export default function Page() {
                 // Limpar URL sem recarregar página
                 window.history.replaceState({}, '', window.location.pathname);
             }
+
+            // 🎟️ COUPON LINK DETECTION - Auto-apply coupon from URL
+            const cupomCode = params.get('cupom');
+            if (cupomCode) {
+                localStorage.setItem('donaCapivaraPendingCoupon', cupomCode.toUpperCase().trim());
+                showToast(`🎟️ Cupom ${cupomCode.toUpperCase()} detectado!\nVá ao carrinho para aplicar.`, 'success');
+                window.history.replaceState({}, '', window.location.pathname);
+            }
         }
 
         // ⚡ CARREGAMENTO DE CATÁLOGO: Aguarda dados antes de renderizar
