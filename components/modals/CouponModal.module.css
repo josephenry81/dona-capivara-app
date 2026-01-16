@@ -1,0 +1,595 @@
+/* ===========================================
+   COUPON MODAL - DONA CAPIVARA DESIGN SYSTEM
+   =========================================== */
+
+/* CSS Variables - Design System */
+.modal {
+    --color-primary: #FF6B35;
+    --color-secondary: #F7931E;
+    --color-success: #4CAF50;
+    --color-error: #F44336;
+    --color-warning: #FF9800;
+    --color-bg: #F5F5F5;
+    --color-text: #2C3E50;
+    --color-text-light: #7F8C8D;
+    --color-white: #FFFFFF;
+
+    --font-heading: 'Montserrat', sans-serif;
+    --font-body: 'Inter', sans-serif;
+
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.2);
+
+    --transition-fast: 0.2s ease;
+    --transition-normal: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Overlay */
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+    z-index: 999;
+    animation: fadeIn 0.2s ease;
+}
+
+/* Modal Container */
+.modal {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 90vh;
+    background: var(--color-white);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    z-index: 1000;
+    overflow: hidden;
+    animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: flex;
+    flex-direction: column;
+}
+
+@media (min-width: 481px) {
+    .modal {
+        max-width: 480px;
+        margin: 0 auto;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+}
+
+/* Header */
+.header {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.headerContent {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.headerIcon {
+    font-size: 32px;
+}
+
+.headerTitle {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--color-white);
+    margin: 0;
+}
+
+.headerSubtitle {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.85);
+    margin: 2px 0 0 0;
+}
+
+.closeButton {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: var(--color-white);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-fast);
+}
+
+.closeButton:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+/* Progress Steps */
+.progress {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 20px;
+    background: var(--color-bg);
+    gap: 8px;
+}
+
+.progressStep {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    opacity: 0.4;
+    transition: var(--transition-fast);
+}
+
+.progressStep.active {
+    opacity: 1;
+}
+
+.stepNumber {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--color-text-light);
+    color: var(--color-white);
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-fast);
+}
+
+.progressStep.active .stepNumber {
+    background: var(--color-primary);
+}
+
+.stepLabel {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-light);
+}
+
+.progressStep.active .stepLabel {
+    color: var(--color-text);
+}
+
+.progressLine {
+    width: 24px;
+    height: 2px;
+    background: #DDD;
+    border-radius: 1px;
+}
+
+/* Content */
+.content {
+    padding: 20px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.stepContent {
+    animation: fadeIn 0.3s ease;
+}
+
+/* Input */
+.inputLabel {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 8px;
+}
+
+.inputWrapper {
+    position: relative;
+}
+
+.input {
+    width: 100%;
+    padding: 14px 48px 14px 16px;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: 2px solid #E0E0E0;
+    border-radius: var(--radius-md);
+    background: var(--color-white);
+    color: var(--color-text);
+    transition: var(--transition-fast);
+    outline: none;
+}
+
+.input::placeholder {
+    color: #BDBDBD;
+    font-weight: 400;
+    letter-spacing: 0;
+}
+
+.input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.15);
+}
+
+.inputSuccess {
+    border-color: var(--color-success);
+}
+
+.inputSuccess:focus {
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.15);
+}
+
+.inputError {
+    border-color: var(--color-error);
+}
+
+.inputError:focus {
+    box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.15);
+}
+
+.inputSpinner {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--color-primary);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.inputIcon {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    color: var(--color-success);
+}
+
+.iconError {
+    color: var(--color-error);
+}
+
+/* Feedback */
+.feedback {
+    margin-top: 10px;
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 600;
+    animation: slideInLeft 0.3s ease;
+}
+
+.feedbackSuccess {
+    background: rgba(76, 175, 80, 0.1);
+    color: var(--color-success);
+    border: 1px solid rgba(76, 175, 80, 0.2);
+}
+
+.feedbackError {
+    background: rgba(244, 67, 54, 0.1);
+    color: var(--color-error);
+    border: 1px solid rgba(244, 67, 54, 0.2);
+}
+
+.feedbackWarning {
+    background: rgba(255, 152, 0, 0.1);
+    color: var(--color-warning);
+    border: 1px solid rgba(255, 152, 0, 0.2);
+}
+
+/* Subtotal Info */
+.subtotalInfo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--color-bg);
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    color: var(--color-text-light);
+}
+
+.subtotalValue {
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+/* Buttons */
+.buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.btnPrimary,
+.btnSecondary {
+    flex: 1;
+    padding: 14px 20px;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition-normal);
+    border: none;
+}
+
+.btnPrimary {
+    background: var(--color-primary);
+    color: var(--color-white);
+}
+
+.btnPrimary:hover:not(:disabled) {
+    background: var(--color-secondary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btnPrimary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btnSecondary {
+    background: var(--color-bg);
+    color: var(--color-text-light);
+    border: 1px solid #E0E0E0;
+}
+
+.btnSecondary:hover:not(:disabled) {
+    background: #E8E8E8;
+}
+
+.btnSecondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Coupon Card (Step 2) */
+.couponCard {
+    background: linear-gradient(135deg, #FFF5F0, #FFF0E6);
+    border: 2px dashed var(--color-primary);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.couponCardHeader {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    background: rgba(255, 107, 53, 0.1);
+}
+
+.couponCardIcon {
+    font-size: 24px;
+}
+
+.couponCardCode {
+    font-family: 'Courier New', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-primary);
+    letter-spacing: 1px;
+}
+
+.couponCardBody {
+    padding: 16px;
+}
+
+.couponDetailRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    font-size: 13px;
+    color: var(--color-text-light);
+}
+
+.couponDetailRow:not(:last-child) {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.couponDetailValue {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.couponDetailHighlight {
+    font-weight: 700;
+    color: var(--color-primary);
+    font-size: 15px;
+}
+
+.couponWarning {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: rgba(255, 152, 0, 0.1);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-warning);
+}
+
+.couponCardFooter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    background: var(--color-primary);
+    color: var(--color-white);
+    font-size: 14px;
+}
+
+.discountAmount {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+/* Summary */
+.summary {
+    margin-top: 20px;
+    padding: 16px;
+    background: var(--color-bg);
+    border-radius: var(--radius-md);
+}
+
+.summaryRow {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 13px;
+    color: var(--color-text-light);
+}
+
+.summaryDiscount {
+    color: var(--color-success);
+    font-weight: 600;
+}
+
+.summaryTotal {
+    margin-top: 8px;
+    padding-top: 10px;
+    border-top: 1px dashed #DDD;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+/* Success Step (Step 3) */
+.successStep {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 32px 20px;
+}
+
+.successIcon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-success), #66BB6A);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.successIcon span {
+    font-size: 40px;
+    color: var(--color-white);
+}
+
+.successTitle {
+    font-family: var(--font-heading);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--color-success);
+    margin: 0 0 8px 0;
+}
+
+.successMessage {
+    font-size: 14px;
+    color: var(--color-text-light);
+    margin: 0;
+}
+
+.successTotal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 24px;
+    padding: 16px 32px;
+    background: var(--color-bg);
+    border-radius: var(--radius-md);
+}
+
+.successTotal span:first-child {
+    font-size: 12px;
+    color: var(--color-text-light);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.successTotalValue {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--color-primary);
+    margin-top: 4px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        transform: translateX(-10px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { API } from '../../services/api';
 import CartItemAdditions from '../cart/CartItemAdditions';
 import { useModal } from '../ui/Modal';
+import CouponModal from '../modals/CouponModal';
 
 // Helper para formatação de moeda BRL (R$ X,XX com vírgula)
 const formatCurrency = (value: number): string => {
@@ -40,6 +41,7 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
     const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
     const [couponLoading, setCouponLoading] = useState(false);
     const [couponFeedback, setCouponFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
     const [bonusPoints, setBonusPoints] = useState(0);
     const [paymentMethod, setPaymentMethod] = useState('');
     const [deliveryType, setDeliveryType] = useState<'CONDO' | 'NEIGHBOR' | 'FAR'>('CONDO');
@@ -266,6 +268,18 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
         }
     }, [couponCode, user, subtotal]);
 
+    // Handler para aplicar cupom do modal
+    const handleCouponApply = useCallback((coupon: { code: string; discount: number; type: string; value: number }) => {
+        setAppliedCoupon(coupon);
+        setCouponCode(coupon.code);
+        setIsCouponModalOpen(false);
+        setCouponFeedback({
+            type: 'success',
+            message: `Cupom aplicado! Desconto de ${coupon.type === 'PORCENTAGEM' ? `${coupon.value}%` : formatCurrency(coupon.discount)}`
+        });
+        setTimeout(() => setCouponFeedback(null), 5000);
+    }, []);
+
     const handleInputChange = (e: any) => {
         const { name, value } = e.target;
         if (name === 'cep') {
@@ -461,58 +475,47 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                     </div>
                 )}
 
-                {/* Coupon Section */}
+                {/* Coupon Section - Botão para abrir modal */}
                 <div className="bg-white p-4 rounded-2xl shadow-sm">
-                    <h3 className="font-bold text-gray-700 mb-2 text-sm">🎟️ Possui Cupom?</h3>
-                    <div className="flex gap-2">
-                        <input
-                            type="text"
-                            placeholder="Digite seu cupom"
-                            className="flex-1 p-2 bg-gray-50 border rounded-lg text-sm uppercase disabled:opacity-50 disabled:cursor-not-allowed"
-                            value={couponCode}
-                            onChange={e => setCouponCode(e.target.value.toUpperCase())}
-                            disabled={!!appliedCoupon || couponLoading}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !appliedCoupon && !couponLoading) {
-                                    handleApplyCoupon();
-                                }
-                            }}
-                        />
-                        {appliedCoupon ? (
-                            <button
-                                onClick={() => {
-                                    setAppliedCoupon(null);
-                                    setCouponCode('');
-                                    setCouponFeedback(null);
-                                    API.clearCouponCache(couponCode);
-                                }}
-                                className="bg-red-100 text-red-500 px-4 rounded-lg text-xs font-bold hover:bg-red-200 transition"
-                                disabled={couponLoading}
-                            >
-                                ✕
-                            </button>
-                        ) : (
-                            <button
-                                onClick={handleApplyCoupon}
-                                disabled={couponLoading || !couponCode.trim()}
-                                className="bg-[#FF4B82] text-white px-4 rounded-lg text-xs font-bold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed min-w-[80px] flex items-center justify-center gap-2"
-                            >
-                                {couponLoading ? (
-                                    <>
-                                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                        <span>...</span>
-                                    </>
-                                ) : (
-                                    'Aplicar'
-                                )}
-                            </button>
-                        )}
-                    </div>
+                    {appliedCoupon ? (
+                        <>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xl">🎟️</span>
+                                    <div>
+                                        <p className="font-bold text-sm text-green-600">Cupom aplicado!</p>
+                                        <p className="text-xs text-gray-500">
+                                            {couponCode} • {appliedCoupon.type === 'PORCENTAGEM' ? `${appliedCoupon.value}%` : formatCurrency(appliedCoupon.value || appliedCoupon.discount)} OFF
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setAppliedCoupon(null);
+                                        setCouponCode('');
+                                        setCouponFeedback(null);
+                                        API.clearCouponCache(couponCode);
+                                    }}
+                                    className="bg-red-100 text-red-500 px-3 py-2 rounded-lg text-xs font-bold hover:bg-red-200 transition"
+                                >
+                                    Remover
+                                </button>
+                            </div>
+                        </>
+                    ) : (
+                        <button
+                            onClick={() => setIsCouponModalOpen(true)}
+                            className="w-full py-3 px-4 bg-gradient-to-r from-[#FF6B35] to-[#F7931E] text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                        >
+                            <span className="text-lg">🎟️</span>
+                            APLICAR CUPOM
+                        </button>
+                    )}
 
-                    {/* Inline Feedback Messages */}
+                    {/* Feedback quando cupom é aplicado via modal */}
                     {couponFeedback && (
                         <div
-                            className={`mt-2 p-2 rounded-lg text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1 ${couponFeedback.type === 'success'
+                            className={`mt-3 p-2 rounded-lg text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1 ${couponFeedback.type === 'success'
                                 ? 'bg-green-50 text-green-700 border border-green-200'
                                 : 'bg-red-50 text-red-700 border border-red-200'
                                 }`}
@@ -523,13 +526,16 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                             <span>{couponFeedback.message}</span>
                         </div>
                     )}
-
-                    {appliedCoupon && !couponFeedback && (
-                        <p className="text-green-500 text-xs mt-2 font-bold flex items-center gap-1">
-                            <span className="text-base">✓</span> Cupom aplicado!
-                        </p>
-                    )}
                 </div>
+
+                {/* Coupon Modal */}
+                <CouponModal
+                    isOpen={isCouponModalOpen}
+                    onClose={() => setIsCouponModalOpen(false)}
+                    onApplyCoupon={handleCouponApply}
+                    cartTotal={subtotal}
+                    customerId={user?.id || user?.ID_Cliente}
+                />
 
                 {/* Scheduling */}
                 <div className="bg-white p-4 rounded-2xl shadow-sm">
