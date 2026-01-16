@@ -54,6 +54,7 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
 
     // Debounce timer ref
     const cepTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const couponTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         if (user && !user.isGuest) {
@@ -66,6 +67,19 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
         if (savedRef && !referralCode) {
             setReferralCode(savedRef);
             localStorage.removeItem('donaCapivaraRef');
+        }
+
+        // 🎟️ AUTO-APPLY PENDING COUPON FROM URL LINK
+        const pendingCoupon = localStorage.getItem('donaCapivaraPendingCoupon');
+        if (pendingCoupon && !appliedCoupon && !couponCode) {
+            setCouponCode(pendingCoupon);
+            localStorage.removeItem('donaCapivaraPendingCoupon');
+            // Marca para auto-validar após o input ser preenchido
+            setTimeout(() => {
+                // Simula clique no botão aplicar após o campo ser preenchido
+                const applyBtn = document.querySelector('[data-coupon-apply]') as HTMLButtonElement;
+                if (applyBtn && !applyBtn.disabled) applyBtn.click();
+            }, 300);
         }
     }, [user]);
 
@@ -173,6 +187,7 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
     useEffect(() => {
         return () => {
             if (cepTimerRef.current) clearTimeout(cepTimerRef.current);
+            if (couponTimerRef.current) clearTimeout(couponTimerRef.current);
         };
     }, []);
 
@@ -474,6 +489,7 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                             disabled={!!appliedCoupon || couponLoading}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !appliedCoupon && !couponLoading) {
+                                    e.preventDefault();
                                     handleApplyCoupon();
                                 }
                             }}
@@ -493,6 +509,7 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                             </button>
                         ) : (
                             <button
+                                data-coupon-apply
                                 onClick={handleApplyCoupon}
                                 disabled={couponLoading || !couponCode.trim()}
                                 className="bg-[#FF4B82] text-white px-4 rounded-lg text-xs font-bold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed min-w-[80px] flex items-center justify-center gap-2"

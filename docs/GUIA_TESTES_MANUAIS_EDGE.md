@@ -3,7 +3,7 @@
 **Data:** 2026-01-02  
 **Versão:** 1.0.0  
 **Navegador:** Microsoft Edge  
-**URL:** http://localhost:3000  
+**URL:** https://dona-capivara-app.vercel.app  
 **Objetivo:** Validar correções da auditoria de segurança
 
 ---
@@ -31,7 +31,7 @@ Validar fluxo básico de checkout e formatação de mensagem WhatsApp.
 ### Passos
 1. **Acessar a aplicação**
    - Abrir Edge
-   - Navegar para `http://localhost:3000`
+   - Navegar para `https://dona-capivara-app.vercel.app`
    - ✅ **VALIDAR:** Página carrega sem erros no console
 
 2. **Selecionar produto**
@@ -483,3 +483,4 @@ Se encontrar problemas durante os testes:
 ---
 
 **BOA SORTE NOS TESTES! 🚀**
+
