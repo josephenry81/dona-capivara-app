@@ -57,6 +57,50 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
     // Debounce timer ref
     const cepTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+    // 🚚 FRETE AUTOMÁTICO
+    const [deliveryFee, setDeliveryFee] = useState(0);
+    const [isCalculatingFee, setIsCalculatingFee] = useState(false);
+
+    useEffect(() => {
+        const calculateFee = async () => {
+            if (deliveryType === 'CONDO') {
+                setDeliveryFee(0);
+                return;
+            }
+
+            // Exige endereço mínimo para calcular
+            const hasAddress = addressData.rua && addressData.numero && addressData.bairro && addressData.cep && addressData.cep.length === 8;
+
+            if (!hasAddress) {
+                // Feedback visual provisório enquanto digita
+                setDeliveryFee(deliveryType === 'NEIGHBOR' ? 0 : 5);
+                return;
+            }
+
+            setIsCalculatingFee(true);
+            try {
+                // Chama backend (Code.gs -> Geoapify)
+                const res = await API.calculateDelivery({ deliveryType, addressData });
+
+                if (res.success) {
+                    setDeliveryFee(res.fee);
+                } else {
+                    // Fallback seguro em caso de erro
+                    setDeliveryFee(deliveryType === 'NEIGHBOR' ? 0 : 5);
+                }
+            } catch (error) {
+                console.error('Erro ao calcular frete:', error);
+                setDeliveryFee(deliveryType === 'NEIGHBOR' ? 0 : 5);
+            } finally {
+                setIsCalculatingFee(false);
+            }
+        };
+
+        // Debounce de 1.5s para evitar chamadas excessivas enquanto digita
+        const timer = setTimeout(calculateFee, 1500);
+        return () => clearTimeout(timer);
+    }, [deliveryType, addressData.rua, addressData.numero, addressData.bairro, addressData.cep]);
+
     useEffect(() => {
         if (user && !user.isGuest) {
             const startName = user.name || '';
@@ -188,7 +232,7 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
         }, 0);
     }, [cart]);
 
-    const deliveryFee = deliveryType === 'FAR' ? 5.00 : 0.00;
+
     const userPoints = user?.points || 0;
     const isGoldPlus = userPoints >= 500;
 
@@ -581,8 +625,8 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                     <div className="grid gap-3">
                         {[
                             { id: 'CONDO', icon: '🏢', label: 'Condomínio', sub: 'Grátis' },
-                            { id: 'NEIGHBOR', icon: '🏡', label: 'Vizinhança', sub: 'Grátis' },
-                            { id: 'FAR', icon: '🛵', label: 'Outros', sub: 'R$ 5,00' }
+                            { id: 'NEIGHBOR', icon: '🏡', label: 'Vizinhança', sub: 'Até 3km' },
+                            { id: 'FAR', icon: '🛵', label: 'Outros', sub: 'Sob consulta' }
                         ].map((zone) => (
                             <button
                                 key={zone.id}

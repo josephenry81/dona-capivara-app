@@ -1,7 +1,7 @@
 // Keeping all other functions, but providing the full file for safety
 import { isSupabaseConfigured, fetchCatalogFromSupabase, supabase } from './supabase';
 
-const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || 'https://script.google.com/macros/s/AKfycbx80TciYfuCE0PTzNZMX8U5BYS43B8Zc39FqNIRu43dNhNlKdeP69kodfjjdpplA75XWA/exec';
+const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || 'https://script.google.com/macros/s/AKfycbzc2s_JohJS4LipXY4lK4DjNwuwJTeE7Yospbd6f-6oMdaGQyoTmBzez61g6eQJb1OXCw/exec';
 
 // 🧠 CACHE VERSION - Incrementar quando houver mudanças importantes no backend
 // Isso força todos os clientes a recarregar dados quando necessário
@@ -459,6 +459,21 @@ export const API = {
             console.log('🧹 [Cache CLEAR] Todos os cupons removidos');
         }
     },
+
+    async calculateDelivery(data: { deliveryType: string, addressData: any }) {
+        try {
+            const response = await fetch(`${API_URL}?action=calculateDelivery`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify(data)
+            });
+            return await response.json();
+        } catch (e) {
+            console.error('Erro calculo entrega:', e);
+            return { success: false, fee: 5, message: 'Erro de conexão' };
+        }
+    },
+
     async syncFavorites(phone: string, favorites: string[]) {
         try { await fetch(API_URL + '?action=updateFavorites', { method: 'POST', body: JSON.stringify({ phone, favorites: favorites.join(',') }) }); } catch (e) { }
     },
