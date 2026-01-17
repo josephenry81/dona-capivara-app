@@ -1,7 +1,7 @@
 // Keeping all other functions, but providing the full file for safety
-import { isSupabaseConfigured, fetchCatalogFromSupabase } from './supabase';
+import { isSupabaseConfigured, fetchCatalogFromSupabase, supabase } from './supabase';
 
-const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || 'https://script.google.com/macros/s/AKfycbzB3pobqYRuy1eB_e0UL5CRop0WVPxTkKdPiRh8-cpcMPgzsK6noAmoFVSG7BRWpuZZ7g/exec';
+const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || 'https://script.google.com/macros/s/AKfycbx80TciYfuCE0PTzNZMX8U5BYS43B8Zc39FqNIRu43dNhNlKdeP69kodfjjdpplA75XWA/exec';
 
 // 🧠 CACHE VERSION - Incrementar quando houver mudanças importantes no backend
 // Isso força todos os clientes a recarregar dados quando necessário
@@ -374,6 +374,28 @@ export const API = {
         console.log(`🔍 [Validação Contextual] Cupom: ${normalizedCode}, Cliente: ${data.customerId}, Subtotal: R$ ${data.subtotal}`);
 
         try {
+            // 1️⃣ TENTATIVA SUPABASE RPC (Ultra-rápido)
+            if (isSupabaseConfigured() && supabase) {
+                try {
+                    console.log('⚡ [Supabase] Validando cupom via RPC...');
+                    const startTime = Date.now();
+
+                    const { data: rpcResult, error } = await supabase.rpc('validate_coupon', {
+                        p_code: normalizedCode,
+                        p_customer_id: data.customerId,
+                        p_subtotal: data.subtotal
+                    });
+
+                    if (!error && rpcResult) {
+                        console.log(`✅ [Supabase RPC] Resposta em ${Date.now() - startTime}ms:`, rpcResult);
+                        return rpcResult;
+                    }
+                } catch (rpcError) {
+                    console.error('⚠️ [Supabase RPC Exception]:', rpcError);
+                }
+            }
+
+            // 2️⃣ FALLBACK: GOOGLE APPS SCRIPT
             // 🔧 CORREÇÃO: Google Apps Script lê dados de postData.contents
             const payload = JSON.stringify({
                 code: normalizedCode,

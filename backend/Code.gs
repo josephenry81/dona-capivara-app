@@ -329,6 +329,101 @@ function getCouponFromSupabase(code) {
   return null;
 }
 
+/**
+ * 🔄 Sincroniza HISTÓRICO de uso de cupons para o Supabase
+ * Tabela: CUPONS_HISTORICO → coupon_history
+ */
+function syncCouponHistoryToSupabase() {
+  if (SUPABASE_URL.includes('SEU_PROJECT')) return;
+
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CUPONS_HISTORICO');
+  if (!sheet) {
+    Logger.log('⚠️ Planilha CUPONS_HISTORICO não encontrada');
+    return;
+  }
+
+  const history = sheetToJSON(sheet);
+  
+  if (history.length === 0) {
+    Logger.log('ℹ️ Histórico de cupons vazio');
+    return;
+  }
+
+  Logger.log(`📜 Sincronizando ${history.length} registros de histórico para Supabase...`);
+
+  // Mapear colunas Google Sheets -> Supabase
+  const supabaseData = history.map(h => ({
+    id: String(h.ID_Historico || Utilities.getUuid()),
+    coupon_code: String(h.Codigo_Cupom || '').trim().toUpperCase(),
+    customer_id: String(h.ID_Cliente || '').trim(),
+    order_id: String(h.ID_Venda || '').trim(),
+    used_at: h.Data_Uso ? new Date(h.Data_Uso).toISOString() : new Date().toISOString(),
+    discount_amount: Number(h.Valor_Desconto || 0)
+  })).filter(h => h.coupon_code && h.customer_id);
+
+  if (supabaseData.length === 0) return;
+
+  // Enviar em lotes de 100 para evitar payload too large
+  const BATCH_SIZE = 100;
+  for (let i = 0; i < supabaseData.length; i += BATCH_SIZE) {
+    const batch = supabaseData.slice(i, i + BATCH_SIZE);
+    
+    try {
+      const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/coupon_history`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        payload: JSON.stringify(batch),
+        muteHttpExceptions: true
+      });
+      
+      if (response.getResponseCode() !== 200 && response.getResponseCode() !== 201) {
+         Logger.log(`⚠️ Erro no lote ${i}: ${response.getContentText()}`);
+      }
+    } catch (e) {
+      Logger.log(`❌ Erro de conexão no lote ${i}: ${e.toString()}`);
+    }
+  }
+  
+  Logger.log('✅ Histórico sincronizado com sucesso');
+}
+
+/**
+ * 🔄 Sincroniza um único registro de uso para o Supabase
+ */
+function syncSingleUsageToSupabase(usageData) {
+  if (SUPABASE_URL.includes('SEU_PROJECT')) return;
+
+  const supabaseData = {
+    id: String(usageData.ID_Historico),
+    coupon_code: String(usageData.Codigo_Cupom).trim().toUpperCase(),
+    customer_id: String(usageData.ID_Cliente).trim(),
+    order_id: String(usageData.ID_Venda).trim(),
+    used_at: new Date(usageData.Data_Uso).toISOString(),
+    discount_amount: Number(usageData.Valor_Desconto)
+  };
+
+  try {
+    UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/coupon_history`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      payload: JSON.stringify([supabaseData]),
+      muteHttpExceptions: true
+    });
+  } catch (e) {
+    Logger.log('⚠️ Erro ao sync single usage: ' + e);
+  }
+}
+
 
 /**
  * 🔄 Sincroniza TODOS os produtos para o Supabase (ativos e inativos)
@@ -530,6 +625,7 @@ function fullSyncToSupabase() {
   syncCategoriesToSupabase();
   syncBannersToSupabase();
   syncAllCouponsToSupabase(); // 🎟️ NOVO: Sincronizar cupons
+  syncCouponHistoryToSupabase(); // 📜 NOVO: Sincronizar histórico
   
   Logger.log('✅ Sincronização completa finalizada!');
 }
@@ -1430,13 +1526,17 @@ function createOrder(d) {
     try {
       const idHistorico = Utilities.getUuid();
       H.appendRow([
-        idHistorico,
-        d.couponCode,
-        d.customer.id,
-        id,
-        new Date(),
-        disc
       ]);
+      
+      // 🔄 Sync uso para Supabase
+      syncSingleUsageToSupabase({
+        ID_Historico: idHistorico,
+        Codigo_Cupom: d.couponCode,
+        ID_Cliente: d.customer.id,
+        ID_Venda: id,
+        Data_Uso: new Date(),
+        Valor_Desconto: disc
+      });
     } catch (e) {
       Logger.log('Erro ao registrar histórico de cupom: ' + e);
     }
