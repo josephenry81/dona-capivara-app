@@ -1,6 +1,6 @@
 const https = require('https');
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbzc2s_JohJS4LipXY4lK4DjNwuwJTeE7Yospbd6f-6oMdaGQyoTmBzez61g6eQJb1OXCw/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxsShwfocez3scNzHeoIn0vaX4-3oOHGajiVT_KlCoOJsirpxTaC-sGkHMObi3R7BtxoA/exec';
 
 function testEndpoint(label, data) {
     return new Promise((resolve, reject) => {

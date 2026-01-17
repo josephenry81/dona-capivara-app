@@ -59,6 +59,7 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
 
     // 🚚 FRETE AUTOMÁTICO
     const [deliveryFee, setDeliveryFee] = useState(0);
+    const [deliveryDistance, setDeliveryDistance] = useState(0);
     const [isCalculatingFee, setIsCalculatingFee] = useState(false);
 
     useEffect(() => {
@@ -84,13 +85,16 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
 
                 if (res.success) {
                     setDeliveryFee(res.fee);
+                    setDeliveryDistance(res.distanceKm || 0);
                 } else {
                     // Fallback seguro em caso de erro
                     setDeliveryFee(deliveryType === 'NEIGHBOR' ? 0 : 5);
+                    setDeliveryDistance(0);
                 }
             } catch (error) {
                 console.error('Erro ao calcular frete:', error);
                 setDeliveryFee(deliveryType === 'NEIGHBOR' ? 0 : 5);
+                setDeliveryDistance(0);
             } finally {
                 setIsCalculatingFee(false);
             }
@@ -519,58 +523,7 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                     </div>
                 )}
 
-                {/* Coupon Section - Botão para abrir modal */}
-                <div className="bg-white p-4 rounded-2xl shadow-sm">
-                    {appliedCoupon ? (
-                        <>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xl">🎟️</span>
-                                    <div>
-                                        <p className="font-bold text-sm text-green-600">Cupom aplicado!</p>
-                                        <p className="text-xs text-gray-500">
-                                            {couponCode} • {appliedCoupon.type === 'PORCENTAGEM' ? `${appliedCoupon.value}%` : formatCurrency(appliedCoupon.value || appliedCoupon.discount)} OFF
-                                        </p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => {
-                                        setAppliedCoupon(null);
-                                        setCouponCode('');
-                                        setCouponFeedback(null);
-                                        API.clearCouponCache(couponCode);
-                                    }}
-                                    className="bg-red-100 text-red-500 px-3 py-2 rounded-lg text-xs font-bold hover:bg-red-200 transition"
-                                >
-                                    Remover
-                                </button>
-                            </div>
-                        </>
-                    ) : (
-                        <button
-                            onClick={() => setIsCouponModalOpen(true)}
-                            className="w-full py-3 px-4 bg-gradient-to-r from-[#FF6B35] to-[#F7931E] text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98]"
-                        >
-                            <span className="text-lg">🎟️</span>
-                            APLICAR CUPOM
-                        </button>
-                    )}
 
-                    {/* Feedback quando cupom é aplicado via modal */}
-                    {couponFeedback && (
-                        <div
-                            className={`mt-3 p-2 rounded-lg text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1 ${couponFeedback.type === 'success'
-                                ? 'bg-green-50 text-green-700 border border-green-200'
-                                : 'bg-red-50 text-red-700 border border-red-200'
-                                }`}
-                        >
-                            <span className="text-base">
-                                {couponFeedback.type === 'success' ? '✓' : '⚠️'}
-                            </span>
-                            <span>{couponFeedback.message}</span>
-                        </div>
-                    )}
-                </div>
 
                 {/* Coupon Modal */}
                 <CouponModal
@@ -796,7 +749,10 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                             <span>{formatCurrency(subtotal)}</span>
                         </div>
                         <div className="flex justify-between text-gray-500">
-                            <span>Entrega</span>
+                            <span>
+                                Entrega
+                                {deliveryDistance > 0 && <span className="text-xs font-normal text-gray-400 ml-1">({deliveryDistance} km)</span>}
+                            </span>
                             <span className={deliveryFee === 0 ? 'text-[#28a745] font-bold' : 'text-red-500'}>
                                 {deliveryFee === 0 ? 'Grátis ✓' : formatCurrency(deliveryFee)}
                             </span>
@@ -820,6 +776,59 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                         <div className="bg-[#FFF0F5] text-[#FF4B82] text-center py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1">
                             <span className="text-base">💎</span> Ganhe {totalPointsEarned} pontos neste pedido
                         </div>
+                    </div>
+
+                    {/* Coupon Section - Botão para abrir modal */}
+                    <div className="bg-white p-4 rounded-2xl shadow-sm mb-4">
+                        {appliedCoupon ? (
+                            <>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xl">🎟️</span>
+                                        <div>
+                                            <p className="font-bold text-sm text-green-600">Cupom aplicado!</p>
+                                            <p className="text-xs text-gray-500">
+                                                {couponCode} • {appliedCoupon.type === 'PORCENTAGEM' ? `${appliedCoupon.value}%` : formatCurrency(appliedCoupon.value || appliedCoupon.discount)} OFF
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setAppliedCoupon(null);
+                                            setCouponCode('');
+                                            setCouponFeedback(null);
+                                            API.clearCouponCache(couponCode);
+                                        }}
+                                        className="bg-red-100 text-red-500 px-3 py-2 rounded-lg text-xs font-bold hover:bg-red-200 transition"
+                                    >
+                                        Remover
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <button
+                                onClick={() => setIsCouponModalOpen(true)}
+                                className="w-full py-3 px-4 bg-gradient-to-r from-[#FF6B35] to-[#F7931E] text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                            >
+                                <span className="text-lg">🎟️</span>
+                                APLICAR CUPOM
+                            </button>
+                        )}
+
+                        {/* Feedback quando cupom é aplicado via modal */}
+                        {couponFeedback && (
+                            <div
+                                className={`mt-3 p-2 rounded-lg text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1 ${couponFeedback.type === 'success'
+                                    ? 'bg-green-50 text-green-700 border border-green-200'
+                                    : 'bg-red-50 text-red-700 border border-red-200'
+                                    }`}
+                            >
+                                <span className="text-base">
+                                    {couponFeedback.type === 'success' ? '✓' : '⚠️'}
+                                </span>
+                                <span>{couponFeedback.message}</span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Payment Method */}

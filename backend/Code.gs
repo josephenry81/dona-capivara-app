@@ -23,6 +23,14 @@ const STORE_LOCATION = {
   address: 'Rua Reinaldo Stocco, 274 - Pinheirinho, Curitiba - PR'
 };
 
+// 💰 CONFIGURAÇÃO DE PREÇOS DE ENTREGA (Estilo Uber)
+const DELIVERY_PRICING = {
+  BASE_FEE: 3.50,       // Taxa inicial para cobrir deslocamento
+  KM_RATE: 1.20,        // Valor por km rodado
+  MIN_FEE: 5.00,        // Valor mínimo da corrida
+  NEIGHBOR_DISCOUNT: 0.5 // 50% off para vizinhos próximos (<= 3km)
+};
+
 /**
  * =====================================================
  * 🎟️ COUPON CACHE SYSTEM - SUPABASE + GOOGLE SHEETS
@@ -2312,14 +2320,28 @@ function calculateDeliveryFee(data) {
   
   Logger.log(`📏 Distância calculada: ${distanceKm.toFixed(2)} km`);
   
-  // 5. Regras de Negócio
+  Logger.log(`📏 Distância calculada: ${distanceKm.toFixed(2)} km`);
+  
+  // 5. Regras de Negócio Dinâmicas (Uber Style)
   let fee = 0;
   
-  if (distanceKm <= 3) {
-    fee = 0; // Grátis até 3km (Vizinhança e Outros)
+  if (deliveryType === 'CONDO') {
+    // Condomínio sempre free
+    fee = 0;
   } else {
-    // Acima de 3km
-    fee = 5; // Taxa fixa para > 3km
+    // Cálculo Base: Base + (Km * Taxa)
+    let rawFee = DELIVERY_PRICING.BASE_FEE + (distanceKm * DELIVERY_PRICING.KM_RATE);
+    
+    // Aplicar Mínimo
+    fee = Math.max(rawFee, DELIVERY_PRICING.MIN_FEE);
+    
+    // Regra Vizinhança (Desconto para curtas distâncias)
+    if (deliveryType === 'NEIGHBOR' && distanceKm <= 3) {
+      fee = fee * DELIVERY_PRICING.NEIGHBOR_DISCOUNT;
+    }
+    
+    // Arredondamento para 0.50 mais próximo (Ex: 5.23 -> 5.50)
+    fee = Math.ceil(fee * 2) / 2;
   }
   
   return { 
