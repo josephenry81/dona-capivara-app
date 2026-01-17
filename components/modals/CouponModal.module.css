@@ -1,6 +1,6 @@
 /* ===========================================
    COUPON MODAL - DONA CAPIVARA DESIGN SYSTEM
-   Mobile-First Responsive Bottom Sheet
+   Mobile-First | Keyboard-Aware Bottom Sheet
    =========================================== */
 
 /* ==========================================
@@ -18,16 +18,24 @@
 
 /* ==========================================
    MODAL WRAPPER - Flex container for positioning
+   Usa dvh para adaptar quando teclado abre
    ========================================== */
 .modalWrapper {
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 100vh;
+    height: 100dvh;
     display: flex;
-    align-items: flex-end;
+    align-items: center;
+    /* Centralizado verticalmente */
     justify-content: center;
     z-index: 1000;
     pointer-events: none;
-    padding-bottom: env(safe-area-inset-bottom, 0);
+    padding-bottom: 80px;
+    /* Sobe um pouco do centro */
 }
 
 /* ==========================================
@@ -36,10 +44,12 @@
 .modal {
     width: 100%;
     max-width: 480px;
-    max-height: 80vh;
-    max-height: 80dvh;
+    max-height: 85vh;
+    max-height: 85dvh;
+    /* Dynamic viewport height */
     background: #FFFFFF;
-    border-radius: 16px 16px 0 0;
+    border-radius: 16px;
+    /* Todos os cantos arredondados */
     overflow: hidden;
     animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     display: flex;
@@ -55,11 +65,11 @@
 }
 
 /* ==========================================
-   HEADER
+   HEADER - Fixed at top
    ========================================== */
 .header {
     background: linear-gradient(135deg, #FF6B35, #F7931E);
-    padding: 14px 16px;
+    padding: 12px 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -74,14 +84,14 @@
 }
 
 .headerIcon {
-    font-size: 28px;
+    font-size: 24px;
     flex-shrink: 0;
 }
 
 .headerTitle {
     font-family: 'Montserrat', sans-serif;
     font-weight: 700;
-    font-size: 16px;
+    font-size: 15px;
     color: #FFFFFF;
     margin: 0;
     white-space: nowrap;
@@ -89,7 +99,7 @@
 
 .headerSubtitle {
     font-family: 'Inter', sans-serif;
-    font-size: 11px;
+    font-size: 10px;
     color: rgba(255, 255, 255, 0.85);
     margin: 2px 0 0 0;
     white-space: nowrap;
@@ -119,13 +129,13 @@
 }
 
 /* ==========================================
-   PROGRESS STEPS
+   PROGRESS STEPS - Fixed below header
    ========================================== */
 .progress {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 12px 16px;
+    padding: 10px 16px;
     background: #F5F5F5;
     gap: 6px;
     flex-shrink: 0;
@@ -144,12 +154,12 @@
 }
 
 .stepNumber {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     background: #7F8C8D;
     color: #FFFFFF;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     display: flex;
     align-items: center;
@@ -162,7 +172,7 @@
 }
 
 .stepLabel {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
     color: #7F8C8D;
 }
@@ -172,7 +182,7 @@
 }
 
 .progressLine {
-    width: 16px;
+    width: 14px;
     height: 2px;
     background: #DDD;
     border-radius: 1px;
@@ -180,14 +190,18 @@
 
 /* ==========================================
    CONTENT - Scrollable main area
+   CRÍTICO: flex: 1 + min-height: 0 + overflow-y: auto
    ========================================== */
 .content {
-    padding: 16px;
     flex: 1;
+    min-height: 0;
+    /* IMPORTANTE: permite flex shrink */
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
-    min-height: 0;
+    padding: 16px;
+    padding-bottom: 8px;
+    /* Menos padding embaixo pois footer tem */
 }
 
 .stepContent {
@@ -215,6 +229,7 @@
     padding: 12px 44px 12px 14px;
     font-family: 'Courier New', monospace;
     font-size: 16px;
+    /* >= 16px previne zoom no iOS */
     font-weight: 600;
     letter-spacing: 0.5px;
     text-transform: uppercase;
@@ -334,15 +349,14 @@
 }
 
 /* ==========================================
-   BUTTONS FOOTER - Sticky at bottom
+   BUTTONS FOOTER - STICKY sempre visível
    ========================================== */
 .buttonsFooter {
-    position: sticky;
-    bottom: 0;
+    flex-shrink: 0;
     background: #FFFFFF;
     padding: 12px 16px;
     border-top: 1px solid #EEEEEE;
-    flex-shrink: 0;
+    /* Safe area para notch/home indicator */
     padding-bottom: calc(12px + env(safe-area-inset-bottom, 0));
 }
 
@@ -360,7 +374,7 @@
     font-size: 13px;
     font-weight: 700;
     cursor: pointer;
-    transition: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: 0.2s ease;
     border: none;
     display: flex;
     align-items: center;
@@ -418,27 +432,27 @@
 }
 
 .couponCardIcon {
-    font-size: 20px;
+    font-size: 18px;
 }
 
 .couponCardCode {
     font-family: 'Courier New', monospace;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
     color: #FF6B35;
     letter-spacing: 0.5px;
 }
 
 .couponCardBody {
-    padding: 12px;
+    padding: 10px 12px;
 }
 
 .couponDetailRow {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 0;
-    font-size: 12px;
+    padding: 5px 0;
+    font-size: 11px;
     color: #7F8C8D;
 }
 
@@ -454,7 +468,7 @@
 .couponDetailHighlight {
     font-weight: 700;
     color: #FF6B35;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .couponWarning {
@@ -462,7 +476,7 @@
     padding: 6px 10px;
     background: rgba(255, 152, 0, 0.1);
     border-radius: 4px;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
     color: #FF9800;
 }
@@ -474,11 +488,11 @@
     padding: 10px 12px;
     background: #FF6B35;
     color: #FFFFFF;
-    font-size: 13px;
+    font-size: 12px;
 }
 
 .discountAmount {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 700;
 }
 
@@ -487,7 +501,7 @@
    ========================================== */
 .summary {
     margin-top: 12px;
-    padding: 12px;
+    padding: 10px 12px;
     background: #F5F5F5;
     border-radius: 8px;
 }
@@ -495,8 +509,8 @@
 .summaryRow {
     display: flex;
     justify-content: space-between;
-    padding: 4px 0;
-    font-size: 12px;
+    padding: 3px 0;
+    font-size: 11px;
     color: #7F8C8D;
 }
 
@@ -507,9 +521,9 @@
 
 .summaryTotal {
     margin-top: 6px;
-    padding-top: 8px;
+    padding-top: 6px;
     border-top: 1px dashed #DDD;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     color: #2C3E50;
 }
@@ -522,36 +536,36 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: 24px 16px;
+    padding: 20px 16px;
 }
 
 .successIcon {
-    width: 64px;
-    height: 64px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
     background: linear-gradient(135deg, #4CAF50, #66BB6A);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .successIcon span {
-    font-size: 32px;
+    font-size: 28px;
     color: #FFFFFF;
 }
 
 .successTitle {
     font-family: 'Montserrat', sans-serif;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
     color: #4CAF50;
     margin: 0 0 6px 0;
 }
 
 .successMessage {
-    font-size: 13px;
+    font-size: 12px;
     color: #7F8C8D;
     margin: 0;
 }
@@ -560,208 +574,37 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-top: 16px;
-    padding: 12px 24px;
+    margin-top: 12px;
+    padding: 10px 20px;
     background: #F5F5F5;
     border-radius: 8px;
 }
 
 .successTotal span:first-child {
-    font-size: 11px;
+    font-size: 10px;
     color: #7F8C8D;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .successTotalValue {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 700;
     color: #FF6B35;
     margin-top: 4px;
 }
 
 /* ==========================================
-   MOBILE BREAKPOINTS (< 480px)
+   MOBILE BREAKPOINTS (< 420px)
    ========================================== */
-@media (max-width: 480px) {
+@media (max-width: 420px) {
     .modal {
-        max-height: 80vh;
-        max-height: 80dvh;
+        max-height: 88dvh;
+        /* Mais espaço em telas menores */
     }
 
     .header {
-        padding: 12px 14px;
-    }
-
-    .headerIcon {
-        font-size: 24px;
-    }
-
-    .headerTitle {
-        font-size: 15px;
-    }
-
-    .headerSubtitle {
-        font-size: 10px;
-    }
-
-    .closeButton {
-        width: 26px;
-        height: 26px;
-        font-size: 12px;
-    }
-
-    .progress {
-        padding: 10px 12px;
-        gap: 4px;
-    }
-
-    .stepNumber {
-        width: 18px;
-        height: 18px;
-        font-size: 10px;
-    }
-
-    .stepLabel {
-        font-size: 10px;
-    }
-
-    .progressLine {
-        width: 12px;
-    }
-
-    .content {
-        padding: 14px;
-    }
-
-    .inputLabel {
-        font-size: 12px;
-        margin-bottom: 6px;
-    }
-
-    .input {
-        padding: 10px 40px 10px 12px;
-    }
-
-    .feedback {
-        margin-top: 6px;
-        padding: 6px 10px;
-        font-size: 11px;
-    }
-
-    .subtotalInfo {
-        margin-top: 10px;
-        padding: 8px 10px;
-        font-size: 11px;
-    }
-
-    .buttonsFooter {
         padding: 10px 14px;
-        padding-bottom: calc(10px + env(safe-area-inset-bottom, 0));
-    }
-
-    .buttons {
-        gap: 8px;
-    }
-
-    .btnPrimary,
-    .btnSecondary {
-        padding: 10px 12px;
-        font-size: 12px;
-    }
-
-    .couponCardHeader {
-        padding: 8px 10px;
-    }
-
-    .couponCardIcon {
-        font-size: 18px;
-    }
-
-    .couponCardCode {
-        font-size: 14px;
-    }
-
-    .couponCardBody {
-        padding: 10px;
-    }
-
-    .couponDetailRow {
-        padding: 5px 0;
-        font-size: 11px;
-    }
-
-    .couponDetailHighlight {
-        font-size: 13px;
-    }
-
-    .couponCardFooter {
-        padding: 8px 10px;
-        font-size: 12px;
-    }
-
-    .discountAmount {
-        font-size: 14px;
-    }
-
-    .summary {
-        margin-top: 10px;
-        padding: 10px;
-    }
-
-    .summaryRow {
-        padding: 3px 0;
-        font-size: 11px;
-    }
-
-    .summaryTotal {
-        margin-top: 4px;
-        padding-top: 6px;
-        font-size: 13px;
-    }
-
-    .successStep {
-        padding: 20px 14px;
-    }
-
-    .successIcon {
-        width: 56px;
-        height: 56px;
-        margin-bottom: 12px;
-    }
-
-    .successIcon span {
-        font-size: 28px;
-    }
-
-    .successTitle {
-        font-size: 16px;
-    }
-
-    .successMessage {
-        font-size: 12px;
-    }
-
-    .successTotal {
-        margin-top: 12px;
-        padding: 10px 20px;
-    }
-
-    .successTotal span:first-child {
-        font-size: 10px;
-    }
-
-    .successTotalValue {
-        font-size: 20px;
-    }
-}
-
-/* ==========================================
-   VERY SMALL SCREENS (< 360px)
-   ========================================== */
-@media (max-width: 360px) {
-    .header {
-        padding: 10px 12px;
     }
 
     .headerIcon {
@@ -772,16 +615,56 @@
         font-size: 14px;
     }
 
+    .headerSubtitle {
+        display: none;
+        /* Esconde subtítulo em telas pequenas */
+    }
+
     .progress {
-        padding: 8px 10px;
+        padding: 8px 12px;
+    }
+
+    .stepNumber {
+        width: 16px;
+        height: 16px;
+        font-size: 9px;
     }
 
     .stepLabel {
-        display: none;
+        font-size: 9px;
+    }
+
+    .progressLine {
+        width: 10px;
     }
 
     .content {
         padding: 12px;
+    }
+
+    .buttonsFooter {
+        padding: 10px 12px;
+        padding-bottom: calc(10px + env(safe-area-inset-bottom, 0));
+    }
+
+    .btnPrimary,
+    .btnSecondary {
+        padding: 10px 12px;
+        font-size: 12px;
+    }
+}
+
+/* ==========================================
+   VERY SMALL SCREENS (< 360px)
+   ========================================== */
+@media (max-width: 360px) {
+    .stepLabel {
+        display: none;
+        /* Só mostra números */
+    }
+
+    .content {
+        padding: 10px;
     }
 
     .btnPrimary,

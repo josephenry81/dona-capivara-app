@@ -81,9 +81,16 @@ export default function CouponModal({
 
     // Scroll input into view when keyboard opens
     const handleInputFocus = () => {
+        // Delay para esperar o teclado abrir completamente
         setTimeout(() => {
-            inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 300);
+            if (inputRef.current && contentRef.current) {
+                // Usar scrollIntoView no input
+                inputRef.current.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            }
+        }, 350); // Delay maior para Android
     };
 
     // Validação em tempo real (debounced)
