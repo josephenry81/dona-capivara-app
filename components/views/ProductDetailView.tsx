@@ -45,12 +45,18 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
     const [loadingAdditions, setLoadingAdditions] = useState(false);
     const { alert, Modal: CustomModal } = useModal();
 
+    // 🧠 DERIVED: Use fetched data for display (supports loading hidden products)
+    const displayProduct = productWithAdditions || product;
+    const isMix = (displayProduct as any).ID_Categoria === 'MIX' || displayProduct.id?.includes('MIX') || displayProduct.nome?.toLowerCase().includes('mix');
+    const basePrice = displayProduct.price;
+
+
 
     const handleIncrement = () => {
-        if (quantity < product.estoque) {
+        if (quantity < displayProduct.estoque) {
             setQuantity(q => q + 1);
         } else {
-            alert('⚠️ Limite de Estoque', `Ops! Temos apenas ${product.estoque} unidades disponíveis.`, 'warning');
+            alert('⚠️ Limite de Estoque', `Ops! Temos apenas ${displayProduct.estoque} unidades disponíveis.`, 'warning');
         }
     };
 
@@ -79,7 +85,22 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
                 try {
                     const productData = await API.getProductWithAdditions(product.id);
                     if (productData && !productData.error) {
-                        setProductWithAdditions(productData);
+                        // 🧠 NORMALIZE: Map backend keys to frontend interface if needed
+                        // This allows loading "Hidden/Test" products that aren't in the initial catalog
+                        const normalizedData = {
+                            ...productData,
+                            id: productData.id || productData.ID_Geladinho || product.id,
+                            nome: productData.nome || productData.Nome_Geladinho || product.nome,
+                            price: Number(productData.price || productData.Preco_Venda || product.price),
+                            imagem: productData.imagem || productData.URL_IMAGEM_CACHE || product.imagem,
+                            descricao: productData.descricao || productData.Descricao || product.descricao,
+                            estoque: Number(productData.estoque || productData.Estoque_Atual || product.estoque),
+                            ingredientes: productData.ingredientes || productData.Ingredientes || product.ingredientes,
+                            peso: productData.peso || productData.Peso || product.peso,
+                            calorias: productData.calorias || productData.Calorias || product.calorias,
+                            addition_groups: productData.addition_groups || []
+                        };
+                        setProductWithAdditions(normalizedData);
                     } else {
                         // Fallback: product without additions
                         setProductWithAdditions(product as any);
@@ -189,25 +210,23 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
     }, [selectedOptionsByGroup, productWithAdditions]);
 
     const handleAddToCart = () => {
-        if (product.estoque < 1) {
+        if (displayProduct.estoque < 1) {
             alert('🚫 Produto Esgotado', 'Desculpe, este produto acabou de esgotar.', 'warning');
             return;
         }
-        if (quantity > product.estoque) {
-            alert('⚠️ Estoque Insuficiente', `Temos apenas ${product.estoque} unidades disponíveis.`, 'warning');
-            setQuantity(product.estoque);
+        if (quantity > displayProduct.estoque) {
+            alert('⚠️ Estoque Insuficiente', `Temos apenas ${displayProduct.estoque} unidades disponíveis.`, 'warning');
+            setQuantity(displayProduct.estoque);
             return;
         }
-        onAddToCart(product, quantity, selectedAdditions.length > 0 ? selectedAdditions : undefined);
+        onAddToCart(displayProduct, quantity, selectedAdditions.length > 0 ? selectedAdditions : undefined);
     };
 
     const hasAdditions = productWithAdditions?.addition_groups && productWithAdditions.addition_groups.length > 0;
-    const basePrice = product.price;
 
     // ============================================
     // MIX PRODUCT HANDLING (V16.0 Integration)
     // ============================================
-    const isMix = product && (product as any).ID_Categoria === 'MIX';
 
     if (isMix && productWithAdditions && productWithAdditions.addition_groups) {
         // Separar grupo de sabores (GRP-003) dos outros
@@ -220,7 +239,7 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
         );
 
         const additionsTotal = selectedAdditions.reduce((sum, add) => sum + add.option_price, 0);
-        const unitPrice = basePrice + additionsTotal;
+        const unitPrice = displayProduct.price + additionsTotal;
         const totalPrice = unitPrice * quantity;
 
         return (
@@ -242,7 +261,7 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
                 <div className="relative h-[30vh] w-full bg-gradient-to-br from-pink-400 via-purple-400 to-orange-400 flex items-center justify-center">
                     <div className="absolute inset-0 bg-black/10"></div>
                     <div className="relative text-center text-white z-10">
-                        <h1 className="text-4xl font-bold mb-2">🍦 {product.nome}</h1>
+                        <h1 className="text-4xl font-bold mb-2">🍦 {displayProduct.nome}</h1>
                         <p className="text-sm opacity-90">Monte sua combinação perfeita!</p>
                     </div>
                 </div>
@@ -258,7 +277,7 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
                             <span className="text-3xl">🎨</span>
                             <div>
                                 <h2 className="text-xl font-bold text-gray-800">Monte seu Mix</h2>
-                                <p className="text-sm text-gray-600">{product.descricao || 'Personalize do seu jeito!'}</p>
+                                <p className="text-sm text-gray-600">{displayProduct.descricao || 'Personalize do seu jeito!'}</p>
                             </div>
                         </div>
                         <div className="flex items-baseline gap-2 bg-white p-3 rounded-xl">
@@ -424,8 +443,8 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
                 <div className="flex justify-center mt-8">
                     <div className="relative w-64 h-64 lg:w-80 lg:h-80">
                         <Image
-                            src={product.imagem || 'https://via.placeholder.com/500'}
-                            alt={product.nome}
+                            src={displayProduct.imagem || 'https://via.placeholder.com/500'}
+                            alt={displayProduct.nome}
                             fill
                             sizes="(max-width: 1024px) 256px, 320px"
                             className="object-cover rounded-3xl shadow-2xl"
@@ -453,7 +472,7 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
                 <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6 opacity-50"></div>
 
                 {/* Título do Produto */}
-                <h1 className="text-2xl lg:text-3xl font-bold text-gray-800 mb-1">{product.nome}</h1>
+                <h1 className="text-2xl lg:text-3xl font-bold text-gray-800 mb-1">{displayProduct.nome}</h1>
 
                 {/* Subtítulo / Categoria */}
                 <p className="text-gray-400 text-sm mb-4">Geladinho Gourmet • Dona Capivara</p>
@@ -470,10 +489,10 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
                     <span className="text-sm text-gray-500">
                         {reviews.length > 0 ? `${reviews.length} avaliações` : 'Novo produto'}
                     </span>
-                    {product.estoque > 0 && product.estoque < 10 && (
+                    {displayProduct.estoque > 0 && displayProduct.estoque < 10 && (
                         <>
                             <span className="text-gray-300">|</span>
-                            <span className="text-sm text-orange-500 font-medium">Restam {product.estoque}!</span>
+                            <span className="text-sm text-orange-500 font-medium">Restam {displayProduct.estoque}!</span>
                         </>
                     )}
                 </div>
@@ -514,38 +533,38 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
                 <div className="mb-6">
                     <h3 className="font-bold text-gray-800 text-lg mb-3">📝 Sobre o Produto</h3>
                     <p className="text-gray-600 leading-relaxed">
-                        {product.descricao || 'Sabor inigualável da Dona Capivara. Feito com ingredientes selecionados e muito amor!'}
+                        {displayProduct.descricao || 'Sabor inigualável da Dona Capivara. Feito com ingredientes selecionados e muito amor!'}
                     </p>
                 </div>
 
                 {/* Ingredientes */}
-                {product.ingredientes && (
+                {displayProduct.ingredientes && (
                     <div className="mb-6">
                         <h3 className="font-bold text-gray-800 text-lg mb-3">🧾 Ingredientes</h3>
                         <p className="text-gray-500 text-sm leading-relaxed bg-gray-50 p-4 rounded-xl border border-gray-100">
-                            {product.ingredientes}
+                            {displayProduct.ingredientes}
                         </p>
                     </div>
                 )}
 
                 {/* Info Badges */}
-                {(product.calorias || product.peso) && (
+                {(displayProduct.calorias || displayProduct.peso) && (
                     <div className="flex gap-3 mb-6 flex-wrap">
-                        {product.calorias && (
+                        {displayProduct.calorias && (
                             <div className="bg-orange-50 border border-orange-100 px-4 py-3 rounded-xl flex items-center gap-2">
                                 <span className="text-xl">🔥</span>
                                 <div>
                                     <p className="text-[10px] text-gray-400 font-bold uppercase">Calorias</p>
-                                    <p className="text-sm font-bold text-orange-500">{product.calorias}</p>
+                                    <p className="text-sm font-bold text-orange-500">{displayProduct.calorias}</p>
                                 </div>
                             </div>
                         )}
-                        {product.peso && (
+                        {displayProduct.peso && (
                             <div className="bg-blue-50 border border-blue-100 px-4 py-3 rounded-xl flex items-center gap-2">
                                 <span className="text-xl">⚖️</span>
                                 <div>
                                     <p className="text-[10px] text-gray-400 font-bold uppercase">Peso</p>
-                                    <p className="text-sm font-bold text-blue-500">{product.peso}</p>
+                                    <p className="text-sm font-bold text-blue-500">{displayProduct.peso}</p>
                                 </div>
                             </div>
                         )}

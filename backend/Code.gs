@@ -1153,7 +1153,13 @@ function validateCouponWithContext(data) {
   }
 
   // Validar uso único
-  if (String(coupon.Tipo_Uso).toUpperCase() === 'UNICO' && customerId && customerId !== 'GUEST') {
+  // 🔒 SECURITY FIX: Exige login para uso de cupons únicos
+  if (String(coupon.Tipo_Uso).toUpperCase() === 'UNICO') {
+    if (!customerId || customerId === 'GUEST') {
+      return { success: false, message: 'Faça login para usar este cupom' };
+    }
+    
+    // Validar se já usou
     const jaUsou = historico.some(h =>
       String(h.Codigo_Cupom).trim().toUpperCase() === code &&
       String(h.ID_Cliente).trim() === customerId
@@ -1228,7 +1234,12 @@ function validateCouponRulesFromCache(supabaseCoupon, code, customerId, subtotal
     const historico = sheetToJSON(historicoSheet);
 
     // Verificar uso único
-    if (String(supabaseCoupon.usage_type).toUpperCase() === 'UNICO' && customerId && customerId !== 'GUEST') {
+    // 🔒 SECURITY FIX: Exige login para uso de cupons únicos
+    if (String(supabaseCoupon.usage_type).toUpperCase() === 'UNICO') {
+      if (!customerId || customerId === 'GUEST') {
+        return { success: false, message: 'Faça login para usar este cupom' };
+      }
+      
       const jaUsou = historico.some(h =>
         String(h.Codigo_Cupom).trim().toUpperCase() === code &&
         String(h.ID_Cliente).trim() === customerId

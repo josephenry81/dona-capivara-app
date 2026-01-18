@@ -47,6 +47,12 @@ const LOCALE = 'pt-BR';
 const TIMEZONE = 'America/Sao_Paulo';
 const CURRENCY = 'BRL';
 
+declare global {
+    interface Window {
+        donaCapivaraDebug: any;
+    }
+}
+
 
 export default function Page() {
     const [user, setUser] = useState<any>(null);
@@ -258,6 +264,27 @@ export default function Page() {
             setSelectedProduct(product);
         }
     }, []);
+
+    // 🔧 DEBUGGING: Expose hidden features
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            window.donaCapivaraDebug = {
+                openProduct: (id: string) => {
+                    console.log(`🔧 Debug: Opening product ${id}`);
+                    handleProductClick({
+                        id,
+                        nome: 'Carregando...',
+                        price: 0,
+                        estoque: 999,
+                        descricao: 'Carregando...',
+                        imagem: '',
+                        ID_Tipo_Produto: 'TP-001' // Assume standard product
+                    });
+                }
+            };
+            console.log('🔧 Debug tools loaded: run window.donaCapivaraDebug.openProduct("ID")');
+        }
+    }, [handleProductClick]);
 
     // 🍪 ADD MIX TO CART
     const addMixToCart = (mixData: any) => {
