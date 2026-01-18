@@ -153,7 +153,7 @@ function syncAllCouponsToSupabase() {
     code: String(c.Codigo || '').trim().toUpperCase(),
     type: String(c.Tipo || 'VALOR_FIXO'),
     value: Number(c.Valor || 0),
-    usage_type: String(c.Tipo_Uso || 'MULTIPLO'),
+    usage_type: String(c.Tipo_Uso || c['Tipo_Uso (UNICO ou MULTIPLO)'] || 'MULTIPLO').toUpperCase(),
     min_value: Number(c.Valor_Minimo_Pedido || 0),
     active: String(c.Ativo || '').toUpperCase() === 'TRUE',
     valid_until: c.Data_Validade ? new Date(c.Data_Validade).toISOString() : null,

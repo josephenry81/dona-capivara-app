@@ -117,6 +117,20 @@ export default function CouponModal({
                 });
 
                 if (result.success) {
+                    // 🔒 SECURITY FIX: Verificação híbrida para cupons de uso único
+                    // Se Supabase retornou sucesso mas cupom é UNICO e usuário é GUEST, bloquear no frontend
+                    const isGuest = !customerId || customerId === 'GUEST';
+                    const isUnico = String(result.tipoUso).toUpperCase() === 'UNICO';
+
+                    if (isUnico && isGuest) {
+                        setValidatedCoupon(null);
+                        setFeedback({
+                            type: 'error',
+                            message: 'Faça login para usar este cupom'
+                        });
+                        return;
+                    }
+
                     setValidatedCoupon({
                         code: couponCode.toUpperCase(),
                         type: result.type,
