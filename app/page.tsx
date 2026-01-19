@@ -12,6 +12,7 @@ import LoadingCapybara from '../components/ui/LoadingCapybara';
 import { API } from '../services/api';
 import { useModal } from '../components/ui/Modal';
 import { OnboardingModal, GuidedTour, HelpButton } from '../components/onboarding';
+import { getHiddenProductIds } from '../config/productGroups';
 
 // ⚡ DYNAMIC IMPORTS - Lazy load heavy components
 const CartView = dynamic(() => import('../components/views/CartView'), {
@@ -109,7 +110,27 @@ export default function Page() {
                 const data = await API.fetchCatalogData();
                 const fetchedProducts = data.products || [];
 
-                setProducts(fetchedProducts);
+                // 🔒 FILTER: Hide products where mostrar_catalogo = FALSE
+                // Also apply productGroups filter as fallback
+                const hiddenIds = getHiddenProductIds();
+                const visibleProducts = fetchedProducts.filter((p: any) => {
+                    const productId = p.id || p.ID_Geladinho;
+
+                    // 1. Check mostrar_catalogo from Supabase (priority)
+                    if (p.mostrar_catalogo === false) {
+                        return false;
+                    }
+
+                    // 2. Fallback: check productGroups config
+                    if (hiddenIds.has(productId)) {
+                        return false;
+                    }
+
+                    return true;
+                });
+                console.log(`📦 [Catalog] Visible: ${visibleProducts.length}/${fetchedProducts.length}`);
+
+                setProducts(visibleProducts);
                 setCategories(data.categories || []);
                 setBanners(data.banners || []);
 

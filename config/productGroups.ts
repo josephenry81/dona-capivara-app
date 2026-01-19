@@ -65,3 +65,34 @@ export function hasVariations(productId: string): boolean {
     const group = findProductGroup(productId);
     return group !== null && group.productIds.length > 1;
 }
+
+/**
+ * 🔒 Check if a product should be HIDDEN from catalog
+ * Products that are variants (not the first in their group) should be hidden
+ * @param productId - The product ID to check
+ * @returns true if product should be hidden from catalog
+ */
+export function shouldHideFromCatalog(productId: string): boolean {
+    const group = findProductGroup(productId);
+    if (!group) return false; // Not in a group = show normally
+
+    // Hide if it's NOT the first product in the group
+    return group.productIds[0] !== productId;
+}
+
+/**
+ * Get all product IDs that should be hidden from catalog
+ * @returns Set of product IDs to hide
+ */
+export function getHiddenProductIds(): Set<string> {
+    const hidden = new Set<string>();
+
+    for (const group of PRODUCT_GROUPS) {
+        // Skip the first product (it's the "master"), hide the rest
+        for (let i = 1; i < group.productIds.length; i++) {
+            hidden.add(group.productIds[i]);
+        }
+    }
+
+    return hidden;
+}

@@ -89,7 +89,8 @@ export async function fetchCatalogFromSupabase() {
             peso: p.peso || 'N/A',
             calorias: p.calorias || 'N/A',
             ingredientes: p.ingredientes || 'N/A',
-            tempo: p.tempo_preparo || 'N/A'
+            tempo: p.tempo_preparo || 'N/A',
+            mostrar_catalogo: p.mostrar_catalogo !== false // ✅ NOVA CAMPO
         })),
         categories: (categoriesRes.data || []).map(c => ({
             id: c.id,
