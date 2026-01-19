@@ -734,6 +734,71 @@ export const API = {
     },
 
     // ========================================
+    // PRODUCT VARIANTS SUPPORT
+    // ========================================
+
+    /**
+     * Get multiple products by their IDs (for variant loading)
+     * Uses cached catalog data when available, falls back to direct fetch for hidden products
+     */
+    async getProductsByIds(productIds: string[]): Promise<any[]> {
+        try {
+            const results: any[] = [];
+            const missingIds: string[] = [];
+
+            // 1. Try to get from cached catalog first
+            const catalog = await this.fetchCatalogData(true);
+            if (catalog?.products) {
+                for (const id of productIds) {
+                    const found = catalog.products.find((p: any) =>
+                        p.id === id || p.ID_Geladinho === id
+                    );
+                    if (found) {
+                        results.push(found);
+                    } else {
+                        missingIds.push(id);
+                    }
+                }
+            } else {
+                missingIds.push(...productIds);
+            }
+
+            console.log(`📦 [Variants] Found ${results.length} in cache, ${missingIds.length} missing`);
+
+            // 2. Fetch missing products directly (for hidden products)
+            if (missingIds.length > 0) {
+                const fetchPromises = missingIds.map(id =>
+                    this.getProductWithAdditions(id).catch(() => null)
+                );
+                const fetchedProducts = await Promise.all(fetchPromises);
+
+                for (const product of fetchedProducts) {
+                    if (product && !product.error) {
+                        // Normalize the product data
+                        const normalized = {
+                            ...product,
+                            id: product.id || product.ID_Geladinho,
+                            nome: product.nome || product.Nome_Geladinho,
+                            price: Number(product.price || product.Preco_Venda || 0),
+                            estoque: Number(product.estoque || product.Estoque_Atual || 0),
+                            peso: product.peso || product.Peso,
+                            imagem: product.imagem || product.URL_IMAGEM_CACHE
+                        };
+                        results.push(normalized);
+                        console.log(`📦 [Variants] Fetched hidden product: ${normalized.id}`);
+                    }
+                }
+            }
+
+            console.log(`📦 [Variants] Total: ${results.length}/${productIds.length} variants loaded`);
+            return results;
+        } catch (error) {
+            console.error('Error fetching product variants:', error);
+            return [];
+        }
+    },
+
+    // ========================================
     // CINEMA PROMOTION / RAFFLE SYSTEM
     // ========================================
 

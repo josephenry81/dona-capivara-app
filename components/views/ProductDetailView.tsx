@@ -6,10 +6,12 @@ import ReviewForm from '../product/ReviewForm';
 import ReviewsList from '../product/ReviewsList';
 import AdditionGroup from '../product/AdditionGroup';
 import PriceCalculator from '../product/PriceCalculator';
+import VariantSelector, { ProductVariant } from '../product/VariantSelector';
 import { ReviewService, Review } from '../../services/reviews';
 import { API } from '../../services/api';
 import { ProductWithAdditions, SelectedAddition, AdditionGroup as AdditionGroupType } from '../../types/additions';
 import { useModal } from '../ui/Modal';
+import { getSiblingProductIds, hasVariations } from '../../config/productGroups';
 
 
 interface Product {
@@ -44,6 +46,10 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
     const [selectedOptionsByGroup, setSelectedOptionsByGroup] = useState<Record<string, string[]>>({});
     const [loadingAdditions, setLoadingAdditions] = useState(false);
     const { alert, Modal: CustomModal } = useModal();
+
+    // 📦 VARIANTS STATE
+    const [variants, setVariants] = useState<ProductVariant[]>([]);
+    const [selectedVariantId, setSelectedVariantId] = useState<string>(product.id);
 
     // 🧠 DERIVED: Use fetched data for display (supports loading hidden products)
     const displayProduct = productWithAdditions || product;
@@ -111,10 +117,75 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
                 } finally {
                     setLoadingAdditions(false);
                 }
+
+                // 📦 LOAD VARIANTS: Check if product has siblings
+                if (hasVariations(product.id)) {
+                    const siblingIds = getSiblingProductIds(product.id);
+                    console.log('📦 [Variants] Loading siblings:', siblingIds);
+
+                    const siblingProducts = await API.getProductsByIds(siblingIds);
+                    if (siblingProducts.length > 0) {
+                        const variantList: ProductVariant[] = siblingProducts.map((p: any) => ({
+                            id: p.id || p.ID_Geladinho,
+                            label: p.peso || p.Peso || extractSizeFromName(p.nome || p.Nome_Geladinho) || 'Padrão',
+                            price: Number(p.price || p.Preco_Venda || 0),
+                            stock: Number(p.estoque || p.Estoque_Atual || 0),
+                            isSelected: (p.id || p.ID_Geladinho) === product.id
+                        }));
+                        setVariants(variantList);
+                        console.log('📦 [Variants] Loaded:', variantList);
+                    }
+                }
             }
         }
         fetchProductData();
     }, [product]);
+
+    // 📦 VARIANT SELECTION HANDLER
+    const handleVariantSelect = async (variantId: string) => {
+        setSelectedVariantId(variantId);
+        setQuantity(1); // Reset quantity on variant change
+
+        // Find the variant data and update displayProduct
+        const selectedVariant = variants.find(v => v.id === variantId);
+        if (selectedVariant) {
+            // Update variants selection state
+            setVariants(prev => prev.map(v => ({
+                ...v,
+                isSelected: v.id === variantId
+            })));
+
+            // Fetch full product data for the new variant
+            try {
+                const variantData = await API.getProductWithAdditions(variantId);
+                if (variantData && !variantData.error) {
+                    const normalizedData = {
+                        ...variantData,
+                        id: variantData.id || variantData.ID_Geladinho || variantId,
+                        nome: variantData.nome || variantData.Nome_Geladinho,
+                        price: Number(variantData.price || variantData.Preco_Venda || selectedVariant.price),
+                        imagem: variantData.imagem || variantData.URL_IMAGEM_CACHE,
+                        descricao: variantData.descricao || variantData.Descricao,
+                        estoque: Number(variantData.estoque || variantData.Estoque_Atual || selectedVariant.stock),
+                        ingredientes: variantData.ingredientes || variantData.Ingredientes,
+                        peso: variantData.peso || variantData.Peso,
+                        calorias: variantData.calorias || variantData.Calorias,
+                        addition_groups: variantData.addition_groups || []
+                    };
+                    setProductWithAdditions(normalizedData);
+                }
+            } catch (error) {
+                console.error('Error loading variant data:', error);
+            }
+        }
+    };
+
+    // Helper to extract size from product name (e.g., "Cuscuz 500g" -> "500g")
+    function extractSizeFromName(name: string): string | null {
+        if (!name) return null;
+        const match = name.match(/(\d+(?:g|kg|ml|l|un))/i);
+        return match ? match[1] : null;
+    }
 
     const handleSubmitReview = async (rating: number, comment: string) => {
         if (!user || !user.id || user.isGuest) {
@@ -496,6 +567,15 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
                         </>
                     )}
                 </div>
+
+                {/* 📦 VARIANT SELECTOR - Only shows if product has variants */}
+                {variants.length > 1 && (
+                    <VariantSelector
+                        variants={variants}
+                        onSelect={handleVariantSelect}
+                        disabled={loadingAdditions}
+                    />
+                )}
 
                 {/* Row: Preço e Quantidade (Pill) */}
                 <div className="flex items-center justify-between mb-8 bg-gray-50 p-4 rounded-2xl">
