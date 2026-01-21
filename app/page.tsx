@@ -446,6 +446,11 @@ export default function Page() {
                 msgLines.push(`*Total: ${formatCurrency(orderData.total)}*`);
                 msgLines.push(`Cliente: ${sanitize(orderData.customer.name)}`);
 
+                // Telefone do cliente (especialmente importante para guests)
+                if (orderData.customer.details?.telefone) {
+                    msgLines.push(`📱 Tel: ${sanitize(orderData.customer.details.telefone)}`);
+                }
+
                 // Exibição detalhada de descontos
                 if (orderData.couponCode && orderData.couponDiscount > 0) {
                     msgLines.push(`[CUPOM] ${sanitize(orderData.couponCode)}: -${formatCurrency(orderData.couponDiscount)}`);

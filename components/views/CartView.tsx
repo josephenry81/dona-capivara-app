@@ -49,7 +49,8 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
     const [isScheduled, setIsScheduled] = useState(false);
     const [scheduleDate, setScheduleDate] = useState('');
     const [scheduleTime, setScheduleTime] = useState('');
-    const [addressData, setAddressData] = useState({ nome: '', torre: '', apto: '', rua: '', numero: '', bairro: '', complemento: '', cep: '', observacoes: '' });
+    const [addressData, setAddressData] = useState({ nome: '', telefone: '', torre: '', apto: '', rua: '', numero: '', bairro: '', complemento: '', cep: '', observacoes: '' });
+    const [phoneError, setPhoneError] = useState('');
     const [cepLoading, setCepLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { confirm, alert, Modal: CustomModal } = useModal();
@@ -328,10 +329,33 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
         setTimeout(() => setCouponFeedback(null), 5000);
     }, []);
 
+    // Formatar telefone no padrão brasileiro
+    const formatPhone = (value: string): string => {
+        const numbers = value.replace(/\D/g, '').slice(0, 11);
+        if (numbers.length <= 2) return numbers;
+        if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+        return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`;
+    };
+
+    // Validar telefone brasileiro (10 ou 11 dígitos)
+    const isValidPhone = (phone: string): boolean => {
+        const numbers = phone.replace(/\D/g, '');
+        return numbers.length >= 10 && numbers.length <= 11;
+    };
+
     const handleInputChange = (e: any) => {
         const { name, value } = e.target;
         if (name === 'cep') {
             handleCepChange(value);
+        } else if (name === 'telefone') {
+            const formatted = formatPhone(value);
+            setAddressData({ ...addressData, telefone: formatted });
+            // Validar em tempo real
+            if (formatted && !isValidPhone(formatted)) {
+                setPhoneError('Telefone deve ter 10 ou 11 dígitos');
+            } else {
+                setPhoneError('');
+            }
         } else {
             setAddressData({ ...addressData, [name]: value });
         }
@@ -339,6 +363,26 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
 
     const handleFinalize = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validação de telefone obrigatório para clientes guest
+        if (user?.isGuest) {
+            if (!addressData.telefone) {
+                alert(
+                    '📱 Telefone Obrigatório',
+                    'Por favor, informe seu telefone para que possamos entrar em contato sobre seu pedido.',
+                    'warning'
+                );
+                return;
+            }
+            if (!isValidPhone(addressData.telefone)) {
+                alert(
+                    '📱 Telefone Inválido',
+                    'Por favor, informe um número de telefone válido com DDD (10 ou 11 dígitos).',
+                    'warning'
+                );
+                return;
+            }
+        }
 
         if (!paymentMethod) {
             alert(
@@ -603,14 +647,36 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                         <h3 className="font-bold text-gray-700">📋 Dados de Entrega</h3>
                         <div>
                             <label className="text-xs font-bold text-gray-400 ml-1 uppercase block mb-2">Como gostaria de ser chamado?</label>
-                            <input
-                                required
-                                name="nome"
-                                value={addressData.nome}
-                                onChange={handleInputChange}
-                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition"
-                                placeholder="Seu nome"
-                            />
+                            <div className={user?.isGuest ? 'grid grid-cols-2 gap-3' : ''}>
+                                <input
+                                    required
+                                    name="nome"
+                                    value={addressData.nome}
+                                    onChange={handleInputChange}
+                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition"
+                                    placeholder="Seu nome"
+                                />
+                                {user?.isGuest && (
+                                    <div className="relative">
+                                        <input
+                                            required
+                                            name="telefone"
+                                            type="tel"
+                                            value={addressData.telefone}
+                                            onChange={handleInputChange}
+                                            className={`w-full p-3 bg-gray-50 border rounded-xl text-sm outline-none transition ${phoneError ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-[#FF4B82]'
+                                                }`}
+                                            placeholder="Número de contato (00) 00000-0000"
+                                        />
+                                        {addressData.telefone && !phoneError && isValidPhone(addressData.telefone) && (
+                                            <span className="absolute right-3 top-3 text-green-500 text-lg">✓</span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                            {phoneError && user?.isGuest && (
+                                <p className="text-xs text-red-500 mt-1 ml-1">{phoneError}</p>
+                            )}
                         </div>
 
                         {deliveryType === 'CONDO' ? (
