@@ -13,6 +13,10 @@ import { API } from '../services/api';
 import { useModal } from '../components/ui/Modal';
 import { OnboardingModal, GuidedTour, HelpButton } from '../components/onboarding';
 import { getHiddenProductIds } from '../config/productGroups';
+import { Analytics } from '../utils/analytics';
+import { PushManager } from '../utils/push-manager';
+
+
 
 // ⚡ DYNAMIC IMPORTS - Lazy load heavy components
 const CartView = dynamic(() => import('../components/views/CartView'), {
@@ -32,6 +36,11 @@ const MixGourmetView = dynamic(() => import('../components/views/MixGourmetView'
 
 const AdminView = dynamic(() => import('../components/views/AdminView'), {
     loading: () => <LoadingCapybara />,
+    ssr: false
+});
+
+const OrderStatusBanner = dynamic(() => import('../components/ui/OrderStatusBanner'), {
+    loading: () => null,
     ssr: false
 });
 
@@ -68,7 +77,9 @@ export default function Page() {
     const [isLoading, setIsLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
     const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as any, ts: 0 });
+
     const { modalState, hideModal, confirm, alert, Modal: CustomModal } = useModal();
 
     // 🎓 ONBOARDING STATES
@@ -95,11 +106,15 @@ export default function Page() {
             const params = new URLSearchParams(window.location.search);
             const refCode = params.get('ref');
             if (refCode) {
-                localStorage.setItem('donaCapivaraRef', refCode);
+                localStorage.setItem('donaCapivaraReferral', refCode);
                 showToast(`🎁 Código ${refCode} aplicado!\nCadastre-se e ganhe +50 pts`, 'success');
                 // Limpar URL sem recarregar página
                 window.history.replaceState({}, '', window.location.pathname);
             }
+
+            // Recuperar pedido pendente
+            const pendingOrder = localStorage.getItem('donaCapivaraPendingOrder');
+            if (pendingOrder) setCurrentOrderId(pendingOrder);
         }
 
         // ⚡ CARREGAMENTO DE CATÁLOGO: Aguarda dados antes de renderizar
@@ -166,6 +181,39 @@ export default function Page() {
         loadCatalog();
     }, []); // ⚡ CRÍTICO: Removida dependência de user?.id para evitar re-execuções
 
+    // 🔄 REALTIME STATUS HUB
+    useEffect(() => {
+        if (!currentOrderId || !API.isSupabaseConfigured() || !API.supabase) return;
+
+        console.log(`📡 [Realtime] Ouvindo status do pedido: ${currentOrderId}`);
+
+        const channel = API.supabase
+
+            .channel(`order-status-${currentOrderId}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'orders',
+                filter: `short_id=eq.${currentOrderId}`
+            }, (payload: any) => {
+                const newStatus = payload.new.status;
+                console.log('✨ [Realtime] Status atualizado:', newStatus);
+
+                if (newStatus === 'Confirmado') {
+                    showToast('✅ Seu pedido foi confirmado via WhatsApp!', 'success');
+                    // Opcional: Limpar após confirmação
+                    localStorage.removeItem('donaCapivaraPendingOrder');
+                    setCurrentOrderId(null);
+                }
+            })
+            .subscribe();
+
+        return () => {
+            API.supabase?.removeChannel(channel);
+        };
+    }, [currentOrderId, showToast]);
+
+
 
     // ⚡ MEMOIZED: Add to cart function
     const addToCart = useCallback((product: any, qtyToAdd = 1, additions?: any[]) => {
@@ -208,16 +256,20 @@ export default function Page() {
             showToast(`Adicionado ao carrinho!`, 'success');
 
             if (existingSimpleItem) {
-                return prev.map(item =>
+                const result = prev.map(item =>
                     (item.id === product.id && !item.selected_additions)
                         ? { ...item, quantity: item.quantity + qtyToAdd }
                         : item
                 );
+                Analytics.addToCart(product, qtyToAdd);
+                return result;
             } else {
+                Analytics.addToCart(product, qtyToAdd);
                 return [...prev, { ...product, quantity: qtyToAdd }];
             }
         });
     }, [showToast]);
+
 
     const decreaseQuantity = (itemToDecrease: any) => {
         setCart(prev => {
@@ -282,9 +334,11 @@ export default function Page() {
             console.log('🍪 Opening Mix Gourmet with ID:', mixId);
             setActiveMixId(mixId);
         } else {
+            Analytics.viewItem(product);
             setSelectedProduct(product);
         }
     }, []);
+
 
     // 🔧 DEBUGGING: Expose hidden features
     useEffect(() => {
@@ -391,11 +445,16 @@ export default function Page() {
             const response: any = await API.submitOrder(finalOrder);
 
             if (response && response.success) {
+                Analytics.purchase(orderData);
                 // Garantir que o ID seja string para evitar erro em .slice() se vier como número
+
                 const rawId = response.idVenda || 'PENDENTE';
                 const shortId = String(rawId).slice(0, ORDER_ID_LENGTH).toUpperCase();
+                setCurrentOrderId(shortId);
+                localStorage.setItem('donaCapivaraPendingOrder', shortId);
 
                 // Helper para sanitizar strings e prevenir quebra de formato
+
                 const sanitize = (str: string) => String(str || '').replace(/[*_~`]/g, '');
 
                 // Helper para formatação de moeda BRL
@@ -561,6 +620,18 @@ export default function Page() {
         // CRITICAL FIX: Persist user to localStorage (including adminKey for admin users)
         setUser(u);
         localStorage.setItem('donaCapivaraUser', JSON.stringify(u));
+        Analytics.login(u.isGuest ? 'guest' : 'password');
+
+        // Solicitar Push para usuários registrados
+        if (!u.isGuest) {
+            setTimeout(() => {
+                PushManager.subscribe(u.id || u.ID_Cliente).then(sub => {
+                    if (sub) API.savePushSubscription(u.id || u.ID_Cliente, sub);
+                });
+            }, 3000);
+        }
+
+
 
         if (u.favorites && Array.isArray(u.favorites)) setFavorites(u.favorites);
 
@@ -588,10 +659,19 @@ export default function Page() {
     }
 
     return (
+
         <main className="min-h-screen bg-[#F5F6FA] relative">
             <CustomModal />
             <Toast message={toast.message} type={toast.type} isVisible={toast.visible} onClose={() => setToast({ ...toast, visible: false })} />
             <InstallPrompt />
+
+            {/* 🔥 STATUS HUB BANNER */}
+            {currentOrderId && (
+                <OrderStatusBanner
+                    orderId={currentOrderId}
+                    onViewHistory={() => setActiveTab('orders')}
+                />
+            )}
 
             {activeMixId ? (
                 <MixGourmetView

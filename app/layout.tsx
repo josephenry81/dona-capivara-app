@@ -1,8 +1,18 @@
 import type { Metadata, Viewport } from "next";
+import { Poppins } from 'next/font/google'
+import Script from 'next/script'
 import "./globals.css";
 
 const SITE_URL = 'https://app.donacapivara.com.br';
 const WHATSAPP_PHONE = '+55-41-99148-0096';
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
+
+const poppins = Poppins({
+    subsets: ['latin'],
+    weight: ['300', '400', '600', '700'],
+    display: 'swap',
+    variable: '--font-poppins',
+})
 
 export const metadata: Metadata = {
     title: "Dona Capivara | Geladinhos Gourmet",
@@ -100,16 +110,43 @@ export default function RootLayout({
 }: Readonly<{
     children: React.ReactNode;
 }>) {
+    // Registro do worker de push
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/push-sw.js').then(reg => {
+                console.log('Push SW registered:', reg.scope);
+            }).catch(err => {
+                console.warn('Push SW registration failed:', err);
+            });
+        });
+    }
+
     return (
-        <html lang="pt-BR">
+
+        <html lang="pt-BR" className={poppins.variable}>
             <head>
+                {GA_ID && (
+                    <>
+                        <Script
+                            src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+                            strategy="afterInteractive"
+                        />
+                        <Script id="google-analytics" strategy="afterInteractive">
+                            {`
+                                window.dataLayer = window.dataLayer || [];
+                                function gtag(){dataLayer.push(arguments);}
+                                gtag('js', new Date());
+                                gtag('config', '${GA_ID}');
+                            `}
+                        </Script>
+                    </>
+                )}
                 <script
                     type="application/ld+json"
                     dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
                 />
             </head>
-            <body>{children}</body>
+            <body className="font-sans">{children}</body>
         </html>
     );
 }
-

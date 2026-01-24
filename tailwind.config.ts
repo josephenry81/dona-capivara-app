@@ -8,6 +8,9 @@ const config: Config = {
     ],
     theme: {
         extend: {
+            fontFamily: {
+                sans: ['var(--font-poppins)', 'sans-serif'],
+            },
             colors: {
                 primary: '#FF4B82',
                 secondary: '#FF9E3D',

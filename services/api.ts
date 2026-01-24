@@ -8,6 +8,9 @@ const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || 'https://script.
 const CACHE_VERSION = '2.0.0';
 
 export const API = {
+    supabase,
+    isSupabaseConfigured,
+
 
     // ========================================
     // CATALOG CACHE - STALE-WHILE-REVALIDATE
@@ -479,10 +482,29 @@ export const API = {
     },
     async submitOrder(orderData: any) {
         try {
+            // 1. TENTATIVA SUPABASE (Para Realtime e Status 2.0)
+            if (isSupabaseConfigured() && supabase) {
+                const shortId = String(orderData.id || orderData.idVenda || '').slice(0, 8).toUpperCase();
+
+                await supabase.from('orders').insert([{
+                    short_id: shortId,
+                    customer_phone: orderData.userPhone || orderData.customer?.details?.telefone,
+                    total: orderData.total,
+                    status: 'Aguardando WhatsApp',
+                    items: JSON.stringify(orderData.cart),
+                    raw_data: orderData
+                }]);
+            }
+
+            // 2. ENVIO PADRÃO PARA GOOGLE SHEETS
             const response = await fetch(API_URL + '?action=createOrder', { method: 'POST', body: JSON.stringify(orderData) });
             return await response.json();
-        } catch (e) { return { success: false }; }
+        } catch (e) {
+            console.error('❌ [API] Erro ao submeter pedido:', e);
+            return { success: false };
+        }
     },
+
     async getCustomerOrders(customerId: string) {
         try {
             const response = await fetch(`${API_URL}?action=getOrders&customerId=${customerId}&_t=${Date.now()}`);
@@ -543,6 +565,29 @@ export const API = {
             return { success: false, message: 'Erro de conexão' };
         }
     },
+
+
+    async updateCustomer(phone: string, data: any) {
+        return fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'updateCustomer', phone, data })
+        }).then(res => res.json());
+    },
+
+    // 🔔 PUSH NOTIFICATIONS
+    async savePushSubscription(userId: string, subscription: any) {
+        console.log('🔔 [API] Salvando inscrição de push para:', userId);
+        return fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'savePushSubscription',
+                userId,
+                subscription: JSON.stringify(subscription)
+            })
+        }).then(res => res.json());
+    },
+
+
     async clearCacheAndReload() {
         if ('serviceWorker' in navigator) {
             const registrations = await navigator.serviceWorker.getRegistrations();
