@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import ProductCard from '../ProductCard';
 import SkeletonHomeView from '../ui/SkeletonHomeView';
 import BannerCarousel from '../common/BannerCarousel';
-import { motion, AnimatePresence } from 'framer-motion';
 
 interface HomeViewProps {
     user: any;
@@ -26,21 +25,6 @@ export default function HomeView({
     hasError = false,
     onRetry
 }: HomeViewProps) {
-
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.1
-            }
-        }
-    };
-
-    const itemVariants = {
-        hidden: { y: 20, opacity: 0 },
-        visible: { y: 0, opacity: 1 }
-    };
 
     const [activeCategory, setActiveCategory] = useState('todos');
     const [searchTerm, setSearchTerm] = useState('');
@@ -204,29 +188,20 @@ export default function HomeView({
             )}
 
             {/* Grid */}
-            <AnimatePresence mode="popLayout">
-                {filteredProducts.length > 0 && (
-                    <motion.div
-                        variants={containerVariants}
-                        initial="hidden"
-                        animate="visible"
-                        id="products-grid"
-                        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 px-6 mt-4"
-                    >
-                        {filteredProducts.map(product => (
-                            <motion.div key={product.id} variants={itemVariants} layout>
-                                <ProductCard
-                                    product={product}
-                                    isFavorite={favorites.includes(product.id)}
-                                    onToggleFavorite={!user?.isGuest ? onToggleFavorite : undefined}
-                                    onAddToCart={onAddToCart}
-                                    onProductClick={onProductClick}
-                                />
-                            </motion.div>
-                        ))}
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {filteredProducts.length > 0 && (
+                <div id="products-grid" className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 px-6 mt-4">
+                    {filteredProducts.map(product => (
+                        <ProductCard
+                            key={product.id}
+                            product={product}
+                            isFavorite={favorites.includes(product.id)}
+                            onToggleFavorite={!user?.isGuest ? onToggleFavorite : undefined}
+                            onAddToCart={onAddToCart}
+                            onProductClick={onProductClick}
+                        />
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

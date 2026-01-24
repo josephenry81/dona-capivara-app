@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useModal } from './ui/Modal';
-import { motion } from 'framer-motion';
 
 
 interface Product {
@@ -79,14 +78,7 @@ export default function ProductCard({ product, isFavorite, onToggleFavorite, onA
     };
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            whileHover={{ y: -5 }}
-            whileTap={{ scale: 0.98 }}
-            data-tour="product-card"
-            className="flex flex-col bg-white rounded-2xl shadow-md overflow-hidden relative h-full hover:shadow-lg transition-shadow group"
-        >
+        <div data-tour="product-card" className="flex flex-col bg-white rounded-2xl shadow-md overflow-hidden relative h-full hover:shadow-lg transition-shadow group">
             <CustomModal />
 
             {/* TOPO - Badges e Favorito */}
@@ -200,7 +192,6 @@ export default function ProductCard({ product, isFavorite, onToggleFavorite, onA
                     </button>
                 </div>
             </div>
-        </motion.div>
+        </div>
     );
 }
-
