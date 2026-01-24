@@ -11,6 +11,12 @@ const config: Config = {
             colors: {
                 primary: '#FF4B82',
                 secondary: '#FF9E3D',
+                // Aliases para compatibilidade com componentes existentes
+                'lavender': '#FF4B82',
+                'azure-mist': '#FF9E3D',
+                'silver': '#FF9E3D',
+                'soft-linen': '#F5F6FA',
+                'lavender-veil': '#FFB6C1',
             }
         },
     },
