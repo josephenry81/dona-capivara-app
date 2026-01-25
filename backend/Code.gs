@@ -44,7 +44,7 @@ function notifyAlexaNewOrder(orderData) {
     const qtdItens = orderData.qtdItens || 0;
     const textoMensagem = `Atenção! Novo pedido recebido. ${nomeCliente} fez um pedido de ${qtdItens} ${qtdItens === 1 ? 'item' : 'itens'} no valor de ${total} reais.`;
     const ssmlMensagem = `<speak><lang xml:lang="pt-BR">${textoMensagem}</lang></speak>`;
-    const url = `${VOICEMONmonkey_CONFIG.BASE_URL}?token=${VOICEMONKEY_CONFIG.TOKEN}&device=${VOICEMONKEY_CONFIG.DEVICE}&text=${encodeURIComponent(ssmlMensagem)}`;
+    const url = `${VOICEMONKEY_CONFIG.BASE_URL}?token=${VOICEMONKEY_CONFIG.TOKEN}&device=${VOICEMONKEY_CONFIG.DEVICE}&text=${encodeURIComponent(ssmlMensagem)}`;
     UrlFetchApp.fetch(url, { method: 'GET', muteHttpExceptions: true });
     Logger.log(`🔊 Alexa notificada: ${textoMensagem}`);
   } catch (error) {
