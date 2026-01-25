@@ -2,20 +2,12 @@ const ADMIN_LOGIN = "admin";
 const ADMIN_PASS = "Jxd701852@";
 
 // ============================================================================
-// 🚀 SUPABASE SYNC - Configuração para cache ultra-rápido
+// 🚀 SUPABASE CONFIGURATIONS
 // ============================================================================
-// INSTRUÇÕES: Substitua os valores abaixo pelas suas credenciais do Supabase
-// 1. Crie um projeto em https://supabase.com
-// 2. Copie a URL e a anon key do projeto
 const SUPABASE_URL = 'https://zuecbccyuflfkczzyrpd.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1ZWNiY2N5dWZsZmtjenp5cnBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2NjgxNDcsImV4cCI6MjA4MzI0NDE0N30.vkyybk9_KXieXKJLEHrGWS29dR8RDdUfE6B1lD5bdcE';
 
 // 📍 GEOAPIFY CONFIG
-// Chave segura (configurada no script ou hardcoded aqui se o user permitiu, mas user pediu env var. 
-// Como GAS não tem .env nativo fácil sem script properties, vou usar Script Properties ou hardcoded com aviso.
-// O USER forneceu a chave explicitamente no prompt e pediu Env Var "em Next.js, Apps Script ou onde fizer sentido".
-// No GAS, o jeito certo é PropertiesService, mas para simplificar e funcionar direto vou colocar aqui e instruir o user a proteger depois ou usar PropertiesService.
-// Vou usar a chave fornecida: d27379dd6767460a889d57258635842f
 const GEOAPIFY_API_KEY = 'd27379dd6767460a889d57258635842f'; 
 const STORE_LOCATION = {
   lat: -25.53427,
@@ -23,356 +15,256 @@ const STORE_LOCATION = {
   address: 'Rua Reinaldo Stocco, 274 - Pinheirinho, Curitiba - PR'
 };
 
-// 💰 CONFIGURAÇÃO DE PREÇOS DE ENTREGA (Estilo Uber)
+// 💰 DELIVERY PRICING (Uber Style)
 const DELIVERY_PRICING = {
-  BASE_FEE: 3.50,       // Taxa inicial para cobrir deslocamento
-  KM_RATE: 1.20,        // Valor por km rodado
-  MIN_FEE: 5.00,        // Valor mínimo da corrida
-  NEIGHBOR_DISCOUNT: 0.5 // 50% off para vizinhos próximos (<= 3km)
+  BASE_FEE: 3.50,
+  KM_RATE: 1.20,
+  MIN_FEE: 5.00,
+  NEIGHBOR_DISCOUNT: 0.5
+};
+
+// 🔊 ALEXA VOICEMONKEY CONFIG
+const VOICEMONKEY_CONFIG = {
+  ENABLED: true,
+  TOKEN: '10d5fc98d60558c5e04dc8dc4069cae5_01cd022527ea005eb4a8da96d4d104cf',
+  DEVICE: 'echo-dot-de-jose',
+  BASE_URL: 'https://api-v2.voicemonkey.io/announcement'
 };
 
 /**
  * =====================================================
- * 🎟️ COUPON CACHE SYSTEM - SUPABASE + GOOGLE SHEETS
- * =====================================================
- * 
- * ARQUITETURA:
- * - Google Sheets (CUPONS) = FONTE DE VERDADE
- * - Supabase (coupons) = Cache/espelho para leitura rápida
- * - Sincronização: Sheets → Supabase (one-way)
- * 
- * FLUXO DE VALIDAÇÃO:
- * 1. Tenta ler do Supabase (rápido, ~50ms)
- * 2. Se não encontrar, fallback para Sheets (~500ms)
- * 3. Se validar via Sheets, sincroniza para Supabase
- * 
- * REGRAS:
- * - Toda alteração parte da planilha CUPONS
- * - Supabase NUNCA é fonte primária de alteração
- * - Frontend lê apenas, nunca escreve diretamente
+ * 🔊 ALEXA NOTIFICATION SYSTEM
  * =====================================================
  */
-
-
-/**
- * 🗑️ Busca IDs existentes no Supabase e deleta os que não existem mais no Google Sheets
- * @param {string} tableName - Nome da tabela no Supabase (products, categories, banners, etc)
- * @param {Array<string>} currentIds - Array de IDs que existem atualmente no Google Sheets
- */
-function deleteOrphanedFromSupabase(tableName, currentIds) {
-  if (SUPABASE_URL.includes('SEU_PROJECT')) return;
-  if (!currentIds || currentIds.length === 0) return;
-  
+function notifyAlexaNewOrder(orderData) {
+  if (!VOICEMONKEY_CONFIG.ENABLED) return;
   try {
-    // 1. Buscar todos os IDs que existem no Supabase
-    const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/${tableName}?select=id`, {
-      method: 'GET',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`
-      },
-      muteHttpExceptions: true
-    });
-    
-    if (response.getResponseCode() !== 200) {
-      Logger.log(`⚠️ Erro ao buscar IDs do Supabase (${tableName}): ${response.getContentText()}`);
-      return;
-    }
-    
-    const supabaseData = JSON.parse(response.getContentText());
-    const supabaseIds = supabaseData.map(item => String(item.id));
-    
-    // 2. Encontrar IDs que estão no Supabase mas não no Google Sheets (órfãos)
-    const currentIdsSet = new Set(currentIds.map(id => String(id)));
-    const orphanedIds = supabaseIds.filter(id => !currentIdsSet.has(id));
-    
-    if (orphanedIds.length === 0) {
-      Logger.log(`✅ [${tableName}] Nenhum item órfão para deletar`);
-      return;
-    }
-    
-    Logger.log(`🗑️ [${tableName}] Deletando ${orphanedIds.length} itens órfãos: ${orphanedIds.join(', ')}`);
-    
-    // 3. Deletar cada item órfão do Supabase
-    for (const orphanId of orphanedIds) {
-      const deleteResponse = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/${tableName}?id=eq.${encodeURIComponent(orphanId)}`, {
-        method: 'DELETE',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`
-        },
-        muteHttpExceptions: true
-      });
-      
-      if (deleteResponse.getResponseCode() === 204 || deleteResponse.getResponseCode() === 200) {
-        Logger.log(`  ✓ Deletado: ${orphanId}`);
-      } else {
-        Logger.log(`  ✗ Erro ao deletar ${orphanId}: ${deleteResponse.getContentText()}`);
-      }
-    }
-    
-    Logger.log(`✅ [${tableName}] ${orphanedIds.length} itens órfãos removidos`);
-    
+    const nomeCliente = orderData.nomeCliente || 'Cliente';
+    const total = Number(orderData.total || 0).toFixed(2).replace('.', ',');
+    const qtdItens = orderData.qtdItens || 0;
+    const textoMensagem = `Atenção! Novo pedido recebido. ${nomeCliente} fez um pedido de ${qtdItens} ${qtdItens === 1 ? 'item' : 'itens'} no valor de ${total} reais.`;
+    const ssmlMensagem = `<speak><lang xml:lang="pt-BR">${textoMensagem}</lang></speak>`;
+    const url = `${VOICEMONmonkey_CONFIG.BASE_URL}?token=${VOICEMONKEY_CONFIG.TOKEN}&device=${VOICEMONKEY_CONFIG.DEVICE}&text=${encodeURIComponent(ssmlMensagem)}`;
+    UrlFetchApp.fetch(url, { method: 'GET', muteHttpExceptions: true });
+    Logger.log(`🔊 Alexa notificada: ${textoMensagem}`);
   } catch (error) {
-    Logger.log(`❌ Erro ao deletar órfãos de ${tableName}: ${error.toString()}`);
+    Logger.log(`⚠️ Erro Alexa: ${error.toString()}`);
   }
 }
 
-
-// ============================================================================
-// 🎟️ COUPON SYNC FUNCTIONS - Sincronização Sheets → Supabase
-// ============================================================================
+function testAlexaNotification() {
+  notifyAlexaNewOrder({ nomeCliente: 'Teste do Sistema', total: 10.00, qtdItens: 1 });
+}
 
 /**
- * 🔄 Sincroniza TODOS os cupons para o Supabase
- * Lê planilha CUPONS e faz upsert em batch, depois remove órfãos
+ * =====================================================
+ * 🔄 SUPABASE SYNC SYSTEM (OPTIMIZED)
+ * =====================================================
  */
-function syncAllCouponsToSupabase() {
-  if (SUPABASE_URL.includes('SEU_PROJECT')) {
-    Logger.log('⚠️ Supabase não configurado');
-    return;
-  }
 
+function deleteOrphanedFromSupabase(tableName, currentIds) {
+  if (SUPABASE_URL.includes('SEU_PROJECT') || !currentIds || currentIds.length === 0) return;
+  try {
+    const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/${tableName}?select=id`, {
+      method: 'GET',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+      muteHttpExceptions: true
+    });
+    if (response.getResponseCode() !== 200) return;
+    const supabaseData = JSON.parse(response.getContentText());
+    const supabaseIds = supabaseData.map(item => String(item.id));
+    const currentIdsSet = new Set(currentIds.map(id => String(id)));
+    const orphanedIds = supabaseIds.filter(id => !currentIdsSet.has(id));
+    
+    if (orphanedIds.length === 0) return;
+    Logger.log(`🗑️ Deletando ${orphanedIds.length} órfãos de ${tableName}`);
+    for (const orphanId of orphanedIds) {
+      UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/${tableName}?id=eq.${encodeURIComponent(orphanId)}`, {
+        method: 'DELETE',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        muteHttpExceptions: true
+      });
+    }
+  } catch (error) { Logger.log(`❌ Erro delete órfãos: ${error}`); }
+}
+
+/**
+ * 🚀 SYNC IN-MEMORY (Ultra Rápido para Vendas)
+ * Não lê a planilha. Usa os dados já processados na venda.
+ */
+function syncUpdatedProductsToSupabase(productsData) {
+  if (SUPABASE_URL.includes('SEU_PROJECT') || !productsData || productsData.length === 0) return;
+  try {
+    const payload = productsData.map(p => ({
+      id: String(p.id).trim(),
+      nome: p.nome,
+      preco: Number(p.preco),
+      estoque: Number(p.estoque),
+      categoria_id: p.categoria_id,
+      descricao: p.descricao,
+      imagem_url: p.imagem_url,
+      ativo: p.estoque > 0, // Regra: estoque > 0 = ativo
+      mostrar_catalogo: true,
+      updated_at: new Date().toISOString()
+    }));
+
+    UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/products`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+    Logger.log(`🚀 Sync Rápido: ${payload.length} produtos atualizados.`);
+  } catch (error) { Logger.log(`⚠️ Sync Rápido falhou: ${error}`); }
+}
+
+function syncProductsToSupabase() {
+  if (SUPABASE_URL.includes('SEU_PROJECT')) return;
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GELADINHOS');
+  if (!sheet) return;
+  SpreadsheetApp.flush();
+  
+  const allProducts = sheetToJSON(sheet);
+  if (allProducts.length === 0) return;
+  
+  const supabaseData = allProducts.map(p => {
+    let isActive = false;
+    const ativoValue = p.Produto_Ativo;
+    if (ativoValue === true || ativoValue === 1) isActive = true;
+    else if (ativoValue) isActive = ['TRUE', 'SIM', 'YES', '1', 'S', 'OK'].includes(String(ativoValue).toUpperCase().trim());
+    
+    let showInCatalog = true;
+    const showValue = p.Mostrar_Catalogo;
+    if (showValue !== null && showValue !== undefined && showValue !== '') 
+       showInCatalog = ['TRUE', 'SIM', 'YES', '1', 'S'].includes(String(showValue).toUpperCase().trim());
+
+    return {
+      id: String(p.ID_Geladinho).trim(),
+      nome: p.Nome_Geladinho,
+      preco: Number(p.Preco_Venda) || 0,
+      estoque: Number(p.Estoque_Atual) || 0,
+      categoria_id: p.ID_Categoria,
+      descricao: p.Descricao || '',
+      imagem_url: normalizarUrlImagem(p) || '',
+      ativo: isActive,
+      mostrar_catalogo: showInCatalog,
+      updated_at: new Date().toISOString()
+    };
+  }).filter(p => p.id);
+
+  const uniqueProducts = [];
+  const seenIds = new Set();
+  supabaseData.forEach(p => { if(!seenIds.has(p.id)){ seenIds.add(p.id); uniqueProducts.push(p); } });
+
+  try {
+    UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/products`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'
+      },
+      payload: JSON.stringify(uniqueProducts), muteHttpExceptions: true
+    });
+    deleteOrphanedFromSupabase('products', uniqueProducts.map(p => p.id));
+  } catch (e) { Logger.log(`❌ Erro sync produtos: ${e}`); }
+}
+
+function syncAllCouponsToSupabase() {
+  if (SUPABASE_URL.includes('SEU_PROJECT')) return;
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CUPONS');
-  if (!sheet) {
-    Logger.log('⚠️ Planilha CUPONS não encontrada');
-    return;
-  }
+  if (!sheet) return;
+  SpreadsheetApp.flush();
 
   const cupons = sheetToJSON(sheet);
-  
-  if (cupons.length === 0) {
-    Logger.log('⚠️ Nenhum cupom para sincronizar');
-    return;
-  }
-
-  Logger.log(`🎟️ Sincronizando ${cupons.length} cupons para Supabase...`);
-
-  // Converter para formato Supabase
   const supabaseData = cupons.map(c => ({
     code: String(c.Codigo || '').trim().toUpperCase(),
     type: String(c.Tipo || 'VALOR_FIXO'),
     value: Number(c.Valor || 0),
     usage_type: String(c.Tipo_Uso || c['Tipo_Uso (UNICO ou MULTIPLO)'] || 'MULTIPLO').toUpperCase(),
     min_value: Number(c.Valor_Minimo_Pedido || 0),
-    active: String(c.Ativo || '').toUpperCase() === 'TRUE',
+    active: String(c.Ativo).toUpperCase() === 'TRUE' || c.Ativo === true,
     valid_until: c.Data_Validade ? new Date(c.Data_Validade).toISOString() : null,
     max_usage: Number(c.Uso_Maximo || 0),
     updated_at: new Date().toISOString()
-  })).filter(c => c.code); // Filtrar cupons sem código
+  })).filter(c => c.code);
 
-  if (supabaseData.length === 0) {
-    Logger.log('⚠️ Nenhum cupom válido para sincronizar');
-    return;
-  }
-
+  if (supabaseData.length === 0) return;
   try {
-    // Upsert em batch
-    const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/coupons`, {
+    UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/coupons`, {
       method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates'
-      },
-      payload: JSON.stringify(supabaseData),
-      muteHttpExceptions: true
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+      payload: JSON.stringify(supabaseData), muteHttpExceptions: true
     });
-
-    if (response.getResponseCode() === 200 || response.getResponseCode() === 201) {
-      Logger.log(`✅ ${supabaseData.length} cupons sincronizados com Supabase`);
-      
-      // Remover cupons órfãos (que não existem mais na planilha)
-      deleteOrphanedCouponsFromSupabase(supabaseData.map(c => c.code));
-    } else {
-      Logger.log(`❌ Erro ao sincronizar cupons: ${response.getContentText()}`);
-    }
-  } catch (error) {
-    Logger.log(`❌ Erro ao sincronizar cupons: ${error.toString()}`);
-  }
+    deleteOrphanedCouponsFromSupabase(supabaseData.map(c => c.code));
+  } catch (e) { Logger.log(`❌ Erro cupons: ${e}`); }
 }
 
-/**
- * 🔄 Sincroniza um único cupom para o Supabase
- * @param {Object} coupon - Objeto de cupom da planilha
- */
-function syncSingleCouponToSupabase(coupon) {
-  if (SUPABASE_URL.includes('SEU_PROJECT')) return;
-  if (!coupon || !coupon.Codigo) return;
+function deleteOrphanedCouponsFromSupabase(currentCodes) {
+  if (SUPABASE_URL.includes('SEU_PROJECT') || !currentCodes) return;
+  try {
+    const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/coupons?select=code`, {
+      method: 'GET', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    if (response.getResponseCode() !== 200) return;
+    const dbCodes = JSON.parse(response.getContentText()).map(c => c.code);
+    const sheetCodes = new Set(currentCodes.map(c => String(c).toUpperCase()));
+    const orphans = dbCodes.filter(c => !sheetCodes.has(c));
+    orphans.forEach(c => {
+       UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/coupons?code=eq.${encodeURIComponent(c)}`, {
+         method: 'DELETE', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+       });
+    });
+  } catch (e) {}
+}
 
-  const supabaseData = {
+function syncSingleCouponToSupabase(coupon) {
+  if (SUPABASE_URL.includes('SEU_PROJECT') || !coupon || !coupon.Codigo) return;
+  const data = {
     code: String(coupon.Codigo).trim().toUpperCase(),
     type: String(coupon.Tipo || 'VALOR_FIXO'),
     value: Number(coupon.Valor || 0),
     usage_type: String(coupon.Tipo_Uso || 'MULTIPLO'),
     min_value: Number(coupon.Valor_Minimo_Pedido || 0),
-    active: String(coupon.Ativo || '').toUpperCase() === 'TRUE',
+    active: String(coupon.Ativo).toUpperCase() === 'TRUE' || coupon.Ativo === true,
     valid_until: coupon.Data_Validade ? new Date(coupon.Data_Validade).toISOString() : null,
     max_usage: Number(coupon.Uso_Maximo || 0),
     updated_at: new Date().toISOString()
   };
-
   try {
-    const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/coupons`, {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates'
-      },
-      payload: JSON.stringify([supabaseData]),
-      muteHttpExceptions: true
+    UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/coupons`, {
+      method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+      payload: JSON.stringify([data]), muteHttpExceptions: true
     });
-
-    if (response.getResponseCode() === 200 || response.getResponseCode() === 201) {
-      Logger.log(`✅ Cupom ${supabaseData.code} sincronizado com Supabase`);
-    }
-  } catch (error) {
-    Logger.log(`⚠️ Erro ao sincronizar cupom ${supabaseData.code}: ${error.toString()}`);
-  }
+  } catch (e) {}
 }
 
-/**
- * 🗑️ Deleta um cupom do Supabase por código
- * @param {string} code - Código do cupom
- */
-function deleteCouponFromSupabase(code) {
-  if (SUPABASE_URL.includes('SEU_PROJECT')) return;
-  if (!code) return;
-
-  const normalizedCode = String(code).trim().toUpperCase();
-
-  try {
-    const response = UrlFetchApp.fetch(
-      `${SUPABASE_URL}/rest/v1/coupons?code=eq.${encodeURIComponent(normalizedCode)}`, 
-      {
-        method: 'DELETE',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`
-        },
-        muteHttpExceptions: true
-      }
-    );
-
-    if (response.getResponseCode() === 204 || response.getResponseCode() === 200) {
-      Logger.log(`✅ Cupom ${normalizedCode} deletado do Supabase`);
-    }
-  } catch (error) {
-    Logger.log(`⚠️ Erro ao deletar cupom ${normalizedCode}: ${error.toString()}`);
-  }
-}
-
-/**
- * 🗑️ Remove cupons órfãos do Supabase (que não existem mais na planilha)
- * @param {Array<string>} currentCodes - Códigos que existem atualmente na planilha
- */
-function deleteOrphanedCouponsFromSupabase(currentCodes) {
-  if (SUPABASE_URL.includes('SEU_PROJECT')) return;
-  if (!currentCodes || currentCodes.length === 0) return;
-
-  try {
-    // Buscar todos os codes no Supabase
-    const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/coupons?select=code`, {
-      method: 'GET',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`
-      },
-      muteHttpExceptions: true
-    });
-
-    if (response.getResponseCode() !== 200) return;
-
-    const supabaseCoupons = JSON.parse(response.getContentText());
-    const supabaseCodes = supabaseCoupons.map(c => c.code);
-    const currentCodesSet = new Set(currentCodes.map(c => String(c).toUpperCase()));
-
-    // Encontrar órfãos
-    const orphanCodes = supabaseCodes.filter(code => !currentCodesSet.has(code));
-
-    if (orphanCodes.length === 0) {
-      Logger.log('✅ Nenhum cupom órfão para deletar');
-      return;
-    }
-
-    Logger.log(`🗑️ Deletando ${orphanCodes.length} cupons órfãos...`);
-
-    for (const code of orphanCodes) {
-      deleteCouponFromSupabase(code);
-    }
-
-    Logger.log(`✅ ${orphanCodes.length} cupons órfãos removidos`);
-
-  } catch (error) {
-    Logger.log(`⚠️ Erro ao limpar cupons órfãos: ${error.toString()}`);
-  }
-}
-
-/**
- * ⚡ Busca cupom do Supabase (leitura rápida)
- * @param {string} code - Código do cupom
- * @returns {Object|null} Dados do cupom ou null se não encontrado
- */
 function getCouponFromSupabase(code) {
-  if (SUPABASE_URL.includes('SEU_PROJECT')) return null;
-  if (!code) return null;
-
-  const normalizedCode = String(code).trim().toUpperCase();
-
+  if (SUPABASE_URL.includes('SEU_PROJECT') || !code) return null;
   try {
-    const response = UrlFetchApp.fetch(
-      `${SUPABASE_URL}/rest/v1/coupons?code=eq.${encodeURIComponent(normalizedCode)}&select=*`,
-      {
-        method: 'GET',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`
-        },
-        muteHttpExceptions: true
-      }
-    );
-
-    if (response.getResponseCode() === 200) {
-      const data = JSON.parse(response.getContentText());
-      if (data && data.length > 0) {
-        Logger.log(`⚡ [Supabase HIT] Cupom ${normalizedCode} encontrado`);
-        return data[0];
-      }
+    const res = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/coupons?code=eq.${encodeURIComponent(String(code).trim().toUpperCase())}&select=*`, {
+      method: 'GET', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    if (res.getResponseCode() === 200) {
+      const data = JSON.parse(res.getContentText());
+      if (data && data.length > 0) return data[0];
     }
-  } catch (error) {
-    Logger.log(`⚠️ Erro ao buscar cupom do Supabase: ${error.toString()}`);
-  }
-
-  Logger.log(`🔍 [Supabase MISS] Cupom ${normalizedCode} não encontrado`);
+  } catch (e) {}
   return null;
 }
 
-/**
- * 🔄 Sincroniza HISTÓRICO de uso de cupons para o Supabase
- * Tabela: CUPONS_HISTORICO → coupon_history
- */
 function syncCouponHistoryToSupabase() {
   if (SUPABASE_URL.includes('SEU_PROJECT')) return;
-
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CUPONS_HISTORICO');
-  if (!sheet) {
-    Logger.log('⚠️ Planilha CUPONS_HISTORICO não encontrada');
-    return;
-  }
-
+  if (!sheet) return;
+  SpreadsheetApp.flush();
   const history = sheetToJSON(sheet);
+  if (history.length === 0) return;
   
-  if (history.length === 0) {
-    Logger.log('ℹ️ Histórico de cupons vazio');
-    return;
-  }
-
-  Logger.log(`📜 Sincronizando ${history.length} registros de histórico para Supabase...`);
-
-  // Mapear colunas Google Sheets -> Supabase
   const supabaseData = history.map(h => ({
     id: String(h.ID_Historico || Utilities.getUuid()),
     coupon_code: String(h.Codigo_Cupom || '').trim().toUpperCase(),
@@ -383,1325 +275,269 @@ function syncCouponHistoryToSupabase() {
   })).filter(h => h.coupon_code && h.customer_id);
 
   if (supabaseData.length === 0) return;
-
-  // Enviar em lotes de 100 para evitar payload too large
-  const BATCH_SIZE = 100;
-  for (let i = 0; i < supabaseData.length; i += BATCH_SIZE) {
-    const batch = supabaseData.slice(i, i + BATCH_SIZE);
-    
-    try {
-      const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/coupon_history`, {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'resolution=merge-duplicates'
-        },
-        payload: JSON.stringify(batch),
-        muteHttpExceptions: true
-      });
-      
-      if (response.getResponseCode() !== 200 && response.getResponseCode() !== 201) {
-         Logger.log(`⚠️ Erro no lote ${i}: ${response.getContentText()}`);
-      }
-    } catch (e) {
-      Logger.log(`❌ Erro de conexão no lote ${i}: ${e.toString()}`);
-    }
-  }
   
-  Logger.log('✅ Histórico sincronizado com sucesso');
+  // Batch upload history
+  for (let i = 0; i < supabaseData.length; i += 100) {
+    const batch = supabaseData.slice(i, i + 100);
+    try {
+      UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/coupon_history`, {
+        method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+        payload: JSON.stringify(batch), muteHttpExceptions: true
+      });
+    } catch (e) {}
+  }
 }
 
-/**
- * 🔄 Sincroniza um único registro de uso para o Supabase
- */
-function syncSingleUsageToSupabase(usageData) {
+function syncSingleUsageToSupabase(d) {
   if (SUPABASE_URL.includes('SEU_PROJECT')) return;
-
-  const supabaseData = {
-    id: String(usageData.ID_Historico),
-    coupon_code: String(usageData.Codigo_Cupom).trim().toUpperCase(),
-    customer_id: String(usageData.ID_Cliente).trim(),
-    order_id: String(usageData.ID_Venda).trim(),
-    used_at: new Date(usageData.Data_Uso).toISOString(),
-    discount_amount: Number(usageData.Valor_Desconto)
-  };
-
   try {
     UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/coupon_history`, {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates'
-      },
-      payload: JSON.stringify([supabaseData]),
+      method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+      payload: JSON.stringify([{ id: String(d.ID_Historico), coupon_code: String(d.Codigo_Cupom).trim().toUpperCase(), customer_id: String(d.ID_Cliente).trim(), order_id: String(d.ID_Venda).trim(), used_at: new Date(d.Data_Uso).toISOString(), discount_amount: Number(d.Valor_Desconto) }]),
       muteHttpExceptions: true
     });
-  } catch (e) {
-    Logger.log('⚠️ Erro ao sync single usage: ' + e);
-  }
+  } catch (e) {}
 }
 
-
-/**
- * 🔄 Sincroniza TODOS os produtos para o Supabase (ativos e inativos)
- */
-function syncProductsToSupabase() {
-  if (SUPABASE_URL.includes('SEU_PROJECT')) {
-    Logger.log('⚠️ Supabase não configurado. Pule esta etapa ou configure SUPABASE_URL/KEY.');
-    return;
-  }
-  
-  // 🔥 CORREÇÃO: Buscar TODOS os produtos, não apenas os ativos
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GELADINHOS');
-  if (!sheet) {
-    Logger.log('⚠️ Sheet GELADINHOS não encontrada');
-    return;
-  }
-  
-  const allProducts = sheetToJSON(sheet);
-  
-  if (allProducts.length === 0) {
-    Logger.log('⚠️ Nenhum produto para sincronizar');
-    return;
-  }
-  
-  const supabaseData = allProducts.map(p => {
-    // ✅ CORREÇÃO: Usar valor REAL de Produto_Ativo do Google Sheets
-    let isActive = false;
-    const ativoValue = p.Produto_Ativo;
-    if (ativoValue === true) {
-      isActive = true;
-    } else if (ativoValue !== null && ativoValue !== undefined) {
-      const strVal = String(ativoValue).toUpperCase().trim();
-      isActive = strVal === 'TRUE' || strVal === 'SIM' || strVal === 'YES' || strVal === '1' || strVal === 'S' || strVal === 'OK';
-    }
-    
-    return {
-      id: p.ID_Geladinho,
-      nome: p.Nome_Geladinho,
-      preco: Number(p.Preco_Venda) || 0,
-      estoque: Number(p.Estoque_Atual) || 0,
-      categoria_id: p.ID_Categoria,
-      descricao: p.Descricao || '',
-      imagem_url: normalizarUrlImagem(p) || '',
-      ativo: isActive, // ✅ Agora usa valor real!
-      updated_at: new Date().toISOString()
-    };
-  });
-  
-  // 🔥 FILTRAR DUPLICATAS: Remove produtos com IDs duplicados (mantém o primeiro)
-  const seenIds = new Set();
-  const uniqueProducts = [];
-  for (const product of supabaseData) {
-    const id = String(product.id);
-    if (id && !seenIds.has(id)) {
-      seenIds.add(id);
-      uniqueProducts.push(product);
-    } else if (seenIds.has(id)) {
-      Logger.log(`⚠️ ID duplicado ignorado: ${id} (${product.nome})`);
-    }
-  }
-  
-  Logger.log(`📦 Sincronizando ${uniqueProducts.length} produtos únicos (ativos: ${uniqueProducts.filter(p => p.ativo).length}, inativos: ${uniqueProducts.filter(p => !p.ativo).length})`);
-  if (uniqueProducts.length < supabaseData.length) {
-    Logger.log(`⚠️ ${supabaseData.length - uniqueProducts.length} produtos com IDs duplicados foram ignorados`);
-  }
-  
-  const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/products`, {
-    method: 'POST',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'resolution=merge-duplicates'
-    },
-    payload: JSON.stringify(uniqueProducts),
-    muteHttpExceptions: true
-  });
-  
-  if (response.getResponseCode() === 201 || response.getResponseCode() === 200) {
-    Logger.log(`✅ ${uniqueProducts.length} produtos sincronizados com Supabase`);
-    
-    // 🗑️ Deletar produtos que foram removidos do Google Sheets
-    const currentIds = uniqueProducts.map(p => String(p.id)).filter(id => id);
-    deleteOrphanedFromSupabase('products', currentIds);
-  } else {
-    Logger.log(`❌ Erro sync produtos: ${response.getContentText()}`);
-  }
-}
-
-/**
- * 🔄 Sincroniza categorias para o Supabase
- */
 function syncCategoriesToSupabase() {
   if (SUPABASE_URL.includes('SEU_PROJECT')) return;
-  
-  const categories = getCategories();
-  
-  const supabaseData = categories.map((c, idx) => ({
-    id: c.ID_Categoria,
-    nome: c.Nome_Categoria,
-    ordem: idx
-  }));
-  
-  Logger.log(`📦 Sincronizando ${supabaseData.length} categorias`);
-  
-  const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/categories`, {
-    method: 'POST',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'resolution=merge-duplicates'
-    },
-    payload: JSON.stringify(supabaseData),
-    muteHttpExceptions: true
-  });
-  
-  if (response.getResponseCode() === 201 || response.getResponseCode() === 200) {
-    Logger.log(`✅ Categorias sincronizadas: ${response.getResponseCode()}`);
-    
-    // 🗑️ Deletar categorias que foram removidas do Google Sheets
-    const currentIds = categories.map(c => String(c.ID_Categoria)).filter(id => id);
-    deleteOrphanedFromSupabase('categories', currentIds);
-  } else {
-    Logger.log(`❌ Erro sync categorias: ${response.getContentText()}`);
-  }
+  SpreadsheetApp.flush();
+  const cats = getCategories();
+  const data = cats.map((c, idx) => ({ id: String(c.ID_Categoria).trim(), nome: c.Nome_Categoria, ordem: idx }));
+  try {
+    UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/categories`, {
+      method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+      payload: JSON.stringify(data), muteHttpExceptions: true
+    });
+    deleteOrphanedFromSupabase('categories', data.map(c => c.id));
+  } catch (e) {}
 }
 
-/**
- * 🔄 Sincroniza TODOS os banners para o Supabase (ativos e inativos)
- */
 function syncBannersToSupabase() {
   if (SUPABASE_URL.includes('SEU_PROJECT')) return;
-  
-  // 🔥 CORREÇÃO: Buscar TODOS os banners, não apenas os ativos
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('BANNERS');
-  if (!sheet) {
-    Logger.log('⚠️ Sheet BANNERS não encontrada');
-    return;
-  }
-  
-  const allBanners = sheetToJSON(sheet);
-  
-  const supabaseData = allBanners.map((b, idx) => {
-    // ✅ CORREÇÃO: Usar valor REAL de Ativo do Google Sheets
-    let isActive = false;
-    const ativoValue = b.Ativo;
-    if (ativoValue === true) {
-      isActive = true;
-    } else if (ativoValue !== null && ativoValue !== undefined) {
-      const strVal = String(ativoValue).toUpperCase().trim();
-      isActive = strVal === 'TRUE' || strVal === 'SIM' || strVal === 'YES' || strVal === '1' || strVal === 'S' || strVal === 'OK';
-    }
-    
-    return {
-      id: b.ID_Banner || `banner-${idx}`,
-      titulo: b.Titulo || '',
-      subtitulo: b.Subtitulo || '',
-      imagem_url: normalizarUrlImagem(b) || '',
-      cta_text: b.Texto_CTA || '',
-      ativo: isActive, // ✅ Agora usa valor real!
-      ordem: idx
-    };
-  });
-  
-  Logger.log(`🖼️ Sincronizando ${supabaseData.length} banners (ativos: ${supabaseData.filter(b => b.ativo).length}, inativos: ${supabaseData.filter(b => !b.ativo).length})`);
-  
-  const response = UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/banners`, {
-    method: 'POST',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'resolution=merge-duplicates'
-    },
-    payload: JSON.stringify(supabaseData),
-    muteHttpExceptions: true
-  });
-  
-  if (response.getResponseCode() === 201 || response.getResponseCode() === 200) {
-    Logger.log(`✅ Banners sincronizados: ${response.getResponseCode()}`);
-    
-    // 🗑️ Deletar banners que foram removidos do Google Sheets
-    const currentIds = allBanners.map(b => String(b.ID_Banner)).filter(id => id);
-    deleteOrphanedFromSupabase('banners', currentIds);
-  } else {
-    Logger.log(`❌ Erro sync banners: ${response.getContentText()}`);
-  }
+  if (!sheet) return;
+  SpreadsheetApp.flush();
+  const banners = sheetToJSON(sheet);
+  const data = banners.map((b, idx) => ({
+    id: b.ID_Banner || `banner-${idx}`,
+    titulo: b.Titulo || '', subtitulo: b.Subtitulo || '', imagem_url: normalizarUrlImagem(b) || '', cta_text: b.Texto_CTA || '',
+    ativo: (b.Ativo === true || ['TRUE', 'SIM'].includes(String(b.Ativo).toUpperCase())), ordem: idx
+  }));
+  try {
+    UrlFetchApp.fetch(`${SUPABASE_URL}/rest/v1/banners`, {
+      method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+      payload: JSON.stringify(data), muteHttpExceptions: true
+    });
+    deleteOrphanedFromSupabase('banners', data.map(b => b.id));
+  } catch (e) {}
 }
 
-/**
- * 🚀 SYNC COMPLETO - Executar manualmente ou via trigger
- * Sincroniza produtos, categorias, banners e cupons de uma vez
- */
 function fullSyncToSupabase() {
-  Logger.log('🚀 Iniciando sincronização completa para Supabase...');
-  
   syncProductsToSupabase();
   syncCategoriesToSupabase();
   syncBannersToSupabase();
-  syncAllCouponsToSupabase(); // 🎟️ NOVO: Sincronizar cupons
-  syncCouponHistoryToSupabase(); // 📜 NOVO: Sincronizar histórico
-  
-  Logger.log('✅ Sincronização completa finalizada!');
+  syncAllCouponsToSupabase();
+  syncCouponHistoryToSupabase();
 }
 
 /**
- * 🎯 TRIGGER AUTOMÁTICO: Executar após qualquer edição na planilha
- * Configurar em: Gatilhos > Adicionar gatilho > onChange
+ * 🎯 TRIGGER AUTOMÁTICO
+ * Configurar no painel: onSheetChange > Ao alterar
  */
 function onSheetChange(e) {
-  if (SUPABASE_URL.includes('SEU_PROJECT')) return; // Não executar se não configurado
-  
+  if (SUPABASE_URL.includes('SEU_PROJECT')) return;
   const sheetName = e.source.getActiveSheet().getName();
-  
   if (['GELADINHOS', 'CATEGORIAS_GELADINHO', 'BANNERS', 'CUPONS'].includes(sheetName)) {
-    Logger.log(`📝 Mudança em ${sheetName}, sincronizando...`);
-    
-    Utilities.sleep(2000); // Aguardar edição ser salva
-    
+    Utilities.sleep(3000); // Wait for edits to finish
     switch(sheetName) {
       case 'GELADINHOS': syncProductsToSupabase(); break;
       case 'CATEGORIAS_GELADINHO': syncCategoriesToSupabase(); break;
       case 'BANNERS': syncBannersToSupabase(); break;
-      case 'CUPONS': syncAllCouponsToSupabase(); break; // 🎟️ NOVO
+      case 'CUPONS': syncAllCouponsToSupabase(); break;
     }
   }
 }
 
-
-// ============================================================================
-// ⚡ NOVA FUNÇÃO: Atualiza Produto_Ativo instantaneamente após baixa de estoque
-// ============================================================================
 /**
- * Atualiza o status Produto_Ativo dos produtos especificados
- * ULTRA-RÁPIDA: Só processa os produtos que tiveram estoque alterado
- * 
- * @param {Array<string>} productIds - Array com IDs dos produtos a atualizar
+ * =====================================================
+ * 🛒 ORDER & STOCK SYSTEM (OPTIMIZED BATCH)
+ * =====================================================
  */
-function atualizarProdutosEspecificos(productIds) {
-  if (!productIds || productIds.length === 0) return;
-  
+function createOrder(d) {
+  const lock = LockService.getScriptLock();
+  try { lock.waitLock(8000); } catch (e) { return { success: false, message: "Sistema ocupado. Tente novamente." }; }
+
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName('GELADINHOS');
-    
-    if (!sheet) {
-      Logger.log('⚠️ Sheet GELADINHOS não encontrada');
-      return;
-    }
-    
-    // Ler dados da planilha
-    const data = sheet.getDataRange().getValues();
-    const headers = data[0];
-    
-    // Encontrar índices das colunas
-    const idIndex = headers.indexOf('ID_Geladinho');
-    const estoqueIndex = headers.indexOf('Estoque_Atual');
-    const ativoIndex = headers.indexOf('Produto_Ativo');
-    
-    // Validar se colunas existem
-    if (idIndex === -1 || estoqueIndex === -1 || ativoIndex === -1) {
-      Logger.log('⚠️ Colunas necessárias não encontradas para atualizar Produto_Ativo');
-      return;
-    }
-    
-    // Atualizar cada produto do pedido
-    let atualizados = 0;
-    
-    productIds.forEach(prodId => {
-      for (let i = 1; i < data.length; i++) {
-        if (String(data[i][idIndex]).trim() === String(prodId).trim()) {
-          const estoqueAtual = Number(data[i][estoqueIndex]) || 0;
-          const novoStatus = estoqueAtual > 0;
-          
-          // Atualizar status do produto
-          sheet.getRange(i + 1, ativoIndex + 1).setValue(novoStatus);
-          
-          atualizados++;
-          Logger.log(`⚡ ${prodId}: Produto_Ativo = ${novoStatus} (Estoque: ${estoqueAtual})`);
-          break;
-        }
+    const V = ss.getSheetByName('VENDAS');
+    const I = ss.getSheetByName('ITENS_VENDA');
+    const G = ss.getSheetByName('GELADINHOS');
+    const C = ss.getSheetByName('CLIENTES');
+    const H = ss.getSheetByName('CUPONS_HISTORICO');
+
+    const id = Utilities.getUuid();
+    const now = new Date();
+    const disc = Number(d.discountValue || 0);
+    const pts = Number(d.pointsRedeemed || 0);
+    let obs = pts > 0 ? `Usou ${pts} pts` : (d.referralCode ? `Ref: ${d.referralCode}` : '');
+    if (d.couponCode) obs += ` | Cupom: ${d.couponCode}`;
+
+    const productsToUpdateInSupabase = [];
+
+    // 1. Estoque e Itens (Leitura e Escrita em Lote)
+    if (d.cart) {
+      const gData = G.getDataRange().getValues();
+      const headers = gData[0].map(h => String(h).trim());
+      const idIdx = headers.indexOf('ID_Geladinho');
+      const stkIdx = headers.indexOf('Estoque_Atual');
+      const nomeIdx = headers.indexOf('Nome_Geladinho');
+      const precoIdx = headers.indexOf('Preco_Venda');
+      const imgIdx = headers.indexOf('Imagem_Geladinho');
+      const ativoIdx = headers.indexOf('Produto_Ativo');
+
+      if (idIdx === -1 || stkIdx === -1) return { success: false, message: "Erro estrutural: Estoque." };
+
+      const stockMap = {};
+      for (let i = 1; i < gData.length; i++) {
+        const pId = String(gData[i][idIdx]).trim();
+        if (pId) stockMap[pId] = { 
+          current: Number(gData[i][stkIdx]) || 0, row: i + 1, nome: gData[i][nomeIdx] || pId,
+          preco: gData[i][precoIdx], imagem_raw: gData[i][imgIdx]
+        };
       }
-    });
-    
-    if (atualizados > 0) {
-      Logger.log(`✅ ${atualizados} produto(s) atualizado(s) instantaneamente`);
-    }
-    
-  } catch (error) {
-    Logger.log('⚠️ Erro ao atualizar Produto_Ativo: ' + error.toString());
-    // Não retorna erro para não quebrar o fluxo do pedido
-  }
-}
 
-function doGet(e) { return handleRequest(e); }
-function doPost(e) { return handleRequest(e); }
-
-function handleRequest(e) {
-  const lock = LockService.getScriptLock();
-  try { lock.waitLock(30000); } catch (e) {
-    return ContentService.createTextOutput(JSON.stringify({ success: false, message: "Servidor ocupado." })).setMimeType(ContentService.MimeType.JSON);
-  }
-
-  try {
-    const action = e.parameter.action;
-    let data = {};
-    if (e.postData && e.postData.contents) {
-      try { data = JSON.parse(e.postData.contents); } catch (err) { }
-    }
-
-    if (['getAdminOrders', 'updateOrderStatus', 'getOrderItems', 'getDashboardStats', 'getAdminReviews', 'updateReviewStatus'].includes(action)) {
-      const providedKey = e.parameter.adminKey || data.adminKey;
-      if (String(providedKey).trim() !== ADMIN_PASS) {
-        return ContentService.createTextOutput(JSON.stringify({ success: false, error: "Unauthorized" })).setMimeType(ContentService.MimeType.JSON);
+      // Validação
+      for (const item of d.cart) {
+        const qtdPedida = Number(item.quantity) || 1;
+        const prodId = String(item.id).trim();
+        const info = stockMap[prodId];
+        if (!info) return { success: false, message: `Produto inválido: ${item.nome}` };
+        if (info.current < qtdPedida) return { success: false, message: `Estoque insuficiente: ${info.nome} (Restam: ${info.current})` };
       }
-    }
 
-    let result;
+      // Preparar Batch Write
+      const newItemsRows = [];
+      d.cart.forEach(item => {
+        const qtd = Number(item.quantity) || 1;
+        const pId = String(item.id).trim();
+        const info = stockMap[pId];
 
-    switch (action) {
-      // 🚀 OTIMIZAÇÃO: Endpoint consolidado com cache
-      case 'getCatalogData': result = getCatalogData(); break;
-      
-      case 'getProducts': result = getProducts(); break;
-      case 'getCategories': result = getCategories(); break;
-      case 'getBanners': result = getBanners(); break;
-      case 'getConfig': result = getConfig(); break;
-      case 'getOrders': result = getOrders(e.parameter.customerId); break;
-      case 'validateCoupon':
-        if (e.postData && e.postData.contents) {
-          result = validateCouponWithContext(data);
-        } else {
-          result = validateCoupon(e.parameter.code);
+        newItemsRows.push([Utilities.getUuid(), id, pId, qtd, item.price, qtd * item.price]);
+        
+        const novoEstoque = info.current - qtd;
+        G.getRange(info.row, stkIdx + 1).setValue(novoEstoque);
+        
+        // Se zerar, desativar
+        if (novoEstoque <= 0 && ativoIdx > -1) {
+             G.getRange(info.row, ativoIdx + 1).setValue(false);
         }
-        break;
-      case 'getReviews': result = getProductReviews(e.parameter.productId); break;
-      case 'getProductWithAdditions': result = getProductWithAdditions(e.parameter.productId); break;
-      case 'calculateItemPrice': result = validateAndCalculatePrice(data); break;
-      case 'getAdminOrders': result = getAdminOrders(); break;
-      case 'getOrderItems': result = getOrderItems(e.parameter.orderId); break;
-      case 'getDashboardStats': result = getDashboardStats(); break;
-      case 'getAdminReviews': result = getAdminReviews(); break;
-      case 'createCustomer': result = createCustomer(data); break;
-      case 'loginCustomer': result = loginCustomer(data); break;
-      case 'createOrder': result = createOrder(data); break;
-      case 'updateFavorites': result = updateFavorites(data); break;
-      case 'updateOrderStatus': result = updateOrderStatus(data); break;
-      case 'createReview': result = createReview(data); break;
-      case 'updateReviewStatus': result = updateReviewStatus(data); break;
 
-      // --- MIX GOURMET SYSTEM ---
-      case 'getMixWithFlavorAndAdditions': result = getMixWithFlavorAndAdditions(e.parameter.mixId); break;
-      case 'calculateMixPrice': result = calculateMixPrice(data); break;
+        productsToUpdateInSupabase.push({
+          id: pId, nome: info.nome, preco: info.preco, estoque: novoEstoque,
+          categoria_id: '', descricao: '', imagem_url: normalizarUrlImagem({ 'Imagem_Geladinho': info.imagem_raw })
+        });
+      });
 
-      // --- PROMOTION/RAFFLE SYSTEM ---
-      case 'getMinhasChances': result = getMinhasChances(e.parameter.customerId); break;
-
-      // --- REFERRAL CODE VALIDATION ---
-      case 'validateReferralCode': result = validateReferralCode(e.parameter.code, e.parameter.customerId); break;
-
-      // --- GEOAPIFY DELIVERY ---
-      case 'calculateDelivery': result = calculateDeliveryFee(data); break;
-
-      default: result = { error: 'Ação inválida' };
+      if (newItemsRows.length > 0) {
+         I.getRange(I.getLastRow() + 1, 1, newItemsRows.length, newItemsRows[0].length).setValues(newItemsRows);
+      }
+      SpreadsheetApp.flush(); // FLUSH CRÍTICO
     }
 
-    return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+    // 2. Registrar Venda
+    const nomeCliente = d.customer?.name || d.customer?.details?.nome || 'Visitante';
+    const telCliente = d.customer?.details?.telefone || '';
+    const isGuest = !d.customer?.id || d.customer?.id === 'GUEST';
+
+    V.appendRow([
+      id, now, isGuest ? 'GUEST' : d.customer.id, obs, d.total, d.total, 'Pendente', disc, pts > 0,
+      d.deliveryFee, nomeCliente, d.customer?.details?.torre, d.customer?.details?.apto, d.paymentMethod, d.scheduling || 'Imediata', telCliente
+    ]);
+
+    // 3. Cupom
+    if (H && d.couponCode && !isGuest) {
+      try {
+        const idHist = Utilities.getUuid();
+        H.appendRow([idHist, d.couponCode, d.customer.id, id, now, disc]);
+        syncSingleUsageToSupabase({ ID_Historico: idHist, Codigo_Cupom: d.couponCode, ID_Cliente: d.customer.id, ID_Venda: id, Data_Uso: now, Valor_Desconto: disc });
+      } catch (e) {}
+    }
+
+    // 4. Fidelidade e Indicação
+    if (!isGuest) processLoyaltyAndReferral(C, d, pts);
+
+    // 5. Sync Rápido Supabase
+    if (productsToUpdateInSupabase.length > 0) syncUpdatedProductsToSupabase(productsToUpdateInSupabase);
+
+    // 6. Notificar Alexa
+    try {
+       const qtdTotal = d.cart ? d.cart.reduce((a, b) => a + (Number(b.quantity)||1), 0) : 0;
+       notifyAlexaNewOrder({ nomeCliente: nomeCliente, total: d.total, qtdItens: qtdTotal });
+    } catch (e) {}
+
+    return { success: true, idVenda: id };
 
   } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({ success: false, message: "Erro: " + error.toString() })).setMimeType(ContentService.MimeType.JSON);
+    return { success: false, message: "Erro: " + error.toString() };
   } finally {
     lock.releaseLock();
   }
 }
 
-/**
- * Normaliza URL de imagem, detectando se é URL completa ou path relativo do AppSheet
- * @param {Object} row - Linha da planilha com possíveis colunas de imagem
- * @returns {string} URL normalizada ou string vazia
- */
-function normalizarUrlImagem(row) {
-  // Lista de possíveis colunas de imagem em ordem de prioridade
-  const possiveisColunas = [
-    'Imagem_Geladinho',    // Nome real da coluna na planilha GELADINHOS
-    'Imagem_URL',          // Usado em MIX_SABORES e ADICIONAIS
-    'URL_IMAGEM_CACHE',
-    'URL_Imagem',
-    'Imagem',
-    'URL_Imagem_Cache'
-  ];
+function processLoyaltyAndReferral(C, d, pts) {
+  const cData = C.getDataRange().getValues();
+  const h = cData[0].map(x => String(x).trim());
+  const idIdx = h.indexOf('ID_Cliente');
+  const ptsIdx = h.indexOf('Pontos_Fidelidade');
+  const codeIdx = h.indexOf('Codigo_Convite');
+  const indIdx = h.indexOf('Indicado_Por');
   
-  // Tentar cada coluna até encontrar um valor válido
-  for (const coluna of possiveisColunas) {
-    const valor = row[coluna];
-    if (!valor) continue;
-    
-    const valorStr = String(valor).trim();
-    if (!valorStr) continue;
-    
-    // Se já for uma URL completa, retornar
-    if (valorStr.startsWith('http://') || valorStr.startsWith('https://')) {
-      return valorStr;
-    }
-    
-    // Se for path relativo do AppSheet (ex: GELADINHOS_Images/arquivo.jpg)
-    // Tentar converter para URL pública do Google Drive
-    if (valorStr.includes('/') || valorStr.includes('_Images')) {
-      Logger.log('🔍 Path AppSheet detectado: ' + valorStr + ' - Tentando converter...');
-      
-      try {
-        // Extrair nome do arquivo do path
-        const fileName = valorStr.split('/').pop();
-        
-        // Tentar encontrar o arquivo no Google Drive
-        const files = DriveApp.getFilesByName(fileName);
-        
-        if (files.hasNext()) {
-          const file = files.next();
-          
-          // Garantir que o arquivo está compartilhado publicamente
-          file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-          
-          // Gerar URL pública usando thumbnail ID (mais confiável que uc?export=view)
-          const fileId = file.getId();
-          const publicUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
-          
-          Logger.log('✅ Convertido com sucesso: ' + publicUrl);
-          return publicUrl;
-        } else {
-          Logger.log('⚠️ Arquivo não encontrado no Drive: ' + fileName);
-          return '';
-        }
-      } catch (e) {
-        Logger.log('❌ Erro ao converter path: ' + e.toString());
-        return '';
-      }
+  if (idIdx === -1 || ptsIdx === -1) return;
+
+  let row = -1;
+  let client = null;
+  for (let i = 1; i < cData.length; i++) {
+    if (String(cData[i][idIdx]) === String(d.customer.id)) {
+      row = i + 1; client = cData[i]; break;
     }
   }
-  
-  return '';
-}
 
-function getProducts() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GELADINHOS');
-  if (!sheet) return [];
-  
-  // 🔥 OTIMIZAÇÃO: Filtrar produtos ativos ANTES de processar imagens
-  const values = sheet.getDataRange().getValues();
-  const headers = values[0];
-  const ativoIndex = headers.indexOf('Produto_Ativo');
-  
-  // Se coluna não existe, usar abordagem antiga
-  if (ativoIndex === -1) {
-    Logger.log('⚠️ Coluna Produto_Ativo não encontrada, usando fallback');
-    const data = sheetToJSON(sheet);
-    return data.map(p => ({
-      ...p,
-      URL_IMAGEM_CACHE: normalizarUrlImagem(p)
-    }));
-  }
-  
-  const activeProducts = [];
-  for (let i = 1; i < values.length; i++) {
-    const ativoValue = values[i][ativoIndex];
-    
-    // 🔥 FILTRO ULTRA-ROBUSTO: Aceita múltiplos formatos e limpa espaços
-    let isActive = false;
-    
-    if (ativoValue === true) {
-      isActive = true;
-    } else if (ativoValue !== null && ativoValue !== undefined) {
-      const strVal = String(ativoValue).toUpperCase().trim();
-      isActive = strVal === 'TRUE' || strVal === 'SIM' || strVal === 'YES' || strVal === '1' || strVal === 'S' || strVal === 'OK';
+  if (row > 0) {
+    const earned = Math.floor(Number(d.total));
+    const bonus = Number(d.bonusPoints || 0);
+    const newPts = Math.max(0, (Number(client[ptsIdx]) || 0) + earned + bonus - pts);
+    C.getRange(row, ptsIdx + 1).setValue(newPts);
+
+    if (d.customer.details) {
+      const det = d.customer.details;
+      const tIdx = h.indexOf('Torre'); const aIdx = h.indexOf('Apartamento'); const eIdx = h.indexOf('Endereco');
+      if (tIdx > -1 && det.torre) C.getRange(row, tIdx + 1).setValue(det.torre);
+      if (aIdx > -1 && det.apto) C.getRange(row, aIdx + 1).setValue(det.apto);
+      if (eIdx > -1 && det.rua) C.getRange(row, eIdx + 1).setValue(`${det.rua}, ${det.numero} - ${det.bairro}`);
     }
-    
-    if (isActive) {
-      const obj = {};
-      headers.forEach((h, idx) => {
-        if (h) obj[h] = values[i][idx];
-      });
-      activeProducts.push(obj);
+
+    if (d.referralCode && codeIdx > -1) {
+       const jaUsou = indIdx > -1 && String(client[indIdx] || '').trim() !== '';
+       if (!jaUsou) {
+         for (let k = 1; k < cData.length; k++) {
+           if (String(cData[k][codeIdx]).trim() == String(d.referralCode).trim() && String(cData[k][idIdx]) !== String(d.customer.id)) {
+             C.getRange(k + 1, ptsIdx + 1).setValue((Number(cData[k][ptsIdx]) || 0) + 50);
+             if (indIdx > -1) C.getRange(row, indIdx + 1).setValue(d.referralCode);
+             break;
+           }
+         }
+       }
     }
   }
-  
-  if (activeProducts.length === 0 && values.length > 1) {
-    Logger.log('⚠️ AVISO: Nenhum produto ativo filtrado entre ' + (values.length - 1) + ' linhas.');
-  }
-  
-  Logger.log(`✅ Produtos ativos: ${activeProducts.length}/${values.length - 1}`);
-  
-  // Processar imagens apenas para produtos ativos
-  return activeProducts.map(p => {
-    const urlImagem = normalizarUrlImagem(p);
-    return {
-      ...p,
-      URL_IMAGEM_CACHE: urlImagem
-    };
-  });
-}
-
-// 🚀 OTIMIZAÇÃO CRÍTICA: Endpoint consolidado com cache agressivo
-function getCatalogData() {
-  const cache = CacheService.getScriptCache();
-  const CACHE_KEY = 'catalog_data_v2'; // v2 para invalidar caches antigos
-  const CACHE_TTL = 300; // ⚡ 5 minutos - cache mais agressivo para reduzir cold starts
-  
-  // Tentar buscar do cache primeiro
-  const cached = cache.get(CACHE_KEY);
-  if (cached) {
-    Logger.log('⚡ CACHE HIT - Retornando dados em <50ms');
-    return JSON.parse(cached);
-  }
-  
-  Logger.log('🌐 CACHE MISS - Buscando dados das planilhas...');
-  const startTime = new Date().getTime();
-  
-  // Buscar todos os dados de uma vez
-  const products = getProducts();
-  const categories = getCategories();
-  const banners = getBanners();
-  
-  const catalogData = {
-    products,
-    categories,
-    banners,
-    _cached_at: new Date().toISOString()
-  };
-  
-  // 🛡️ PROTEÇÃO: Não cachear se o catálogo veio vazio mas a planilha tem dados
-  if (products.length === 0) {
-    Logger.log('🚫 Ignorando cache: Catálogo vazio detectado.');
-    return catalogData;
-  }
-  
-  // Armazenar no cache
-  try {
-    cache.put(CACHE_KEY, JSON.stringify(catalogData), CACHE_TTL);
-    const endTime = new Date().getTime();
-    Logger.log(`✅ Dados cacheados com sucesso (${endTime - startTime}ms)`);
-  } catch (e) {
-    Logger.log('⚠️ Erro ao cachear dados: ' + e.toString());
-  }
-  
-  return catalogData;
-}
-
-function getCategories() {
-  return sheetToJSON(SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CATEGORIAS_GELADINHO'));
-}
-
-function getBanners() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('BANNERS');
-  if (!sheet) return [];
-  
-  // 🔥 OTIMIZAÇÃO: Filtrar banners ativos ANTES de processar imagens
-  const values = sheet.getDataRange().getValues();
-  const headers = values[0];
-  const ativoIndex = headers.indexOf('Ativo');
-  
-  if (ativoIndex === -1) {
-    Logger.log('⚠️ Coluna Ativo não encontrada em BANNERS, usando fallback');
-    const data = sheetToJSON(sheet);
-    return data.map(banner => ({
-      ...banner,
-      URL_Imagem: normalizarUrlImagem(banner) || banner.URL_Imagem || ''
-    }));
-  }
-  
-  const activeBanners = [];
-  for (let i = 1; i < values.length; i++) {
-    if (String(values[i][ativoIndex]).toUpperCase() === 'TRUE') {
-      const obj = {};
-      headers.forEach((h, idx) => {
-        if (h) obj[h] = values[i][idx];
-      });
-      activeBanners.push(obj);
-    }
-  }
-  
-  Logger.log(`✅ Banners ativos carregados: ${activeBanners.length}/${values.length - 1}`);
-  
-  return activeBanners.map(banner => {
-    const urlImagem = normalizarUrlImagem(banner);
-    return {
-      ...banner,
-      URL_Imagem: urlImagem || banner.URL_Imagem || ''
-    };
-  });
-}
-
-function getConfig() {
-  return sheetToJSON(SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CONFIGURACOES'));
-}
-
-function getOrders(cid) {
-  return sheetToJSON(SpreadsheetApp.getActiveSpreadsheet().getSheetByName('VENDAS'))
-    .filter(o => String(o.ID_Cliente).trim() === String(cid).trim()).reverse();
-}
-
-function getAdminOrders() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const vendas = sheetToJSON(ss.getSheetByName('VENDAS'));
-  const clientes = sheetToJSON(ss.getSheetByName('CLIENTES'));
-
-  const clienteMap = {};
-  clientes.forEach(cliente => {
-    if (cliente.ID_Cliente) {
-      clienteMap[String(cliente.ID_Cliente).trim()] = cliente.Nome || 'Cliente';
-    }
-  });
-
-  const ordersWithNames = vendas.map(venda => {
-    const clienteId = String(venda.ID_Cliente || '').trim();
-    const customerName = clienteMap[clienteId] || venda.Nome_Cliente || 'Visitante';
-    return { ...venda, Nome_Cliente: customerName };
-  });
-
-  return { orders: ordersWithNames.reverse() };
-}
-
-function getOrderItems(oid) {
-  const iData = sheetToJSON(SpreadsheetApp.getActiveSpreadsheet().getSheetByName('ITENS_VENDA'));
-  const pData = sheetToJSON(SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GELADINHOS'));
-  const items = iData.filter(i => String(i.ID_Venda).trim() === String(oid).trim());
-  return items.map(i => {
-    const p = pData.find(pid => String(pid.ID_Geladinho).trim() === String(i.ID_Geladinho).trim());
-    return { nome: p ? p.Nome_Geladinho : 'Item excluído', qtd: i.Quantidade, total: i.Total_Item };
-  });
-}
-
-function validateCoupon(code) {
-  const data = sheetToJSON(SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CUPONS'));
-  const cp = data.find(c => String(c.Codigo).trim().toUpperCase() === String(code).trim().toUpperCase());
-  if (cp && String(cp.Ativo).toUpperCase() === 'TRUE') return { success: true, type: cp.Tipo, value: Number(cp.Valor) };
-  return { success: false, message: 'Inválido' };
 }
 
 /**
- * ⚡ VALIDAÇÃO OTIMIZADA DE CUPOM
- * Fluxo: Supabase (rápido) → Fallback Google Sheets
- * 
- * @param {Object} data - { code, customerId, subtotal }
- * @returns {Object} Mesmo formato: { success, type, value, codigo, tipoUso, message }
+ * =====================================================
+ * 🔌 MIX SYSTEM & REVIEWS (RESTORED)
+ * =====================================================
  */
-function validateCouponWithContext(data) {
-  const code = String(data.code || '').trim().toUpperCase();
-  const customerId = String(data.customerId || '').trim();
-  const subtotal = Number(data.subtotal || 0);
 
-  if (!code) {
-    return { success: false, message: 'Código do cupom não informado' };
-  }
-
-  // 1️⃣ TENTAR SUPABASE PRIMEIRO (rápido, ~50ms)
-  const supabaseCoupon = getCouponFromSupabase(code);
-  
-  if (supabaseCoupon) {
-    Logger.log(`⚡ [Supabase] Validando cupom ${code}`);
-    
-    // Validar regras de negócio com dados do Supabase
-    const validation = validateCouponRulesFromCache(supabaseCoupon, code, customerId, subtotal);
-    if (validation) {
-      return validation;
-    }
-  }
-
-  // 2️⃣ FALLBACK: GOOGLE SHEETS (mais lento, ~500ms)
-  Logger.log(`📊 [Sheets Fallback] Validando cupom ${code}`);
-  
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const cuponsSheet = ss.getSheetByName('CUPONS');
-  const historicoSheet = ss.getSheetByName('CUPONS_HISTORICO');
-
-  if (!cuponsSheet) return { success: false, message: 'Sistema de cupons indisponível' };
-  if (!historicoSheet) return { success: false, message: 'Histórico não configurado' };
-
-  const cupons = sheetToJSON(cuponsSheet);
-  const historico = sheetToJSON(historicoSheet);
-
-  const coupon = cupons.find(c =>
-    String(c.Codigo).trim().toUpperCase() === code &&
-    String(c.Ativo).toUpperCase() === 'TRUE'
-  );
-
-  if (!coupon) {
-    return { success: false, message: 'Cupom inválido ou inativo' };
-  }
-
-  // Validar data de validade
-  if (coupon.Data_Validade) {
-    const validade = new Date(coupon.Data_Validade);
-    const hoje = new Date();
-    if (hoje > validade) {
-      return { success: false, message: 'Cupom expirado' };
-    }
-  }
-
-  // Validar valor mínimo
-  const valorMinimo = Number(coupon.Valor_Minimo_Pedido || 0);
-  if (valorMinimo > 0 && subtotal < valorMinimo) {
-    return {
-      success: false,
-      message: `Valor mínimo: R$ ${valorMinimo.toFixed(2)}`
-    };
-  }
-
-  // Validar uso único
-  // 🔒 SECURITY FIX: Exige login para uso de cupons únicos
-  if (String(coupon.Tipo_Uso).toUpperCase() === 'UNICO') {
-    if (!customerId || customerId === 'GUEST') {
-      return { success: false, message: 'Faça login para usar este cupom' };
-    }
-    
-    // Validar se já usou
-    const jaUsou = historico.some(h =>
-      String(h.Codigo_Cupom).trim().toUpperCase() === code &&
-      String(h.ID_Cliente).trim() === customerId
-    );
-
-    if (jaUsou) {
-      return { success: false, message: 'Cupom já utilizado por você' };
-    }
-  }
-
-  // Validar uso máximo global
-  const usoMaximo = Number(coupon.Uso_Maximo || 0);
-  if (usoMaximo > 0) {
-    const totalUsos = historico.filter(h =>
-      String(h.Codigo_Cupom).trim().toUpperCase() === code
-    ).length;
-
-    if (totalUsos >= usoMaximo) {
-      return { success: false, message: 'Cupom esgotado' };
-    }
-  }
-
-  // ✅ Cupom válido - Sincronizar para Supabase (para próximas consultas serem rápidas)
-  syncSingleCouponToSupabase(coupon);
-
-  return {
-    success: true,
-    type: coupon.Tipo,
-    value: Number(coupon.Valor || 0),
-    codigo: code,
-    tipoUso: coupon.Tipo_Uso
-  };
-}
-
-/**
- * ⚡ Valida regras de negócio usando dados do cache Supabase
- * @returns {Object|null} Resultado da validação ou null se precisa fallback
- */
-function validateCouponRulesFromCache(supabaseCoupon, code, customerId, subtotal) {
-  try {
-    // Verificar se está ativo
-    if (!supabaseCoupon.active) {
-      return { success: false, message: 'Cupom inválido ou inativo' };
-    }
-
-    // Verificar validade
-    if (supabaseCoupon.valid_until) {
-      const validade = new Date(supabaseCoupon.valid_until);
-      const hoje = new Date();
-      if (hoje > validade) {
-        return { success: false, message: 'Cupom expirado' };
-      }
-    }
-
-    // Verificar valor mínimo
-    const valorMinimo = Number(supabaseCoupon.min_value || 0);
-    if (valorMinimo > 0 && subtotal < valorMinimo) {
-      return {
-        success: false,
-        message: `Valor mínimo: R$ ${valorMinimo.toFixed(2)}`
-      };
-    }
-
-    // Para uso único e uso máximo, precisamos verificar histórico (ainda do Sheets)
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const historicoSheet = ss.getSheetByName('CUPONS_HISTORICO');
-    
-    if (!historicoSheet) {
-      return null; // Fallback para validação completa via Sheets
-    }
-    
-    const historico = sheetToJSON(historicoSheet);
-
-    // Verificar uso único
-    // 🔒 SECURITY FIX: Exige login para uso de cupons únicos
-    if (String(supabaseCoupon.usage_type).toUpperCase() === 'UNICO') {
-      if (!customerId || customerId === 'GUEST') {
-        return { success: false, message: 'Faça login para usar este cupom' };
-      }
-      
-      const jaUsou = historico.some(h =>
-        String(h.Codigo_Cupom).trim().toUpperCase() === code &&
-        String(h.ID_Cliente).trim() === customerId
-      );
-
-      if (jaUsou) {
-        return { success: false, message: 'Cupom já utilizado por você' };
-      }
-    }
-
-    // Verificar uso máximo global
-    const usoMaximo = Number(supabaseCoupon.max_usage || 0);
-    if (usoMaximo > 0) {
-      const totalUsos = historico.filter(h =>
-        String(h.Codigo_Cupom).trim().toUpperCase() === code
-      ).length;
-
-      if (totalUsos >= usoMaximo) {
-        return { success: false, message: 'Cupom esgotado' };
-      }
-    }
-
-    // ✅ Cupom válido via cache
-    Logger.log(`✅ [Cache] Cupom ${code} validado com sucesso`);
-    
-    return {
-      success: true,
-      type: supabaseCoupon.type,
-      value: Number(supabaseCoupon.value || 0),
-      codigo: code,
-      tipoUso: supabaseCoupon.usage_type
-    };
-
-  } catch (error) {
-    Logger.log(`⚠️ Erro na validação via cache: ${error.toString()}`);
-    return null; // Fallback para validação completa via Sheets
-  }
-}
-
-function loginCustomer(d) {
-  if (String(d.phone).trim().toLowerCase() === ADMIN_LOGIN && String(d.password).trim() === ADMIN_PASS)
-    return { success: true, customer: { ID_Cliente: 'ADMIN', Nome: 'Admin', isAdmin: true, adminKey: ADMIN_PASS } };
-
-  const users = sheetToJSON(SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CLIENTES'));
-  const u = users.find(c => String(c.Telefone).replace(/\D/g, '') === String(d.phone).replace(/\D/g, ''));
-
-  if (u && String(u.Senha) === String(d.password)) {
-    return {
-      success: true, customer: {
-        ID_Cliente: u.ID_Cliente,
-        Nome: u.Nome,
-        Telefone: u.Telefone,
-        Pontos_Fidelidade: Number(u.Pontos_Fidelidade) || 0,
-        Codigo_Convite: u.Codigo_Convite,
-        Favoritos: u.Favoritos || '',
-        Endereco: u.Endereco || '',
-        Torre: u.Torre || '',
-        Apartamento: u.Apartamento || ''
-      }
-    };
-  }
-  return { success: false, message: 'Dados inválidos.' };
-}
-
-function createCustomer(d) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('CLIENTES');
-  const users = sheetToJSON(sheet);
-
-  if (users.find(c => String(c.Telefone).replace(/\D/g, '') === String(d.phone).replace(/\D/g, '')))
-    return { success: false };
-
-  const id = 'CLI-' + Math.floor(Math.random() * 90000 + 10000);
-  const code = 'DCAP-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-  sheet.appendRow([
-    id, d.name, d.phone, '', '', '', '', '', 0, new Date(), 'SIM', d.password, code, '', ''
-  ]);
-  return { success: true, customer: { id, name: d.name, phone: d.phone, points: 0, inviteCode: code, favorites: [] } };
-}
-
-/**
- * 🔒 VALIDAÇÃO DE CÓDIGO DE INDICAÇÃO
- * Verifica se código é válido e se cliente ainda pode usar indicação
- * @param {string} code - Código de indicação
- * @param {string} customerId - ID do cliente que quer usar o código
- * @returns {Object} { valid: boolean, message: string, alreadyUsed?: boolean }
- */
-function validateReferralCode(code, customerId) {
-  if (!code || !customerId || customerId === 'GUEST') {
-    return { valid: false, message: 'Dados inválidos', alreadyUsed: false };
-  }
-
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('CLIENTES');
-  const clients = sheetToJSON(sheet);
-  const headers = sheet.getDataRange().getValues()[0];
-  
-  const normalizedCode = String(code).trim().toUpperCase();
-  const normalizedCustomerId = String(customerId).trim();
-  
-  // Índices das colunas
-  const idIdx = headers.indexOf('ID_Cliente');
-  const codeIdx = headers.indexOf('Codigo_Convite');
-  const indicadoPorIdx = headers.indexOf('Indicado_Por');
-  
-  // 1. Verificar se coluna Indicado_Por existe
-  if (indicadoPorIdx === -1) {
-    Logger.log('⚠️ Coluna Indicado_Por não encontrada na planilha CLIENTES');
-    return { valid: false, message: 'Sistema de indicação indisponível', alreadyUsed: false };
-  }
-  
-  // 2. Verificar se o código existe e pertence a outro cliente
-  let codeExists = false;
-  let ownerName = '';
-  
-  for (const client of clients) {
-    const clientCode = String(client.Codigo_Convite || '').trim().toUpperCase();
-    const clientId = String(client.ID_Cliente || '').trim();
-    
-    if (clientCode === normalizedCode) {
-      // Código encontrado
-      if (clientId === normalizedCustomerId) {
-        // Auto-indicação
-        return { valid: false, message: 'Você não pode usar seu próprio código', alreadyUsed: false };
-      }
-      codeExists = true;
-      ownerName = client.Nome || 'Cliente';
-      break;
-    }
-  }
-  
-  if (!codeExists) {
-    return { valid: false, message: 'Código de indicação não encontrado', alreadyUsed: false };
-  }
-  
-  // 3. Verificar se o cliente já usou algum código de indicação antes
-  for (const client of clients) {
-    const clientId = String(client.ID_Cliente || '').trim();
-    
-    if (clientId === normalizedCustomerId) {
-      const jaIndicado = String(client.Indicado_Por || '').trim();
-      
-      if (jaIndicado !== '') {
-        Logger.log(`🚫 Cliente ${normalizedCustomerId} já foi indicado por ${jaIndicado}`);
-        return { 
-          valid: false, 
-          message: 'Você já utilizou um código de indicação anteriormente', 
-          alreadyUsed: true,
-          usedCode: jaIndicado
-        };
-      }
-      break;
-    }
-  }
-  
-  // 4. Código válido e cliente pode usar
-  Logger.log(`✅ Código ${normalizedCode} válido para cliente ${normalizedCustomerId}`);
-  return { 
-    valid: true, 
-    message: `Código válido! Você ganhará 50 pontos de bônus.`,
-    alreadyUsed: false,
-    ownerName: ownerName
-  };
-}
-
-function updateFavorites(d) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CLIENTES');
-  const vals = sheet.getDataRange().getValues();
-  const telIdx = vals[0].indexOf('Telefone');
-  const favIdx = vals[0].indexOf('Favoritos') > -1 ? vals[0].indexOf('Favoritos') : 14;
-  const target = String(d.phone).replace(/\D/g, '');
-
-  for (let i = 1; i < vals.length; i++) {
-    if (String(vals[i][telIdx]).replace(/\D/g, '') === target) {
-      sheet.getRange(i + 1, favIdx + 1).setValue(d.favorites);
-      return { success: true };
-    }
-  }
-  return { success: false };
-}
-
-function getDashboardStats() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const vendas = sheetToJSON(ss.getSheetByName('VENDAS'));
-  const itens = sheetToJSON(ss.getSheetByName('ITENS_VENDA'));
-  const produtos = sheetToJSON(ss.getSheetByName('GELADINHOS'));
-
-  const totalRev = vendas.reduce((acc, v) => acc + (Number(v.Total_Venda) || 0), 0);
-  const totalOrds = vendas.length;
-  const avg = totalOrds > 0 ? (totalRev / totalOrds) : 0;
-
-  const today = new Date();
-  const sevenDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6);
-  const daily = {};
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(sevenDaysAgo.getFullYear(), sevenDaysAgo.getMonth(), sevenDaysAgo.getDate() + i);
-    daily[Utilities.formatDate(d, Session.getScriptTimeZone(), "dd/MM")] = 0;
-  }
-  vendas.forEach(v => {
-    const d = new Date(v.Data_Venda);
-    if (d >= sevenDaysAgo) {
-      const key = Utilities.formatDate(d, Session.getScriptTimeZone(), "dd/MM");
-      if (daily[key] !== undefined) daily[key] += Number(v.Total_Venda || 0);
-    }
-  });
-  const chart = Object.keys(daily).map(k => ({ name: k, receita: daily[k] }));
-
-  const counts = {};
-  itens.forEach(item => {
-    const pid = String(item.ID_Geladinho).trim();
-    const qtd = Number(item.Quantidade || 0);
-    if (pid && qtd > 0) counts[pid] = (counts[pid] || 0) + qtd;
-  });
-
-  const ranking = Object.keys(counts).map(id => {
-    const prod = produtos.find(p => String(p.ID_Geladinho).trim() === String(id).trim());
-    const prodName = prod ? prod.Nome_Geladinho : `Apagado (${id})`;
-    return { name: prodName, value: counts[id] };
-  });
-
-  return {
-    avgTicket: avg,
-    totalRevenue: totalRev,
-    totalOrders: totalOrds,
-    weeklyChart: chart,
-    topFlavors: ranking.sort((a, b) => b.value - a.value).slice(0, 3)
-  };
-}
-
-function createOrder(d) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const V = ss.getSheetByName('VENDAS');
-  const I = ss.getSheetByName('ITENS_VENDA');
-  const G = ss.getSheetByName('GELADINHOS');
-  const C = ss.getSheetByName('CLIENTES');
-  const H = ss.getSheetByName('CUPONS_HISTORICO');
-
-  const id = Utilities.getUuid();
-  const now = new Date();
-  const disc = Number(d.discountValue || 0);
-  const pts = Number(d.pointsRedeemed || 0);
-
-  let obs = pts > 0 ? `Usou ${pts} pts` : (d.referralCode ? `Ref: ${d.referralCode}` : '');
-  if (d.couponCode) obs += ` | Cupom: ${d.couponCode}`;
-
-  // 2. Registrar Venda
-  const nomeCliente = d.customer?.name || d.customer?.details?.nome || 'Visitante';
-  const telefoneCliente = d.customer?.details?.telefone || '';
-  const isGuest = !d.customer?.id || d.customer?.id === 'GUEST';
-
-  V.appendRow([
-    id, now, isGuest ? 'GUEST' : d.customer.id, obs,
-    d.total, d.total, 'Pendente', disc, pts > 0,
-    d.deliveryFee, nomeCliente, d.customer?.details?.torre,
-    d.customer?.details?.apto, d.paymentMethod, d.scheduling || 'Imediata',
-    telefoneCliente
-  ]);
-
-  if (d.cart) {
-    const gData = G.getDataRange().getValues();
-    const gHeaders = gData[0].map(h => String(h).trim());
-    const idIdx = gHeaders.indexOf('ID_Geladinho');
-    const stkIdx = gHeaders.indexOf('Estoque_Atual');
-    const nomeIdx = gHeaders.indexOf('Nome_Geladinho');
-
-    if (idIdx === -1 || stkIdx === -1) {
-      return { success: false, message: "Erro interno: Colunas de estoque não encontradas." };
-    }
-
-    // --- QI 145: VALIDAÇÃO ATÔMICA DE ESTOQUE ---
-    const stockMap = {};
-    for (let i = 1; i < gData.length; i++) {
-        const pId = String(gData[i][idIdx]).trim();
-        if (pId) stockMap[pId] = { 
-            current: Number(gData[i][stkIdx]) || 0, 
-            row: i + 1,
-            nome: gData[i][nomeIdx] || pId
-        };
-    }
-
-    // 1. Verificar se todos os itens têm estoque
-    for (const item of d.cart) {
-        const qtdPedida = Number(item.quantity) || 1;
-        const prodId = String(item.id).trim();
-        const info = stockMap[prodId];
-
-        if (!info) {
-            return { success: false, message: `Produto não encontrado: ${item.nome || prodId}` };
-        }
-
-        if (info.current < qtdPedida) {
-            return { 
-                success: false, 
-                message: `Estoque insuficiente para ${info.nome}. Disponível: ${info.current}, Pedido: ${qtdPedida}` 
-            };
-        }
-    }
-
-    // ⚡ NOVO: Array para coletar IDs dos produtos alterados
-    const produtosAlterados = [];
-
-    // 2. Se chegou aqui, todos têm estoque. Agora sim, processar baixa e itens.
-    d.cart.forEach(item => {
-      const qtd = Number(item.quantity) || 1;
-      const prodId = String(item.id).trim();
-      const info = stockMap[prodId];
-
-      // Registrar item da venda
-      I.appendRow([Utilities.getUuid(), id, prodId, qtd, item.price, qtd * item.price]);
-
-      // Baixar estoque (setValue atômico na linha correta)
-      G.getRange(info.row, stkIdx + 1).setValue(info.current - qtd);
-      
-      // ⚡ NOVO: Adicionar produto à lista de alterados
-      produtosAlterados.push(prodId);
-    });
-    
-    // ⚡ NOVO: Atualizar Produto_Ativo instantaneamente
-    if (produtosAlterados.length > 0) {
-      atualizarProdutosEspecificos(produtosAlterados);
-    }
-  }
-
-  if (H && d.couponCode && d.customer?.id && String(d.customer.id) !== 'GUEST') {
-    try {
-      const idHistorico = Utilities.getUuid();
-      H.appendRow([
-      ]);
-      
-      // 🔄 Sync uso para Supabase
-      syncSingleUsageToSupabase({
-        ID_Historico: idHistorico,
-        Codigo_Cupom: d.couponCode,
-        ID_Cliente: d.customer.id,
-        ID_Venda: id,
-        Data_Uso: new Date(),
-        Valor_Desconto: disc
-      });
-    } catch (e) {
-      Logger.log('Erro ao registrar histórico de cupom: ' + e);
-    }
-  }
-
-  if (d.customer?.id && String(d.customer.id) !== 'GUEST') {
-    const cData = C.getDataRange().getValues();
-    const h = cData[0].map(x => String(x).trim());
-    const idIdx = h.indexOf('ID_Cliente');
-    const ptsIdx = h.indexOf('Pontos_Fidelidade');
-    const codeIdx = h.indexOf('Codigo_Convite');
-
-    if (idIdx > -1 && ptsIdx > -1) {
-      const earned = Math.floor(Number(d.total));
-      let bonus = Number(d.bonusPoints || 0);
-
-      // 🔒 CORREÇÃO: Verificar se cliente já usou código de indicação antes
-      const indicadoPorIdx = h.indexOf('Indicado_Por');
-      
-      if (d.referralCode && codeIdx > -1) {
-        // Encontrar linha do cliente atual para verificar Indicado_Por
-        let clienteRow = -1;
-        let jaUsouIndicacao = false;
-        
-        for (let i = 1; i < cData.length; i++) {
-          if (String(cData[i][idIdx]) === String(d.customer.id)) {
-            clienteRow = i;
-            // Verificar se já tem indicação registrada
-            if (indicadoPorIdx > -1 && cData[i][indicadoPorIdx]) {
-              jaUsouIndicacao = String(cData[i][indicadoPorIdx]).trim() !== '';
-            }
-            break;
-          }
-        }
-        
-        // Só processar indicação se o cliente NUNCA usou um código antes
-        if (!jaUsouIndicacao) {
-          for (let k = 1; k < cData.length; k++) {
-            if (String(cData[k][codeIdx]).trim() == String(d.referralCode).trim()) {
-              // Não permitir auto-indicação
-              if (String(cData[k][idIdx]) !== String(d.customer.id)) {
-                // Dar 50 pontos ao indicador
-                C.getRange(k + 1, ptsIdx + 1).setValue(Number(cData[k][ptsIdx] || 0) + 50);
-                
-                // Registrar quem indicou o cliente (para bloquear usos futuros)
-                if (indicadoPorIdx > -1 && clienteRow > 0) {
-                  C.getRange(clienteRow + 1, indicadoPorIdx + 1).setValue(d.referralCode);
-                  Logger.log(`✅ Indicação registrada: ${d.customer.id} indicado por ${d.referralCode}`);
-                }
-              }
-              break;
-            }
-          }
-        } else {
-          Logger.log(`🚫 Cliente ${d.customer.id} já usou código de indicação anteriormente. Ignorando.`);
-        }
-      }
-
-      for (let i = 1; i < cData.length; i++) {
-        if (String(cData[i][idIdx]) === String(d.customer.id)) {
-          const cur = Number(cData[i][ptsIdx] || 0);
-          C.getRange(i + 1, ptsIdx + 1).setValue(Math.max(0, cur + earned + bonus - pts));
-
-          if (d.customer.details) {
-            const det = d.customer.details;
-            const tIdx = h.indexOf('Torre');
-            const aIdx = h.indexOf('Apartamento');
-            const eIdx = h.indexOf('Endereco');
-            if (tIdx > -1 && det.torre) C.getRange(i + 1, tIdx + 1).setValue(det.torre);
-            if (aIdx > -1 && det.apto) C.getRange(i + 1, aIdx + 1).setValue(det.apto);
-            if (eIdx > -1 && det.rua) C.getRange(i + 1, eIdx + 1).setValue(`${det.rua}, ${det.numero} - ${det.bairro}`);
-          }
-          break;
-        }
-      }
-    }
-  }
-
-  if (d.customer?.id && String(d.customer.id) !== 'GUEST') {
-    try {
-      const valorCompra = Number(d.total) || 0;
-      if (valorCompra > 0) {
-        atualizarGastoPromoClienteComRegistroSorteio(d.customer.id, valorCompra);
-      }
-    } catch (e) {
-      Logger.log('Erro sorteio: ' + e.toString());
-    }
-  }
-
-  // 🚀 SYNC IMEDIATO: Atualiza estoque no Supabase após cada pedido
-  try {
-    Logger.log('🔄 Sincronizando estoque com Supabase após pedido...');
-    syncProductsToSupabase();
-    Logger.log('✅ Estoque sincronizado com Supabase!');
-  } catch (syncError) {
-    Logger.log('⚠️ Erro ao sincronizar Supabase (não crítico): ' + syncError.toString());
-  }
-
-  return { success: true, idVenda: id };
-}
-
-function updateOrderStatus(d) {
-  const s = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('VENDAS');
-  const v = s.getDataRange().getValues();
-  const idx = v[0].indexOf('ID_Venda');
-  const st = v[0].indexOf('Status');
-  for (let i = 1; i < v.length; i++) {
-    if (String(v[i][idx]) === String(d.orderId)) {
-      s.getRange(i + 1, st + 1).setValue(d.newStatus);
-      return { success: true };
-    }
-  }
-  return { success: false };
-}
-
-// ======================================================
-// ADICIONAIS SYSTEM - FUNÇÕES DE PRODUTO COM ADICIONAIS
-// ======================================================
-
-/**
- * Busca produto com seus grupos de adicionais
- * @param {string} productId - ID do produto
- * @returns {Object} Produto com addition_groups populado
- */
 function getProductWithAdditions(productId) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const produtosSheet = ss.getSheetByName('GELADINHOS');
@@ -1711,27 +547,19 @@ function getProductWithAdditions(productId) {
   const produtos = sheetToJSON(produtosSheet);
   const produto = produtos.find(p => String(p.ID_Geladinho).trim() === String(productId).trim());
 
-  if (!produto) {
-    return { success: false, error: 'Produto não encontrado' };
-  }
+  if (!produto) return { success: false, error: 'Produto não encontrado' };
 
-  // Adicionar URL de imagem normalizada
   produto.URL_IMAGEM_CACHE = normalizarUrlImagem(produto);
 
-  // Se não tem adicionais, retornar apenas o produto
-  if (!produto.Tem_Adicionais || String(produto.Tem_Adicionais).toUpperCase() !== 'TRUE') {
+  if (!produto.Tem_Adicionais || (String(produto.Tem_Adicionais).toUpperCase() !== 'TRUE' && produto.Tem_Adicionais !== true)) {
     return produto;
   }
 
   const grupoIds = String(produto.IDs_Grupos_Adicionais || '').split(',').map(id => id.trim()).filter(id => id);
+  if (grupoIds.length === 0) return produto;
 
-  if (grupoIds.length === 0) {
-    return produto;
-  }
-
-  // Buscar grupos e adicionais
   const grupos = sheetToJSON(gruposSheet)
-    .filter(g => grupoIds.includes(String(g.ID_Grupo).trim()) && String(g.Ativo).toUpperCase() === 'TRUE')
+    .filter(g => grupoIds.includes(String(g.ID_Grupo).trim()) && (String(g.Ativo).toUpperCase() === 'TRUE' || g.Ativo === true))
     .sort((a, b) => Number(a.Ordem) - Number(b.Ordem));
 
   const adicionais = sheetToJSON(adicionaisSheet);
@@ -1761,104 +589,34 @@ function getProductWithAdditions(productId) {
   return produto;
 }
 
-/**
- * Valida seleções de adicionais e calcula preço total
- * @param {Object} data - { productId, selectedAdditions, quantity }
- * @returns {Object} Resultado com preço calculado ou erro
- */
 function validateAndCalculatePrice(data) {
   const { productId, selectedAdditions, quantity } = data;
-
   const produto = getProductWithAdditions(productId);
-
-  if (produto.error) {
-    return { success: false, error: produto.error };
-  }
+  if (produto.error) return { success: false, error: produto.error };
 
   let additionsTotal = 0;
   const validatedAdditions = [];
 
-  // Se não tem grupos de adicionais, retornar preço base
   if (!produto.addition_groups || produto.addition_groups.length === 0) {
     const basePrice = Number(produto.Preco_Venda);
-    return {
-      success: true,
-      base_price: basePrice,
-      additions_subtotal: 0,
-      unit_price: basePrice,
-      quantity: quantity,
-      total_price: basePrice * quantity,
-      validated_additions: []
-    };
+    return { success: true, base_price: basePrice, additions_subtotal: 0, unit_price: basePrice, quantity: quantity, total_price: basePrice * quantity, validated_additions: [] };
   }
 
-  // Validar cada seleção
   for (const selection of (selectedAdditions || [])) {
     const grupo = produto.addition_groups.find(g => g.id === selection.group_id);
-    if (!grupo) {
-      return { success: false, error: `Grupo ${selection.group_id} não encontrado` };
-    }
-
+    if (!grupo) return { success: false, error: `Grupo ${selection.group_id} não encontrado` };
     const opcao = grupo.options.find(o => o.id === selection.option_id);
-    if (!opcao) {
-      return { success: false, error: `Opção ${selection.option_id} não encontrada` };
-    }
-
-    if (opcao.stock_status === 'out_of_stock') {
-      return {
-        success: false,
-        error: `${opcao.name} está indisponível`
-      };
-    }
+    if (!opcao) return { success: false, error: `Opção ${selection.option_id} não encontrada` };
+    if (opcao.stock_status === 'out_of_stock') return { success: false, error: `${opcao.name} está indisponível` };
 
     additionsTotal += opcao.price;
-    validatedAdditions.push({
-      group_id: grupo.id,
-      group_name: grupo.name,
-      option_id: opcao.id,
-      option_sku: opcao.sku,
-      option_name: opcao.name,
-      option_price: opcao.price
-    });
-  }
-
-  // Validar mínimos e máximos de cada grupo
-  for (const grupo of produto.addition_groups) {
-    const selectionsInGroup = validatedAdditions.filter(a => a.group_id === grupo.id);
-
-    if (grupo.min > 0 && selectionsInGroup.length < grupo.min) {
-      return {
-        success: false,
-        error: `${grupo.name} requer pelo menos ${grupo.min} seleção(ões)`
-      };
-    }
-
-    if (grupo.max < 99 && selectionsInGroup.length > grupo.max) {
-      return {
-        success: false,
-        error: `${grupo.name} permite no máximo ${grupo.max} seleção(ões)`
-      };
-    }
+    validatedAdditions.push({ group_id: grupo.id, group_name: grupo.name, option_id: opcao.id, option_sku: opcao.sku, option_name: opcao.name, option_price: opcao.price });
   }
 
   const basePrice = Number(produto.Preco_Venda);
   const unitPrice = basePrice + additionsTotal;
-  const totalPrice = unitPrice * quantity;
-
-  return {
-    success: true,
-    base_price: basePrice,
-    additions_subtotal: additionsTotal,
-    unit_price: unitPrice,
-    quantity: quantity,
-    total_price: totalPrice,
-    validated_additions: validatedAdditions
-  };
+  return { success: true, base_price: basePrice, additions_subtotal: additionsTotal, unit_price: unitPrice, quantity: quantity, total_price: unitPrice * quantity, validated_additions: validatedAdditions };
 }
-
-// ======================================================
-// MIX GOURMET SYSTEM
-// ======================================================
 
 function getMixWithFlavorAndAdditions(mixId) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1875,20 +633,15 @@ function getMixWithFlavorAndAdditions(mixId) {
 
   const sabores = sheetToJSON(saboresSheet);
   const availableFlavors = sabores
-    .filter(s => String(s.Ativo).toUpperCase() === 'TRUE')
-    .map(s => {
-      // Normalizar URL de imagem do sabor
-      const imageUrl = normalizarUrlImagem(s);
-      
-      return {
-        id: s.ID_Sabor,
-        name: s.Nome_Sabor,
-        category: s.Categoria || 'Geral',
-        price: Number(s.Preco_Adicional || 0),
-        stock_status: String(s.Status_Estoque).toLowerCase() === 'disponivel' ? 'available' : 'out_of_stock',
-        image_url: imageUrl || null
-      };
-    })
+    .filter(s => String(s.Ativo).toUpperCase() === 'TRUE' || s.Ativo === true)
+    .map(s => ({
+      id: s.ID_Sabor,
+      name: s.Nome_Sabor,
+      category: s.Categoria || 'Geral',
+      price: Number(s.Preco_Adicional || 0),
+      stock_status: String(s.Status_Estoque).toLowerCase() === 'disponivel' ? 'available' : 'out_of_stock',
+      image_url: normalizarUrlImagem(s) || null
+    }))
     .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
   let additionGroups = [];
@@ -1898,7 +651,7 @@ function getMixWithFlavorAndAdditions(mixId) {
       const grupos = sheetToJSON(gruposSheet);
       const adicionais = sheetToJSON(adicionaisSheet);
       additionGroups = grupos
-        .filter(g => grupoIds.includes(String(g.ID_Grupo).trim()) && String(g.Ativo).toUpperCase() === 'TRUE')
+        .filter(g => grupoIds.includes(String(g.ID_Grupo).trim()) && (String(g.Ativo).toUpperCase() === 'TRUE' || g.Ativo === true))
         .map(grupo => ({
           id: grupo.ID_Grupo,
           name: grupo.Nome_Grupo,
@@ -1909,20 +662,15 @@ function getMixWithFlavorAndAdditions(mixId) {
           order: Number(grupo.Ordem),
           options: adicionais
             .filter(a => String(a.ID_Grupo).trim() === String(grupo.ID_Grupo).trim())
-            .map(a => {
-              // Normalizar URL de imagem do adicional
-              const imageUrl = normalizarUrlImagem(a);
-              
-              return {
-                id: a.ID_Adicional,
-                sku: a.SKU,
-                name: a.Nome,
-                price: Number(a.Preco),
-                stock_status: a.Status_Estoque,
-                image_url: imageUrl || null,
-                order: Number(a.Ordem)
-              };
-            })
+            .map(a => ({
+              id: a.ID_Adicional,
+              sku: a.SKU,
+              name: a.Nome,
+              price: Number(a.Preco),
+              stock_status: a.Status_Estoque,
+              image_url: normalizarUrlImagem(a) || null,
+              order: Number(a.Ordem)
+            }))
             .sort((a, b) => a.order - b.order)
         }))
         .sort((a, b) => a.order - b.order);
@@ -1950,18 +698,21 @@ function calculateMixPrice(data) {
   const mixSheet = ss.getSheetByName('MIX_PRODUTOS');
   const saboresSheet = ss.getSheetByName('MIX_SABORES');
   if (!mixSheet || !saboresSheet) return { success: false, error: 'Configuração incompleta' };
+  
   const mixes = sheetToJSON(mixSheet);
   const mix = mixes.find(m => String(m.ID_Mix).trim() === String(mixId).trim());
   if (!mix) return { success: false, error: 'Mix não encontrado' };
+  
   const basePrice = Number(mix.Preco_Base || 0);
   const pricePerFlavor = Number(mix.Preco_Por_Sabor || 0);
-  const maxFlavors = Number(mix.Max_Sabores || 2);
   const sabores = sheetToJSON(saboresSheet);
   const validatedFlavors = [];
+  
   for (const flavorId of (selectedFlavors || [])) {
     const sabor = sabores.find(s => String(s.ID_Sabor).trim() === String(flavorId).trim());
     if (sabor) validatedFlavors.push({ flavor_id: sabor.ID_Sabor, flavor_name: sabor.Nome_Sabor, flavor_price: pricePerFlavor });
   }
+  
   let additionsSubtotal = 0;
   const validatedAdditions = [];
   if (selectedAdditions && selectedAdditions.length > 0) {
@@ -1977,302 +728,342 @@ function calculateMixPrice(data) {
       }
     }
   }
+  
   const unitPrice = basePrice + (validatedFlavors.length * pricePerFlavor) + additionsSubtotal;
   return { success: true, base_price: basePrice, unit_price: unitPrice, total_price: unitPrice * quantity, validated_flavors: validatedFlavors, validated_additions: validatedAdditions };
 }
 
-// ======================================================
-// PRODUCT REVIEWS SYSTEM
-// ======================================================
-
-/**
- * Get all approved reviews for a specific product
- * @param {string} productId - ID do produto
- * @returns {Array} Array de avaliações aprovadas
- */
 function getProductReviews(productId) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('AVALIACOES');
-  
-  if (!sheet) {
-    Logger.log('⚠️ Sheet AVALIACOES não encontrada');
-    return [];
-  }
+  if (!sheet) return [];
   
   const reviews = sheetToJSON(sheet);
-  
-  Logger.log('='.repeat(80));
-  Logger.log(`🔍 getProductReviews CHAMADO`);
-  Logger.log(`📌 Product ID procurado: "${productId}"`);
-  Logger.log(`📊 Total de reviews na planilha: ${reviews.length}`);
-  Logger.log('='.repeat(80));
-  
-  // Debug: Mostrar todas as reviews e seus IDs
-  reviews.forEach((review, index) => {
-    Logger.log(`\nReview #${index + 1}:`);
-    Logger.log(`  - ID_Avaliacao: ${review.ID_Avaliacao}`);
-    Logger.log(`  - ID_Produto: "${review.ID_Produto || 'VAZIO'}"`);
-    Logger.log(`  - ID_Geladinho: "${review.ID_Geladinho || 'VAZIO'}"`);
-    Logger.log(`  - Status: ${review.Status}`);
-    Logger.log(`  - Rating: ${review.Rating}`);
-    Logger.log(`  - Cliente: ${review.Nome_Cliente}`);
-  });
-  
-  // Filtrar apenas avaliações aprovadas do produto específico
   const approvedReviews = reviews.filter(review => {
-    const productIdFromReview = String(review.ID_Produto || review.ID_Geladinho || '').trim();
-    const productIdSearch = String(productId).trim();
-    const matchesProduct = productIdFromReview === productIdSearch;
-    const isApproved = String(review.Status || '').toUpperCase() === 'APROVADA';
-    
-    Logger.log(`\n🔎 Comparando Review ${review.ID_Avaliacao}:`);
-    Logger.log(`   Review Product ID: "${productIdFromReview}"`);
-    Logger.log(`   Search Product ID: "${productIdSearch}"`);
-    Logger.log(`   IDs Match? ${matchesProduct}`);
-    Logger.log(`   Status: ${review.Status} | Is Approved? ${isApproved}`);
-   Logger.log(`   Will Include? ${matchesProduct && isApproved}`);
-    
-    return matchesProduct && isApproved;
+    const pidReview = String(review.ID_Produto || review.ID_Geladinho || '').trim();
+    const pidSearch = String(productId).trim();
+    return pidReview === pidSearch && String(review.Status || '').toUpperCase() === 'APROVADA';
   });
   
-  Logger.log('\n' + '='.repeat(80));
-  Logger.log(`✅ RESULTADO: Encontradas ${approvedReviews.length} avaliações aprovadas`);
-  Logger.log('='.repeat(80));
-  
-  // Normalizar estrutura para o frontend
-  return approvedReviews.map(review => {
-    // Suporte para múltiplas variações de nome de coluna
-    const rating = Number(review.Rating || review.Nota || 0);
-    
-    return {
-      id: review.ID_Avaliacao,
-      customerName: review.Nome_Cliente || 'Anônimo',
-      rating: rating,
-      comment: review.Comentario || review.Comment || '',
-      date: review.Data_Avaliacao
-    };
-  });
+  return approvedReviews.map(review => ({
+    id: review.ID_Avaliacao,
+    customerName: review.Nome_Cliente || 'Anônimo',
+    rating: Number(review.Rating || review.Nota || 0),
+    comment: review.Comentario || review.Comment || '',
+    date: review.Data_Avaliacao
+  }));
 }
 
-/**
- * Create a new product review (status: Pendente)
- * @param {Object} data - Dados da avaliação
- * @returns {Object} Resultado da operação
- */
 function createReview(data) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('AVALIACOES');
-  
-  if (!sheet) {
-    Logger.log('❌ Sheet AVALIACOES não encontrada');
-    return { 
-      success: false, 
-      message: 'Sistema de avaliações não configurado. Contate o administrador.' 
-    };
-  }
-  
-  // Validação de dados
-  if (!data.customerId || !data.productId || !data.rating) {
-    Logger.log('❌ Dados incompletos:');
-    Logger.log('customerId: ' + data.customerId);
-    Logger.log('productId: ' + data.productId);
-    Logger.log('rating: ' + data.rating);
-    return { 
-      success: false, 
-      message: 'Dados incompletos para criar avaliação' 
-    };
-  }
-  
-  // ====================================================================
-  // ✅ CORREÇÃO CRÍTICA: Ler headers dinamicamente ao invés de assumir posições
-  // ====================================================================
+  if (!sheet) return { success: false, message: 'Erro sistema' };
+
+  if (!data.customerId || !data.productId || !data.rating) return { success: false, message: 'Dados incompletos' };
+
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  
-  Logger.log('='.repeat(80));
-  Logger.log('📋 HEADERS DA PLANILHA AVALIACOES:');
-  Logger.log(JSON.stringify(headers));
-  Logger.log('='.repeat(80));
-  
-  // Mapear índices das colunas
   const columnMap = {};
-  headers.forEach((header, index) => {
-    if (header) columnMap[String(header).trim()] = index;
-  });
-  
-  Logger.log('🗺️ Mapeamento de colunas:');
-  Logger.log(JSON.stringify(columnMap));
-  
-  // Verificar se colunas obrigatórias existem
-  const requiredColumns = ['ID_Avaliacao', 'ID_Cliente', 'ID_Produto', 'Rating', 'Status'];
-  const missingColumns = requiredColumns.filter(col => columnMap[col] === undefined);
-  
-  if (missingColumns.length > 0) {
-    Logger.log('❌ Colunas faltando: ' + missingColumns.join(', '));
-    return {
-      success: false,
-      message: 'Planilha AVALIACOES com estrutura incorreta. Contate o administrador.'
-    };
-  }
-  
-  // Gerar ID único
+  headers.forEach((header, index) => { if (header) columnMap[String(header).trim()] = index; });
+
   const reviewId = 'REV-' + Utilities.getUuid().substring(0, 8);
+  const row = new Array(headers.length).fill('');
   
-  // ====================================================================
-  // ✅ LOGS DETALHADOS DOS DADOS RECEBIDOS
-  // ====================================================================
-  Logger.log('='.repeat(80));
-  Logger.log('📦 DADOS RECEBIDOS PARA CRIAR REVIEW:');
-  Logger.log('customerId: "' + data.customerId + '"');
-  Logger.log('productId: "' + data.productId + '"');
-  Logger.log('customerName: "' + (data.customerName || 'N/A') + '"');
-  Logger.log('rating: ' + data.rating);
-  Logger.log('comment: "' + (data.comment || '') + '"');
-  Logger.log('='.repeat(80));
+  if (columnMap['ID_Avaliacao'] !== undefined) row[columnMap['ID_Avaliacao']] = reviewId;
+  if (columnMap['ID_Cliente'] !== undefined) row[columnMap['ID_Cliente']] = data.customerId;
+  if (columnMap['ID_Produto'] !== undefined) row[columnMap['ID_Produto']] = data.productId;
+  if (columnMap['ID_Venda'] !== undefined) row[columnMap['ID_Venda']] = data.orderId || '';
+  if (columnMap['Nome_Cliente'] !== undefined) row[columnMap['Nome_Cliente']] = data.customerName || 'Cliente';
+  if (columnMap['Rating'] !== undefined) row[columnMap['Rating']] = Number(data.rating);
   
-  // ====================================================================
-  // ✅ INSERIR DADOS NAS COLUNAS CORRETAS DINAMICAMENTE
-  // ====================================================================
-  try {
-    // Criar array com número total de colunas (inicializado vazio)
-    const row = new Array(headers.length).fill('');
-    
-    // Preencher apenas as colunas que existem
-    if (columnMap['ID_Avaliacao'] !== undefined) {
-      row[columnMap['ID_Avaliacao']] = reviewId;
-    }
-    
-    if (columnMap['ID_Cliente'] !== undefined) {
-      row[columnMap['ID_Cliente']] = data.customerId;
-    }
-    
-    if (columnMap['ID_Produto'] !== undefined) {
-      row[columnMap['ID_Produto']] = data.productId;
-    }
-    
-    // ID_Venda pode não existir ou ser opcional
-    if (columnMap['ID_Venda'] !== undefined) {
-      row[columnMap['ID_Venda']] = data.orderId || '';
-    }
-    
-    if (columnMap['Nome_Cliente'] !== undefined) {
-      row[columnMap['Nome_Cliente']] = data.customerName || 'Cliente';
-    }
-    
-    if (columnMap['Rating'] !== undefined) {
-      row[columnMap['Rating']] = Number(data.rating);
-    }
-    
-    // Comentario/Comentário - suporte para variações
-    const comentarioCol = columnMap['Comentario'] || columnMap['Comentário'] || columnMap['Comment'];
-    if (comentarioCol !== undefined) {
-      row[comentarioCol] = data.comment || '';
-    }
-    
-    if (columnMap['Data_Avaliacao'] !== undefined) {
-      row[columnMap['Data_Avaliacao']] = new Date();
-    }
-    
-    if (columnMap['Status'] !== undefined) {
-      row[columnMap['Status']] = 'Pendente';
-    }
-    
-    Logger.log('='.repeat(80));
-    Logger.log('📝 DADOS A SEREM INSERIDOS:');
-    Logger.log(JSON.stringify(row));
-    Logger.log('='.repeat(80));
-    
-    // Inserir linha
-    sheet.appendRow(row);
-    
-    Logger.log('✅ Avaliação criada com sucesso: ' + reviewId);
-    
-    return { 
-      success: true, 
-      message: 'Avaliação enviada! Aguardando aprovação do administrador.',
-      reviewId: reviewId
-    };
-  } catch (error) {
-    Logger.log('❌ Erro ao criar avaliação: ' + error.toString());
-    return { 
-      success: false, 
-      message: 'Erro ao salvar avaliação. Tente novamente.' 
-    };
-  }
+  const comentarioCol = columnMap['Comentario'] || columnMap['Comentário'] || columnMap['Comment'];
+  if (comentarioCol !== undefined) row[comentarioCol] = data.comment || '';
+  
+  if (columnMap['Data_Avaliacao'] !== undefined) row[columnMap['Data_Avaliacao']] = new Date();
+  if (columnMap['Status'] !== undefined) row[columnMap['Status']] = 'Pendente';
+
+  sheet.appendRow(row);
+  return { success: true, message: 'Avaliação enviada!', reviewId: reviewId };
 }
 
-/**
- * [ADMIN] Get all reviews (for admin panel)
- * @returns {Array} Array de todas as avaliações
- */
 function getAdminReviews() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('AVALIACOES');
-  
-  if (!sheet) {
-    Logger.log('⚠️ Sheet AVALIACOES não encontrada');
-    return [];
-  }
-  
+  if (!sheet) return [];
   const reviews = sheetToJSON(sheet);
-  
-  // Retornar todas as avaliações (pendentes, aprovadas, rejeitadas)
   return reviews.map(review => ({
     id: review.ID_Avaliacao,
-    productId: review.ID_Produto || review.ID_Geladinho,  // Suporte para ambas colunas
+    productId: review.ID_Produto || review.ID_Geladinho,
     productName: review.Nome_Geladinho || 'Produto',
     customerId: review.ID_Cliente,
     customerName: review.Nome_Cliente || 'Cliente',
-    rating: Number(review.Rating || review.Nota || 0),    // ✅ CORRIGIDO - Rating é o nome correto
+    rating: Number(review.Rating || review.Nota || 0),
     comment: review.Comentario || '',
     date: review.Data_Avaliacao,
     status: review.Status || 'Pendente'
-  })).reverse(); // Mais recentes primeiro
+  })).reverse();
 }
 
 /**
- * [ADMIN] Update review status (Aprovar/Rejeitar)
- * @param {Object} data - { reviewId, newStatus }
- * @returns {Object} Resultado da operação
+ * =====================================================
+ * 🔌 API HANDLERS & PUBLIC ENDPOINTS
+ * =====================================================
  */
-function updateReviewStatus(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('AVALIACOES');
-  
-  if (!sheet) {
-    return { success: false, message: 'Sistema indisponível' };
-  }
-  
-  const values = sheet.getDataRange().getValues();
-  const headers = values[0];
-  const idIndex = headers.indexOf('ID_Avaliacao');
-  const statusIndex = headers.indexOf('Status');
-  
-  if (idIndex === -1 || statusIndex === -1) {
-    return { success: false, message: 'Configuração inválida da planilha' };
-  }
-  
-  // Encontrar e atualizar a avaliação
-  for (let i = 1; i < values.length; i++) {
-    if (String(values[i][idIndex]).trim() === String(data.reviewId).trim()) {
-      sheet.getRange(i + 1, statusIndex + 1).setValue(data.newStatus);
-      
-      Logger.log(`✅ Status da avaliação ${data.reviewId} atualizado para: ${data.newStatus}`);
-      
-      return { 
-        success: true, 
-        message: `Avaliação ${data.newStatus.toLowerCase()} com sucesso!` 
-      };
+function doGet(e) { return handleRequest(e); }
+function doPost(e) { return handleRequest(e); }
+
+function handleRequest(e) {
+  const lock = LockService.getScriptLock();
+  try { lock.waitLock(30000); } catch (e) { return ContentService.createTextOutput(JSON.stringify({ success: false, message: "Busy" })).setMimeType(ContentService.MimeType.JSON); }
+
+  try {
+    const action = e.parameter.action;
+    let data = {};
+    if (e.postData && e.postData.contents) { try { data = JSON.parse(e.postData.contents); } catch (err) {} }
+
+    // Admin Auth Check
+    if (['getAdminOrders', 'updateOrderStatus', 'getOrderItems', 'getDashboardStats', 'getAdminReviews', 'updateReviewStatus'].includes(action)) {
+      if ((e.parameter.adminKey || data.adminKey) !== ADMIN_PASS) return ContentService.createTextOutput(JSON.stringify({ success: false, error: "Unauthorized" })).setMimeType(ContentService.MimeType.JSON);
     }
+
+    let result = { error: 'Invalid Action' };
+    switch (action) {
+      case 'getCatalogData': result = getCatalogData(); break;
+      case 'getProducts': result = getProducts(); break;
+      case 'getCategories': result = getCategories(); break;
+      case 'getBanners': result = getBanners(); break;
+      case 'getConfig': result = getConfig(); break;
+      case 'getOrders': result = getOrders(e.parameter.customerId); break;
+      case 'validateCoupon': result = data.code ? validateCouponWithContext(data) : validateCoupon(e.parameter.code); break;
+      case 'getReviews': result = getProductReviews(e.parameter.productId); break;
+      case 'getProductWithAdditions': result = getProductWithAdditions(e.parameter.productId); break;
+      case 'calculateItemPrice': result = validateAndCalculatePrice(data); break;
+      case 'getAdminOrders': result = getAdminOrders(); break;
+      case 'getOrderItems': result = getOrderItems(e.parameter.orderId); break;
+      case 'getDashboardStats': result = getDashboardStats(); break;
+      case 'getAdminReviews': result = getAdminReviews(); break;
+      case 'createCustomer': result = createCustomer(data); break;
+      case 'loginCustomer': result = loginCustomer(data); break;
+      case 'createOrder': result = createOrder(data); break;
+      case 'updateFavorites': result = updateFavorites(data); break;
+      case 'updateOrderStatus': result = updateOrderStatus(data); break;
+      case 'createReview': result = createReview(data); break;
+      case 'updateReviewStatus': result = updateReviewStatus(data); break;
+      case 'getMixWithFlavorAndAdditions': result = getMixWithFlavorAndAdditions(e.parameter.mixId); break;
+      case 'calculateMixPrice': result = calculateMixPrice(data); break;
+      case 'getMinhasChances': result = getMinhasChances(e.parameter.customerId); break;
+      case 'validateReferralCode': result = validateReferralCode(e.parameter.code, e.parameter.customerId); break;
+      case 'calculateDelivery': result = calculateDeliveryFee(data); break;
+      case 'forceSync': fullSyncToSupabase(); result = { success: true }; break;
+    }
+    return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: err.toString() })).setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
   }
-  
-  return { success: false, message: 'Avaliação não encontrada' };
 }
 
-// ======================================================
-// HELPER FUNCTION
-// ======================================================
+/**
+ * =====================================================
+ * 📚 READ & HELPER FUNCTIONS
+ * =====================================================
+ */
+
+function getCatalogData() {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get('catalog_data_v3');
+  if (cached) return JSON.parse(cached);
+  const data = { products: getProducts(), categories: getCategories(), banners: getBanners(), _cached_at: new Date() };
+  if (data.products.length > 0) cache.put('catalog_data_v3', JSON.stringify(data), 300);
+  return data;
+}
+
+function getProducts() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GELADINHOS');
+  if (!sheet) return [];
+  SpreadsheetApp.flush();
+  
+  const raw = sheetToJSON(sheet);
+  return raw.map(p => {
+    let isActive = p.Produto_Ativo === true || p.Produto_Ativo === 1 || ['TRUE','SIM'].includes(String(p.Produto_Ativo).toUpperCase().trim());
+    return { ...p, Produto_Ativo: isActive, URL_IMAGEM_CACHE: normalizarUrlImagem(p) };
+  }).filter(p => p.Produto_Ativo);
+}
+
+function getCategories() { return sheetToJSON(SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CATEGORIAS_GELADINHO')); }
+
+function getBanners() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('BANNERS');
+  if(!sheet) return [];
+  return sheetToJSON(sheet).filter(b => b.Ativo === true || String(b.Ativo).toUpperCase() === 'TRUE').map(b => ({ ...b, URL_Imagem: normalizarUrlImagem(b) }));
+}
+
+function getConfig() { return sheetToJSON(SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CONFIGURACOES')); }
+
+function getOrders(cid) {
+  return sheetToJSON(SpreadsheetApp.getActiveSpreadsheet().getSheetByName('VENDAS'))
+    .filter(o => String(o.ID_Cliente).trim() === String(cid).trim()).reverse();
+}
+
+function getAdminOrders() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const v = sheetToJSON(ss.getSheetByName('VENDAS'));
+  const c = sheetToJSON(ss.getSheetByName('CLIENTES'));
+  const cMap = {}; c.forEach(cl => cMap[String(cl.ID_Cliente).trim()] = cl.Nome);
+  return { orders: v.map(o => ({ ...o, Nome_Cliente: cMap[String(o.ID_Cliente).trim()] || o.Nome_Cliente || 'Visitante' })).reverse() };
+}
+
+function getOrderItems(oid) {
+  const iData = sheetToJSON(SpreadsheetApp.getActiveSpreadsheet().getSheetByName('ITENS_VENDA'));
+  const pData = sheetToJSON(SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GELADINHOS'));
+  return iData.filter(i => String(i.ID_Venda).trim() === String(oid).trim()).map(i => {
+    const p = pData.find(pid => String(pid.ID_Geladinho).trim() === String(i.ID_Geladinho).trim());
+    return { nome: p ? p.Nome_Geladinho : 'Item excluído', qtd: i.Quantidade, total: i.Total_Item };
+  });
+}
+
+function updateOrderStatus(d) {
+  const s = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('VENDAS');
+  const v = s.getDataRange().getValues();
+  const idx = v[0].indexOf('ID_Venda');
+  const st = v[0].indexOf('Status');
+  for (let i = 1; i < v.length; i++) {
+    if (String(v[i][idx]) === String(d.orderId)) {
+      s.getRange(i + 1, st + 1).setValue(d.newStatus);
+      return { success: true };
+    }
+  }
+  return { success: false };
+}
+
+function updateReviewStatus(d) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('AVALIACOES');
+  const data = sheet.getDataRange().getValues();
+  const idIdx = data[0].indexOf('ID_Avaliacao');
+  const stIdx = data[0].indexOf('Status');
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][idIdx]) === String(d.reviewId)) {
+      sheet.getRange(i + 1, stIdx + 1).setValue(d.newStatus);
+      return { success: true };
+    }
+  }
+  return { success: false };
+}
+
+function loginCustomer(d) {
+  if (String(d.phone).trim().toLowerCase() === ADMIN_LOGIN && String(d.password).trim() === ADMIN_PASS)
+    return { success: true, customer: { ID_Cliente: 'ADMIN', Nome: 'Admin', isAdmin: true, adminKey: ADMIN_PASS } };
+  const users = sheetToJSON(SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CLIENTES'));
+  const u = users.find(c => String(c.Telefone).replace(/\D/g, '') === String(d.phone).replace(/\D/g, ''));
+  if (u && String(u.Senha) === String(d.password)) return { success: true, customer: { ...u, Senha: '' } };
+  return { success: false, message: 'Dados inválidos.' };
+}
+
+function createCustomer(d) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CLIENTES');
+  const users = sheetToJSON(sheet);
+  if (users.find(c => String(c.Telefone).replace(/\D/g, '') === String(d.phone).replace(/\D/g, ''))) return { success: false };
+  const id = 'CLI-' + Math.floor(Math.random() * 90000 + 10000);
+  const code = 'DCAP-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+  sheet.appendRow([id, d.name, d.phone, '', '', '', '', '', 0, new Date(), 'SIM', d.password, code, '', '']);
+  return { success: true, customer: { id, name: d.name } };
+}
+
+function validateReferralCode(code, cid) {
+  if (!code || !cid || cid === 'GUEST') return { valid: false };
+  const clients = sheetToJSON(SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CLIENTES'));
+  const normalizedCode = String(code).trim().toUpperCase();
+  const owner = clients.find(c => String(c.Codigo_Convite).toUpperCase() === normalizedCode);
+  
+  if (!owner) return { valid: false, message: 'Código não encontrado' };
+  if (String(owner.ID_Cliente) === String(cid)) return { valid: false, message: 'Código próprio' };
+  
+  const me = clients.find(c => String(c.ID_Cliente) === String(cid));
+  if (me && me.Indicado_Por) return { valid: false, message: 'Já utilizou indicação' };
+  
+  return { valid: true, message: 'Válido!' };
+}
+
+function updateFavorites(d) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CLIENTES');
+  const data = sheet.getDataRange().getValues();
+  const telIdx = data[0].indexOf('Telefone');
+  const favIdx = data[0].indexOf('Favoritos') > -1 ? data[0].indexOf('Favoritos') : 14;
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][telIdx]).replace(/\D/g, '') === String(d.phone).replace(/\D/g, '')) {
+      sheet.getRange(i + 1, favIdx + 1).setValue(d.favorites);
+      return { success: true };
+    }
+  }
+  return { success: false };
+}
+
+function getDashboardStats() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const vendas = sheetToJSON(ss.getSheetByName('VENDAS'));
+  const itens = sheetToJSON(ss.getSheetByName('ITENS_VENDA'));
+  const prods = sheetToJSON(ss.getSheetByName('GELADINHOS'));
+  
+  const totalRev = vendas.reduce((acc, v) => acc + (Number(v.Total_Venda) || 0), 0);
+  const counts = {};
+  itens.forEach(i => counts[i.ID_Geladinho] = (counts[i.ID_Geladinho] || 0) + Number(i.Quantidade));
+  const ranking = Object.keys(counts).map(id => {
+    const p = prods.find(x => String(x.ID_Geladinho) === String(id));
+    return { name: p ? p.Nome_Geladinho : id, value: counts[id] };
+  }).sort((a,b) => b.value - a.value).slice(0, 3);
+  
+  return { totalRevenue: totalRev, totalOrders: vendas.length, topFlavors: ranking };
+}
+
+function getMinhasChances(cid) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('SORTEIOS');
+  if(!sheet) return { chances: [] };
+  return { chances: sheetToJSON(sheet).filter(r => String(r.ID_Cliente) === String(cid)) };
+}
+
+function calculateDeliveryFee(data) {
+  const { deliveryType, addressData } = data;
+  if (deliveryType === 'CONDO') return { success: true, fee: 0, message: 'Grátis' };
+  
+  const fullAddr = `${addressData.rua}, ${addressData.numero}, ${addressData.bairro}, Curitiba, PR, Brazil`;
+  const coords = getGeoapifyCoordinates(fullAddr);
+  if (!coords) return { success: true, fee: 5, message: 'Taxa Fixa' };
+  
+  const dist = getGeoapifyDistanceKm(STORE_LOCATION, coords);
+  if (dist === null) return { success: true, fee: 5, message: 'Taxa Fixa' };
+  
+  let fee = Math.max(DELIVERY_PRICING.MIN_FEE, DELIVERY_PRICING.BASE_FEE + (dist * DELIVERY_PRICING.KM_RATE));
+  if (deliveryType === 'NEIGHBOR' && dist <= 3) fee *= DELIVERY_PRICING.NEIGHBOR_DISCOUNT;
+  
+  return { success: true, fee: Math.ceil(fee * 2) / 2, distanceKm: dist };
+}
+
+function getGeoapifyCoordinates(addr) {
+  try {
+    const res = UrlFetchApp.fetch(`https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(addr)}&apiKey=${GEOAPIFY_API_KEY}&limit=1`, { muteHttpExceptions: true });
+    const json = JSON.parse(res.getContentText());
+    if (json.features && json.features.length > 0) {
+      const [lon, lat] = json.features[0].geometry.coordinates;
+      return { lat, lon };
+    }
+  } catch (e) {}
+  return null;
+}
+
+function getGeoapifyDistanceKm(origin, dest) {
+  try {
+    const res = UrlFetchApp.fetch(`https://api.geoapify.com/v1/routematrix?apiKey=${GEOAPIFY_API_KEY}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      payload: JSON.stringify({ mode: 'drive', sources: [{ location: [origin.lon, origin.lat] }], targets: [{ location: [dest.lon, dest.lat] }] }),
+      muteHttpExceptions: true
+    });
+    return JSON.parse(res.getContentText()).sources_to_targets[0][0].distance / 1000;
+  } catch (e) {}
+  return null;
+}
 
 function sheetToJSON(s) {
+  if (!s) return [];
   const v = s.getDataRange().getValues();
   const h = v[0];
   const r = [];
@@ -2284,142 +1075,21 @@ function sheetToJSON(s) {
   return r;
 }
 
-// ===========================================
-// 🚚 GEOAPIFY DELIVERY CALCULATION
-// ===========================================
-
-/**
- * Calcula taxa de entrega via Geoapify
- * @param {Object} data - { deliveryType, addressData }
- */
-function calculateDeliveryFee(data) {
-  const { deliveryType, addressData } = data;
-  
-  Logger.log(`🚚 Calculando entrega: ${deliveryType} para ${addressData.rua}`);
-  
-  // 1. Condomínio é sempre grátis
-  if (deliveryType === 'CONDO') {
-    return { fee: 0, distanceKm: 0, message: 'Grátis (Condomínio)', success: true };
-  }
-  
-  // 2. Montar endereço completo (Assumindo Curitiba/PR se não vier)
-  const fullAddress = `${addressData.rua}, ${addressData.numero}, ${addressData.bairro || ''}, ${addressData.cep || ''}, Curitiba, PR, Brazil`;
-  
-  // 3. Geocoding
-  const coords = getGeoapifyCoordinates(fullAddress);
-  
-  // Fallback se Geocoding falhar
-  if (!coords) {
-    Logger.log('⚠️ Geocoding falhou, usando fallback');
-    return { 
-      fee: deliveryType === 'NEIGHBOR' ? 0 : 5, 
-      distanceKm: 0, 
-      error: 'Geocoding failed',
-      success: true, // Retorna sucesso pro front não travar, mas loga erro
-      message: deliveryType === 'NEIGHBOR' ? 'Grátis (Restrição)' : 'Taxa Fixa'
-    };
-  }
-  
-  // 4. Route Matrix
-  const distanceKm = getGeoapifyDistanceKm(STORE_LOCATION, coords);
-  
-  // Fallback se Matrix falhar
-  if (distanceKm === null) {
-      Logger.log('⚠️ Matrix falhou, usando fallback');
-      return { 
-        fee: deliveryType === 'NEIGHBOR' ? 0 : 5, 
-        distanceKm: 0, 
-        error: 'Matrix failed',
-        success: true,
-        message: 'Taxa Fixa (Erro Calc)'
-      };
-  }
-  
-  Logger.log(`📏 Distância calculada: ${distanceKm.toFixed(2)} km`);
-  
-  Logger.log(`📏 Distância calculada: ${distanceKm.toFixed(2)} km`);
-  
-  // 5. Regras de Negócio Dinâmicas (Uber Style)
-  let fee = 0;
-  
-  if (deliveryType === 'CONDO') {
-    // Condomínio sempre free
-    fee = 0;
-  } else {
-    // Cálculo Base: Base + (Km * Taxa)
-    let rawFee = DELIVERY_PRICING.BASE_FEE + (distanceKm * DELIVERY_PRICING.KM_RATE);
-    
-    // Aplicar Mínimo
-    fee = Math.max(rawFee, DELIVERY_PRICING.MIN_FEE);
-    
-    // Regra Vizinhança (Desconto para curtas distâncias)
-    if (deliveryType === 'NEIGHBOR' && distanceKm <= 3) {
-      fee = fee * DELIVERY_PRICING.NEIGHBOR_DISCOUNT;
+function normalizarUrlImagem(row) {
+  const cols = ['Imagem_Geladinho', 'Imagem_URL', 'URL_IMAGEM_CACHE', 'URL_Imagem', 'Imagem'];
+  for (const c of cols) {
+    const val = String(row[c] || '').trim();
+    if (val.startsWith('http')) return val;
+    if (val.includes('/')) {
+       try {
+         const f = DriveApp.getFilesByName(val.split('/').pop());
+         if (f.hasNext()) {
+            const file = f.next();
+            file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+            return `https://drive.google.com/thumbnail?id=${file.getId()}&sz=w1000`;
+         }
+       } catch (e) {}
     }
-    
-    // Arredondamento para 0.50 mais próximo (Ex: 5.23 -> 5.50)
-    fee = Math.ceil(fee * 2) / 2;
   }
-  
-  return { 
-    success: true,
-    fee: fee, 
-    distanceKm: parseFloat(distanceKm.toFixed(2)),
-    message: fee === 0 ? 'Grátis' : `R$ ${fee.toFixed(2).replace('.', ',')}`
-  };
-}
-
-/**
- * Busca Lat/Lon de um endereço
- */
-function getGeoapifyCoordinates(address) {
-  try {
-    const url = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(address)}&apiKey=${GEOAPIFY_API_KEY}&limit=1`;
-    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
-    if (response.getResponseCode() !== 200) {
-      Logger.log('geoapify error code: ' + response.getResponseCode());
-      return null;
-    }
-    
-    const json = JSON.parse(response.getContentText());
-    if (!json.features || json.features.length === 0) return null;
-    
-    const [lon, lat] = json.features[0].geometry.coordinates;
-    return { lat, lon };
-  } catch (e) {
-    Logger.log('Erro Geocoding: ' + e);
-    return null;
-  }
-}
-
-/**
- * Calcula distância de condução entre dois pontos
- */
-function getGeoapifyDistanceKm(origin, destination) {
-  try {
-    const url = `https://api.geoapify.com/v1/routematrix?apiKey=${GEOAPIFY_API_KEY}`;
-    const payload = {
-      mode: 'drive',
-      sources: [{ location: [origin.lon, origin.lat] }],
-      targets: [{ location: [destination.lon, destination.lat] }]
-    };
-    
-    const response = UrlFetchApp.fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    });
-    
-    if (response.getResponseCode() !== 200) return null;
-    
-    const json = JSON.parse(response.getContentText());
-    if (!json.sources_to_targets || !json.sources_to_targets[0] || !json.sources_to_targets[0][0]) return null;
-    
-    const meters = json.sources_to_targets[0][0].distance;
-    return meters / 1000;
-  } catch (e) {
-    Logger.log('Erro Matrix: ' + e);
-    return null;
-  }
+  return '';
 }
