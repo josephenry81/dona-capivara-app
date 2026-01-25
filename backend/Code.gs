@@ -37,7 +37,7 @@ const VOICEMONKEY_CONFIG = {
  * =====================================================
  */
 function notifyAlexaNewOrder(orderData) {
-  if (!VOICEMONKEY_CONFIG.ENABLED) return;
+  if (!VOICEMONKEY_CONFIG.ENABLED || !orderData) return;
   try {
     const nomeCliente = orderData.nomeCliente || 'Cliente';
     const total = Number(orderData.total || 0).toFixed(2).replace('.', ',');
@@ -423,7 +423,7 @@ function createOrder(d) {
         const pId = String(item.id).trim();
         const info = stockMap[pId];
 
-        newItemsRows.push([Utilities.getUuid(), id, pId, qtd, item.price, qtd * item.price]);
+        newItemsRows.push([Utilities.getUuid(), id, pId, qtd, item.price, qtd * item.price, item.details ? JSON.stringify(item.details) : '']);
         
         const novoEstoque = info.current - qtd;
         G.getRange(info.row, stkIdx + 1).setValue(novoEstoque);
@@ -841,6 +841,7 @@ function handleRequest(e) {
       case 'getOrderItems': result = getOrderItems(e.parameter.orderId); break;
       case 'getDashboardStats': result = getDashboardStats(); break;
       case 'getAdminReviews': result = getAdminReviews(); break;
+      case 'getExportData': result = getExportData(); break;
       case 'createCustomer': result = createCustomer(data); break;
       case 'loginCustomer': result = loginCustomer(data); break;
       case 'createOrder': result = createOrder(data); break;
@@ -886,7 +887,8 @@ function getProducts() {
   const raw = sheetToJSON(sheet);
   return raw.map(p => {
     let isActive = p.Produto_Ativo === true || p.Produto_Ativo === 1 || ['TRUE','SIM'].includes(String(p.Produto_Ativo).toUpperCase().trim());
-    return { ...p, Produto_Ativo: isActive, URL_IMAGEM_CACHE: normalizarUrlImagem(p) };
+    let hasAdditions = p.Tem_Adicionais === true || p.Tem_Adicionais === 1 || ['TRUE','SIM'].includes(String(p.Tem_Adicionais).toUpperCase().trim());
+    return { ...p, Produto_Ativo: isActive, Tem_Adicionais: hasAdditions, URL_IMAGEM_CACHE: normalizarUrlImagem(p) };
   }).filter(p => p.Produto_Ativo);
 }
 
@@ -910,7 +912,7 @@ function getAdminOrders() {
   const v = sheetToJSON(ss.getSheetByName('VENDAS'));
   const c = sheetToJSON(ss.getSheetByName('CLIENTES'));
   const cMap = {}; c.forEach(cl => cMap[String(cl.ID_Cliente).trim()] = cl.Nome);
-  return { orders: v.map(o => ({ ...o, Nome_Cliente: cMap[String(o.ID_Cliente).trim()] || o.Nome_Cliente || 'Visitante' })).reverse() };
+  return { orders: v.map(o => ({ ...o, Nome_Cliente: cMap[String(o.ID_Cliente).trim()] || o.Nome_Cliente || 'Visitante', deliveryFee: o.Taxa_Entrega, discount: o.Desconto })).reverse() };
 }
 
 function getOrderItems(oid) {
@@ -918,7 +920,12 @@ function getOrderItems(oid) {
   const pData = sheetToJSON(SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GELADINHOS'));
   return iData.filter(i => String(i.ID_Venda).trim() === String(oid).trim()).map(i => {
     const p = pData.find(pid => String(pid.ID_Geladinho).trim() === String(i.ID_Geladinho).trim());
-    return { nome: p ? p.Nome_Geladinho : 'Item excluído', qtd: i.Quantidade, total: i.Total_Item };
+    return { 
+      nome: p ? p.Nome_Geladinho : 'Item excluído', 
+      qtd: i.Quantidade, 
+      total: i.Total_Item,
+      details: i.Detalhes ? JSON.parse(i.Detalhes) : null
+    };
   });
 }
 
@@ -1003,16 +1010,125 @@ function getDashboardStats() {
   const vendas = sheetToJSON(ss.getSheetByName('VENDAS'));
   const itens = sheetToJSON(ss.getSheetByName('ITENS_VENDA'));
   const prods = sheetToJSON(ss.getSheetByName('GELADINHOS'));
+  const adds = sheetToJSON(ss.getSheetByName('ADICIONAIS'));
+  const metasSheet = ss.getSheetByName('METAS');
+  const metas = metasSheet ? sheetToJSON(metasSheet) : [];
   
-  const totalRev = vendas.reduce((acc, v) => acc + (Number(v.Total_Venda) || 0), 0);
+  const now = new Date();
+  const currentMonthStr = Utilities.formatDate(now, "GMT-3", "MMMM yyyy");
+  const monthMetas = metas.find(m => String(m.Mes).toLowerCase().includes(currentMonthStr.split(' ')[0].toLowerCase())) || { Meta_Vendas: 0, Meta_Lucro: 0 };
+
+  // 1. Revenue & Profit Calculation
+  let totalRev = 0;
+  let totalProfit = 0;
+  const costMap = {};
+  prods.forEach(p => costMap[String(p.ID_Geladinho).trim()] = Number(p.Preco_Custo || 0));
+  const addCostMap = {};
+  adds.forEach(a => addCostMap[String(a.ID_Adicional).trim()] = Number(a.Preco_Custo || 0));
+
+  vendas.forEach(v => {
+    const rev = Number(v.Total_Venda) || 0;
+    totalRev += rev;
+    
+    // Profit = Revenue - (Sum of item costs + fixed costs like delivery if applicable)
+    // For now: Sum of Product Cost * Qty
+    let orderCost = 0;
+    const orderItems = itens.filter(i => String(i.ID_Venda).trim() === String(v.ID_Venda).trim());
+    orderItems.forEach(item => {
+      const unitCost = costMap[String(item.ID_Geladinho).trim()] || 0;
+      orderCost += unitCost * (Number(item.Quantidade) || 0);
+    });
+    totalProfit += (rev - orderCost);
+  });
+
+  // 2. Weekly/Monthly Chart Logic
+  const weeklyChart = [];
+  const last7Days = [];
+  for(let i=6; i>=0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const dateStr = Utilities.formatDate(d, "GMT-3", "dd/MM");
+    last7Days.push({ date: d, label: dateStr, revenue: 0, profit: 0 });
+  }
+
+  vendas.forEach(v => {
+    const vDate = new Date(v.Data_Venda);
+    const day = last7Days.find(d => 
+      d.date.getDate() === vDate.getDate() && 
+      d.date.getMonth() === vDate.getMonth()
+    );
+    if(day) {
+      const rev = Number(v.Total_Venda) || 0;
+      day.revenue += rev;
+      // Simple daily profit estimate
+      let orderCost = 0;
+      itens.filter(i => String(i.ID_Venda).trim() === String(v.ID_Venda).trim()).forEach(it => {
+        orderCost += (costMap[String(it.ID_Geladinho).trim()] || 0) * (Number(it.Quantidade) || 0);
+      });
+      day.profit += (rev - orderCost);
+    }
+  });
+
+  const finalWeeklyChart = last7Days.map(d => ({ name: d.label, revenue: d.revenue, profit: d.profit }));
+
+  // 3. Peak Hours Analysis
+  const hours = new Array(24).fill(0);
+  vendas.forEach(v => {
+    const h = new Date(v.Data_Venda).getHours();
+    hours[h]++;
+  });
+  const peakHours = hours.map((count, h) => ({ hour: `${h}h`, count }));
+
+  // 4. Neighborhood Distribution (Heatmap)
+  const locations = {};
+  vendas.forEach(v => {
+    const loc = v.Condominio || (v.Torre ? `Torre ${v.Torre}` : 'Outros');
+    locations[loc] = (locations[loc] || 0) + 1;
+  });
+  const heatmap = Object.keys(locations).map(name => ({ name, value: locations[name] }))
+    .sort((a,b) => b.value - a.value);
+
+  // 5. Item Ranking
   const counts = {};
   itens.forEach(i => counts[i.ID_Geladinho] = (counts[i.ID_Geladinho] || 0) + Number(i.Quantidade));
   const ranking = Object.keys(counts).map(id => {
     const p = prods.find(x => String(x.ID_Geladinho) === String(id));
     return { name: p ? p.Nome_Geladinho : id, value: counts[id] };
-  }).sort((a,b) => b.value - a.value).slice(0, 3);
+  }).sort((a,b) => b.value - a.value).slice(0, 5);
+
+  return {
+    totalRevenue: totalRev,
+    totalProfit: totalProfit,
+    totalOrders: vendas.length,
+    avgTicket: vendas.length > 0 ? totalRev / vendas.length : 0,
+    topFlavors: ranking,
+    weeklyChart: finalWeeklyChart,
+    peakHours: peakHours,
+    heatmap: heatmap,
+    goals: {
+      sales: Number(monthMetas.Meta_Vendas || 0),
+      profit: Number(monthMetas.Meta_Lucro || 0),
+      currentSales: totalRev,
+      currentProfit: totalProfit
+    }
+  };
+}
+
+function getExportData() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const v = sheetToJSON(ss.getSheetByName('VENDAS'));
+  const i = sheetToJSON(ss.getSheetByName('ITENS_VENDA'));
+  const c = sheetToJSON(ss.getSheetByName('CLIENTES'));
   
-  return { totalRevenue: totalRev, totalOrders: vendas.length, topFlavors: ranking };
+  const cMap = {};
+  c.forEach(u => cMap[String(u.ID_Cliente).trim()] = u.Nome);
+  
+  return {
+    vendas: v.map(o => ({
+      ...o,
+      Nome_Cliente: cMap[String(o.ID_Cliente).trim()] || o.Nome_Cliente || 'Visitante'
+    })),
+    itens: i
+  };
 }
 
 function getMinhasChances(cid) {

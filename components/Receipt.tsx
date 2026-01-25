@@ -15,126 +15,134 @@ export default function Receipt({ order, items, id }: ReceiptProps) {
     const finalTotal = Number(order.total);
 
     const containerStyle: React.CSSProperties = {
-        width: '380px',
+        width: '400px',
         backgroundColor: 'white',
-        color: 'black',
-        fontFamily: 'Arial, Helvetica, sans-serif',
-        fontWeight: '700',
-        fontSize: '16px',
-        lineHeight: '1.3',
-        padding: '15px 5px',
+        color: '#1a1a1a',
+        fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif",
+        padding: '30px 20px',
         boxSizing: 'border-box',
-        position: 'relative'
     };
 
-    const borderStyle: React.CSSProperties = {
-        borderBottom: '3px dashed black',
-        margin: '15px 0'
-    };
-
-    const tableStyle: React.CSSProperties = {
-        width: '100%',
-        borderCollapse: 'collapse',
-        fontSize: '16px'
-    };
-
-    const cellStyle: React.CSSProperties = {
-        paddingBottom: '10px',
-        verticalAlign: 'top'
+    const flexBetween: React.CSSProperties = {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'baseline'
     };
 
     return (
         <div className="fixed top-0 left-0 z-[-10] opacity-0 pointer-events-none">
             <div id={id} style={containerStyle}>
-
-                <div style={{ textAlign: 'center', marginBottom: '10px' }}>
-                    <h1 style={{ fontSize: '30px', fontWeight: '900', margin: 0, textTransform: 'uppercase', lineHeight: '1' }}>DONA CAPIVARA</h1>
-                    <p style={{ fontSize: '14px', margin: '5px 0 0 0' }}>Culinaria Gourmet</p>
+                {/* Header */}
+                <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+                    <div style={{ fontSize: '32px', fontWeight: '900', letterSpacing: '-1px', marginBottom: '4px' }}>DONA CAPIVARA</div>
+                    <div style={{ fontSize: '14px', color: '#666', textTransform: 'uppercase', letterSpacing: '2px' }}>Culinaria Gourmet</div>
+                    <div style={{ borderBottom: '1px solid #eee', margin: '20px auto', width: '60px' }}></div>
                 </div>
 
-                <div style={borderStyle}></div>
-
-                <div style={{ marginBottom: '5px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                        <span style={{ fontSize: '14px' }}>PEDIDO:</span>
-                        <span style={{ fontSize: '22px', fontWeight: '900' }}>#{order.id.slice(0, 8)}</span>
+                {/* Order Details */}
+                <div style={{ marginBottom: '25px' }}>
+                    <div style={flexBetween}>
+                        <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#999', textTransform: 'uppercase' }}>Pedido</span>
+                        <span style={{ fontSize: '20px', fontWeight: '900' }}>#{order.id.slice(0, 8).toUpperCase()}</span>
                     </div>
-                    <div style={{ fontSize: '14px' }}>{new Date(order.date).toLocaleString('pt-BR')}</div>
-
-                    <div style={{ marginTop: '12px' }}>
-                        <span style={{ fontSize: '12px', color: '#000' }}>CLIENTE:</span><br />
-                        <span style={{ fontSize: '22px', fontWeight: '900', textTransform: 'uppercase', lineHeight: '1.1', display: 'block', marginTop: '2px' }}>{order.customerName}</span>
+                    <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>
+                        {new Date(order.date).toLocaleDateString('pt-BR')} às {new Date(order.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                     </div>
                 </div>
 
-                <div style={borderStyle}></div>
-
-                <table style={tableStyle}>
-                    <tbody>
-                        {items.map((item, idx) => (
-                            <tr key={idx}>
-                                <td style={{ ...cellStyle, width: '40px' }}>{item.qtd}x</td>
-                                <td style={cellStyle}>
-                                    {item.nome}
-                                </td>
-                                <td style={{ ...cellStyle, width: '90px', textAlign: 'right', fontSize: '18px' }}>
-                                    {Number(item.total).toFixed(2)}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-
-                <div style={borderStyle}></div>
-
-                <table style={{ ...tableStyle, fontSize: '16px' }}>
-                    <tbody>
-                        <tr>
-                            <td>Subtotal:</td>
-                            <td style={{ textAlign: 'right' }}>{itemsTotal.toFixed(2)}</td>
-                        </tr>
-                        {deliveryFee > 0 && (
-                            <tr>
-                                <td>+ Entrega:</td>
-                                <td style={{ textAlign: 'right' }}>{deliveryFee.toFixed(2)}</td>
-                            </tr>
-                        )}
-                        {discount > 0 && (
-                            <tr>
-                                <td>- Descontos:</td>
-                                <td style={{ textAlign: 'right' }}>{discount.toFixed(2)}</td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-
-                <div style={{ ...borderStyle, borderBottom: '5px solid black' }}></div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '15px 0' }}>
-                    <span style={{ fontSize: '24px', fontWeight: '800' }}>TOTAL</span>
-                    <span style={{ fontSize: '40px', fontWeight: '900' }}>R$ {finalTotal.toFixed(2)}</span>
+                <div style={{ background: '#f9f9f9', padding: '15px', borderRadius: '12px', marginBottom: '30px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#999', textTransform: 'uppercase' }}>Cliente</span>
+                    <div style={{ fontSize: '22px', fontWeight: '900', marginTop: '2px' }}>{order.customerName}</div>
+                    {order.phone && <div style={{ fontSize: '13px', color: '#666' }}>{order.phone}</div>}
                 </div>
 
-                <div style={{ marginTop: '15px', fontSize: '16px' }}>
-                    <p style={{ marginBottom: '10px' }}><strong>Pgto:</strong> {order.payment}</p>
+                {/* Items */}
+                <div style={{ marginBottom: '30px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#999', textTransform: 'uppercase', marginBottom: '15px', borderBottom: '1px solid #eee', paddingBottom: '8px' }}>Itens do Pedido</div>
+                    {items.map((item, idx) => (
+                        <div key={idx} style={{ marginBottom: '15px' }}>
+                            <div style={flexBetween}>
+                                <div style={{ fontSize: '15px', fontWeight: '800' }}>
+                                    {item.qtd}x {item.nome}
+                                </div>
+                                <div style={{ fontSize: '15px', fontWeight: '800' }}>
+                                    R$ {Number(item.total).toFixed(2)}
+                                </div>
+                            </div>
 
-                    <div style={{ border: '3px solid #000', padding: '10px', borderRadius: '6px' }}>
-                        <strong style={{ fontSize: '14px' }}>ENTREGA:</strong>
-                        <p style={{ fontSize: '18px', lineHeight: '1.3', marginTop: '5px', fontWeight: 'bold' }}>{order.address}</p>
+                            {/* Detailed Info for Mix or Customizations */}
+                            {item.details && (
+                                <div style={{ marginTop: '5px', paddingLeft: '28px' }}>
+                                    {item.details.flavors && item.details.flavors.length > 0 && (
+                                        <div style={{ fontSize: '12px', color: '#666', fontStyle: 'italic' }}>
+                                            • Sabores: {item.details.flavors.map((f: any) => f.name || f).join(', ')}
+                                        </div>
+                                    )}
+                                    {item.details.selectedAdditions && item.details.selectedAdditions.length > 0 && (
+                                        <div style={{ fontSize: '12px', color: '#666', fontStyle: 'italic', marginTop: '2px' }}>
+                                            • Adicionais: {item.details.selectedAdditions.map((a: any) => a.option_name || a.name).join(', ')}
+                                        </div>
+                                    )}
+                                    {item.details.notes && (
+                                        <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
+                                            Obs: {item.details.notes}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+
+                {/* Summary */}
+                <div style={{ borderTop: '2px solid #eee', paddingTop: '20px' }}>
+                    <div style={{ ...flexBetween, marginBottom: '8px', fontSize: '14px' }}>
+                        <span>Subtotal</span>
+                        <span>R$ {itemsTotal.toFixed(2)}</span>
+                    </div>
+                    {deliveryFee > 0 && (
+                        <div style={{ ...flexBetween, marginBottom: '8px', fontSize: '14px' }}>
+                            <span>Taxa de Entrega</span>
+                            <span>R$ {deliveryFee.toFixed(2)}</span>
+                        </div>
+                    )}
+                    {discount > 0 && (
+                        <div style={{ ...flexBetween, marginBottom: '8px', fontSize: '14px', color: '#ef4444' }}>
+                            <span>Descontos</span>
+                            <span>- R$ {discount.toFixed(2)}</span>
+                        </div>
+                    )}
+
+                    <div style={{ ...flexBetween, marginTop: '15px', paddingTop: '15px', borderTop: '2px solid #1a1a1a' }}>
+                        <span style={{ fontSize: '20px', fontWeight: '900' }}>TOTAL</span>
+                        <span style={{ fontSize: '32px', fontWeight: '900' }}>R$ {finalTotal.toFixed(2)}</span>
+                    </div>
+                </div>
+
+                {/* Info Footer */}
+                <div style={{ marginTop: '35px' }}>
+                    <div style={{ marginBottom: '15px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#999', textTransform: 'uppercase' }}>Forma de Pagamento</span>
+                        <div style={{ fontSize: '15px', fontWeight: '700' }}>{order.payment}</div>
+                    </div>
+
+                    <div style={{ background: '#f0fdf4', border: '1px solid #dcfce7', padding: '15px', borderRadius: '12px', marginBottom: '20px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#166534', textTransform: 'uppercase' }}>Endereço de Entrega</span>
+                        <div style={{ fontSize: '16px', fontWeight: '800', marginTop: '4px', color: '#166534' }}>{order.address}</div>
                     </div>
 
                     {order.scheduling && order.scheduling !== 'Imediata' && (
-                        <div style={{ marginTop: '15px', background: '#000', color: '#fff', padding: '10px', textAlign: 'center' }}>
-                            <p style={{ margin: 0, fontSize: '16px', fontWeight: 'bold' }}>AGENDAMENTO</p>
-                            <p style={{ margin: '5px 0 0 0', fontSize: '20px' }}>{order.scheduling}</p>
+                        <div style={{ background: '#eff6ff', border: '1px solid #dbeafe', padding: '15px', borderRadius: '12px', textAlign: 'center' }}>
+                            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#1e40af', textTransform: 'uppercase' }}>Agendamento</div>
+                            <div style={{ fontSize: '18px', fontWeight: '900', color: '#1e40af', marginTop: '4px' }}>{order.scheduling}</div>
                         </div>
                     )}
                 </div>
 
-                <div style={{ textAlign: 'center', marginTop: '30px', fontSize: '14px', fontWeight: 'bold' }}>
-                    <p>Obrigado pela preferência!</p>
+                <div style={{ textAlign: 'center', marginTop: '40px' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#333' }}>Obrigado pela preferência!</div>
+                    <div style={{ fontSize: '11px', color: '#aaa', marginTop: '10px' }}>donacapivara.com.br</div>
                 </div>
-
             </div>
         </div>
     );

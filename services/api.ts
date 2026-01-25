@@ -1,7 +1,7 @@
 // Keeping all other functions, but providing the full file for safety
 import { isSupabaseConfigured, fetchCatalogFromSupabase, supabase } from './supabase';
 
-const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || 'https://script.google.com/macros/s/AKfycbxsShwfocez3scNzHeoIn0vaX4-3oOHGajiVT_KlCoOJsirpxTaC-sGkHMObi3R7BtxoA/exec';
+const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || 'https://script.google.com/macros/s/AKfycbxmXq0PmQOItVAWXqSrfgeqFZdf7FDkWo-c2BwrBY6mVtX2VGlSuL6oK9Z7iyrHxHq6Vw/exec';
 
 // 🧠 CACHE VERSION - Incrementar quando houver mudanças importantes no backend
 // Isso força todos os clientes a recarregar dados quando necessário
@@ -164,6 +164,7 @@ export const API = {
                     imagem: p.URL_IMAGEM_CACHE || '',
                     estoque: Number(p[' Estoque_Atual'] || p.Estoque_Atual || 0),
                     categoriaId: p.ID_Categoria,
+                    hasAdditions: p.Tem_Adicionais || false,
                     descricao: p.Descricao,
                     peso: p.Peso || 'N/A',
                     calorias: p.Calorias || 'N/A',
@@ -544,6 +545,12 @@ export const API = {
             return (await response.json()).success;
         } catch (e) { return false; }
     },
+    async getExportData(adminKey: string) {
+        try {
+            const response = await fetch(`${API_URL}?action=getExportData&adminKey=${adminKey}&_t=${Date.now()}`, { cache: 'no-store' });
+            return await response.json();
+        } catch (e) { return null; }
+    },
     async getProductReviews(productId: string) {
         try {
             const response = await fetch(`${API_URL}?action=getReviews&productId=${productId}&_t=${Date.now()}`);
@@ -574,53 +581,6 @@ export const API = {
         }
         window.location.reload();
     },
-
-    // 🤖 NOVO: Fluxo Híbrido Automático
-    async sendToAutoBot(phone: string, message: string) {
-        try {
-            // URL do Webhook do seu n8n (Produção)
-            const N8N_URL = 'https://primary-production-c573.up.railway.app/webhook/send-order';
-
-            const response = await fetch(N8N_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone, message })
-            });
-
-            if (!response.ok) throw new Error('n8n error');
-            const data = await response.json();
-            return data.success; // Retorna true se o robô enviou
-        } catch (e) {
-            console.warn('⚠️ [Automação] Falha no robô, usando fallback manual.');
-            return false;
-        }
-    },
-
-    // 🧪 TEST BYPASS: Busca produto ignorando filtros de status
-    async fetchProductByIdForce(productId: string) {
-        console.log(`🧪 [TEST BYPASS] Buscando produto forçado: ${productId}`);
-        try {
-            const url = `${API_URL}?action=getProductWithAdditions&productId=${productId}&force=true&_t=${Date.now()}`;
-            const response = await fetch(url);
-            const data = await response.json();
-
-            if (data.error) return null;
-
-            // Normalização básica de campos
-            return {
-                ...data,
-                id: data.id || data.ID_Geladinho,
-                nome: data.nome || data.Nome_Geladinho,
-                price: Number(data.price || data.Preco_Venda || 0),
-                estoque: 999, // Bypass de estoque para teste
-                imagem: data.imagem || data.URL_IMAGEM_CACHE
-            };
-        } catch (error) {
-            console.error('❌ [TEST BYPASS] Erro ao buscar produto:', error);
-            return null;
-        }
-    },
-
 
     // ========================================
     // GAMIFICATION FUNCTIONS REMOVED

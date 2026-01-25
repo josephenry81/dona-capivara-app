@@ -46,10 +46,7 @@ const ProfileView = dynamic(() => import('@/components/views/ProfileView'), {
 });
 
 
-const OrderStatusBanner = dynamic(() => import('@/components/ui/OrderStatusBanner'), {
-    loading: () => null,
-    ssr: false
-});
+
 
 
 
@@ -96,31 +93,7 @@ export default function Page() {
 
 
 
-    // 🧪 TEST BYPASS: Adição forçada ao carrinho via console (Apenas Localhost)
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-            if (isLocalhost) {
-                (window as any).forceAddToCart = async (productId: string) => {
-                    showToast(`🧪 [DEV ONLY] Buscando: ${productId}`, 'info');
-                    const product = await API.fetchProductByIdForce(productId);
-
-                    if (product) {
-                        const testItem = {
-                            ...product,
-                            isTestBypass: true,
-                            quantity: 1
-                        };
-                        setCart(prev => [...prev, testItem]);
-                        showToast(`✅ [DEV] ${productId} adicionado!`, 'success');
-                    } else {
-                        showToast(`❌ Falha ao encontrar ID: ${productId}`, 'error');
-                    }
-                };
-            }
-        }
-    }, [showToast]);
 
 
     useEffect(() => {
@@ -333,35 +306,7 @@ export default function Page() {
         }
     }, []);
 
-    // 🔄 REALTIME STATUS HUB
-    useEffect(() => {
-        if (!currentOrderId || !API.isSupabaseConfigured() || !API.supabase) return;
 
-        console.log(`📡 [Realtime] Ouvindo status do pedido: ${currentOrderId}`);
-
-        const channel = API.supabase
-            .channel(`order-status-${currentOrderId}`)
-            .on('postgres_changes', {
-                event: 'UPDATE',
-                schema: 'public',
-                table: 'orders',
-                filter: `short_id=eq.${currentOrderId}`
-            }, (payload: any) => {
-                const newStatus = payload.new.status;
-                console.log('✨ [Realtime] Status atualizado:', newStatus);
-
-                if (newStatus === 'Confirmado') {
-                    showToast('✅ Seu pedido foi confirmado via WhatsApp!', 'success');
-                    localStorage.removeItem('donaCapivaraPendingOrder');
-                    setCurrentOrderId(null);
-                }
-            })
-            .subscribe();
-
-        return () => {
-            API.supabase?.removeChannel(channel);
-        };
-    }, [currentOrderId, showToast]);
 
 
     // 🔧 DEBUGGING: Expose hidden features
@@ -579,33 +524,24 @@ export default function Page() {
                 const encodedMsg = encodeURIComponent(msgLines.join('\n'));
                 const customerPhone = orderData.customer.details?.telefone?.replace(/\D/g, '');
 
-                // 🤖 Tentar Auto-Envio via n8n (Robô -> Cliente)
-                const autoSent = customerPhone ? await API.sendToAutoBot(customerPhone, msgLines.join('\n')) : false;
-
-                if (!autoSent) {
-                    // 🔄 FALLBACK: Se o robô falhar ou não tiver telefone, abre manual (Cliente -> Loja)
-                    console.log('🔄 [Híbrido] Auto-envio falhou. Ativando fallback wa.me...');
-                    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-                    try {
-                        if (isMobile) {
-                            window.location.href = `whatsapp://send?phone=${WHATSAPP_PHONE}&text=${encodedMsg}`;
-                        } else {
-                            const whatsappUrl = `https://wa.me/${WHATSAPP_PHONE}?text=${encodedMsg}`;
-                            const link = document.createElement('a');
-                            link.href = whatsappUrl;
-                            link.target = '_blank';
-                            link.rel = 'noopener noreferrer';
-                            document.body.appendChild(link);
-                            link.click();
-                            setTimeout(() => document.body.removeChild(link), LINK_CLEANUP_DELAY_MS);
-                        }
-                    } catch (linkError) {
-                        window.open(`https://wa.me/${WHATSAPP_PHONE}?text=${encodedMsg}`, '_blank');
+                const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+                try {
+                    if (isMobile) {
+                        window.location.href = `whatsapp://send?phone=${WHATSAPP_PHONE}&text=${encodedMsg}`;
+                    } else {
+                        const whatsappUrl = `https://wa.me/${WHATSAPP_PHONE}?text=${encodedMsg}`;
+                        const link = document.createElement('a');
+                        link.href = whatsappUrl;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        document.body.appendChild(link);
+                        link.click();
+                        setTimeout(() => document.body.removeChild(link), LINK_CLEANUP_DELAY_MS);
                     }
-                } else {
-                    console.log('✅ [Híbrido] Pedido enviado automaticamente pelo robô!');
-                    showToast('✅ Pedido enviado automaticamente!', 'success');
+                } catch (linkError) {
+                    window.open(`https://wa.me/${WHATSAPP_PHONE}?text=${encodedMsg}`, '_blank');
                 }
+
 
 
                 alert(
@@ -636,15 +572,7 @@ export default function Page() {
                 }
 
             } else {
-                // 🧪 BYPASS DE TESTE: Ignorar validação de estoque apenas em LOCALHOST
-                const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-                const isTestOrder = isLocalhost && orderData.cart.some((item: any) => item.isTestBypass);
 
-                if (!response.success && !isTestOrder) {
-                    showToast(response.message || 'Erro ao processar estoque.', 'error');
-                    setIsSubmitting(false);
-                    return;
-                }
 
                 showToast(response.message || 'Erro ao salvar.', 'error');
             }
@@ -694,13 +622,7 @@ export default function Page() {
             <Toast message={toast.message} type={toast.type} isVisible={toast.visible} onClose={() => setToast({ ...toast, visible: false })} />
             <InstallPrompt />
 
-            {/* 🔥 STATUS HUB BANNER */}
-            {currentOrderId && (
-                <OrderStatusBanner
-                    orderId={currentOrderId}
-                    onViewHistory={() => setActiveTab('orders')}
-                />
-            )}
+
 
 
             {activeMixId ? (

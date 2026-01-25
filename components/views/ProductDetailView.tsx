@@ -25,6 +25,7 @@ interface Product {
     calorias?: string;
     ingredientes?: string;
     tempo?: string;
+    hasAdditions?: boolean;
 }
 
 interface ProductDetailProps {
@@ -85,6 +86,13 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
                     ...product,
                     addition_groups: [] // Empty but structure exists
                 } as any);
+
+                // ⚡ OPTIMIZATION: Only fetch if product has additions
+                if ((product as any).hasAdditions === false) {
+                    setLoadingAdditions(false);
+                    return;
+                }
+
                 setLoadingAdditions(true);
 
                 // Fetch additions with cache support
