@@ -1,44 +1,57 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import HomeView from '../components/views/HomeView';
-import FavoritesView from '../components/views/FavoritesView';
-import AuthView from '../components/views/AuthView';
-import OrderHistoryView from '../components/views/OrderHistoryView';
-import BottomNav from '../components/navigation/BottomNav';
-import Toast from '../components/ui/Toast';
-import InstallPrompt from '../components/ui/InstallPrompt';
-import LoadingCapybara from '../components/ui/LoadingCapybara';
-import { API } from '../services/api';
-import { useModal } from '../components/ui/Modal';
-import { OnboardingModal, GuidedTour, HelpButton } from '../components/onboarding';
-import { getHiddenProductIds } from '../config/productGroups';
+import HomeView from '@/components/views/HomeView';
+import FavoritesView from '@/components/views/FavoritesView';
+import AuthView from '@/components/views/AuthView';
+import OrderHistoryView from '@/components/views/OrderHistoryView';
+import BottomNav from '@/components/navigation/BottomNav';
+import Toast from '@/components/ui/Toast';
+import InstallPrompt from '@/components/ui/InstallPrompt';
+import LoadingCapybara from '@/components/ui/LoadingCapybara';
+import { API } from '@/services/api';
+import { useModal } from '@/components/ui/Modal';
+import { OnboardingModal, GuidedTour, HelpButton } from '@/components/onboarding';
+import { getHiddenProductIds } from '@/config/productGroups';
+
 
 // ⚡ DYNAMIC IMPORTS - Lazy load heavy components
-const CartView = dynamic(() => import('../components/views/CartView'), {
+const CartView = dynamic(() => import('@/components/views/CartView'), {
     loading: () => <LoadingCapybara />,
     ssr: false
 });
 
-const ProductDetailView = dynamic(() => import('../components/views/ProductDetailView'), {
+
+const ProductDetailView = dynamic(() => import('@/components/views/ProductDetailView'), {
     loading: () => <LoadingCapybara />,
     ssr: false
 });
 
-const MixGourmetView = dynamic(() => import('../components/views/MixGourmetView'), {
+
+const MixGourmetView = dynamic(() => import('@/components/views/MixGourmetView'), {
     loading: () => <LoadingCapybara />,
     ssr: false
 });
 
-const AdminView = dynamic(() => import('../components/views/AdminView'), {
+
+const AdminView = dynamic(() => import('@/components/views/AdminView'), {
     loading: () => <LoadingCapybara />,
     ssr: false
 });
 
-const ProfileView = dynamic(() => import('../components/views/ProfileView'), {
+
+const ProfileView = dynamic(() => import('@/components/views/ProfileView'), {
     loading: () => <LoadingCapybara />,
     ssr: false
 });
+
+
+const OrderStatusBanner = dynamic(() => import('@/components/ui/OrderStatusBanner'), {
+    loading: () => null,
+    ssr: false
+});
+
+
 
 // 🔧 CONFIGURAÇÃO E CONSTANTES
 const WHATSAPP_PHONE = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || '5541991480096';
@@ -68,20 +81,51 @@ export default function Page() {
     const [isLoading, setIsLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
     const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as any, ts: 0 });
+
     const { modalState, hideModal, confirm, alert, Modal: CustomModal } = useModal();
 
     // 🎓 ONBOARDING STATES
     const [showOnboarding, setShowOnboarding] = useState(false);
     const [showTour, setShowTour] = useState(false);
 
-    const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
         setToast({ visible: true, message, type, ts: Date.now() });
-    };
+    }, []);
+
+
+
+    // 🧪 TEST BYPASS: Adição forçada ao carrinho via console (Apenas Localhost)
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+            if (isLocalhost) {
+                (window as any).forceAddToCart = async (productId: string) => {
+                    showToast(`🧪 [DEV ONLY] Buscando: ${productId}`, 'info');
+                    const product = await API.fetchProductByIdForce(productId);
+
+                    if (product) {
+                        const testItem = {
+                            ...product,
+                            isTestBypass: true,
+                            quantity: 1
+                        };
+                        setCart(prev => [...prev, testItem]);
+                        showToast(`✅ [DEV] ${productId} adicionado!`, 'success');
+                    } else {
+                        showToast(`❌ Falha ao encontrar ID: ${productId}`, 'error');
+                    }
+                };
+            }
+        }
+    }, [showToast]);
 
 
     useEffect(() => {
         const savedUser = localStorage.getItem('donaCapivaraUser');
+
         if (savedUser) {
             try {
                 const parsed = JSON.parse(savedUser);
@@ -283,8 +327,42 @@ export default function Page() {
             setActiveMixId(mixId);
         } else {
             setSelectedProduct(product);
+            // Recuperar pedido pendente
+            const pendingOrder = localStorage.getItem('donaCapivaraPendingOrder');
+            if (pendingOrder) setCurrentOrderId(pendingOrder);
         }
     }, []);
+
+    // 🔄 REALTIME STATUS HUB
+    useEffect(() => {
+        if (!currentOrderId || !API.isSupabaseConfigured() || !API.supabase) return;
+
+        console.log(`📡 [Realtime] Ouvindo status do pedido: ${currentOrderId}`);
+
+        const channel = API.supabase
+            .channel(`order-status-${currentOrderId}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'orders',
+                filter: `short_id=eq.${currentOrderId}`
+            }, (payload: any) => {
+                const newStatus = payload.new.status;
+                console.log('✨ [Realtime] Status atualizado:', newStatus);
+
+                if (newStatus === 'Confirmado') {
+                    showToast('✅ Seu pedido foi confirmado via WhatsApp!', 'success');
+                    localStorage.removeItem('donaCapivaraPendingOrder');
+                    setCurrentOrderId(null);
+                }
+            })
+            .subscribe();
+
+        return () => {
+            API.supabase?.removeChannel(channel);
+        };
+    }, [currentOrderId, showToast]);
+
 
     // 🔧 DEBUGGING: Expose hidden features
     useEffect(() => {
@@ -394,8 +472,11 @@ export default function Page() {
                 // Garantir que o ID seja string para evitar erro em .slice() se vier como número
                 const rawId = response.idVenda || 'PENDENTE';
                 const shortId = String(rawId).slice(0, ORDER_ID_LENGTH).toUpperCase();
+                setCurrentOrderId(shortId);
+                localStorage.setItem('donaCapivaraPendingOrder', shortId);
 
                 // Helper para sanitizar strings e prevenir quebra de formato
+
                 const sanitize = (str: string) => String(str || '').replace(/[*_~`]/g, '');
 
                 // Helper para formatação de moeda BRL
@@ -407,9 +488,10 @@ export default function Page() {
 
                 // Construção da mensagem baseada em array
                 const msgLines = [];
-                msgLines.push(`*** NOVO PEDIDO - DONA CAPIVARA ***`);
+                msgLines.push(`* NOVO PEDIDO - DONA CAPIVARA *`);
                 msgLines.push(`ID: ${shortId}`);
                 msgLines.push(`----------------`);
+
 
                 if (orderData.scheduling && orderData.scheduling !== 'Imediata') {
                     msgLines.push(`>> AGENDADO: ${sanitize(orderData.scheduling)}\n`);
@@ -443,7 +525,8 @@ export default function Page() {
                     msgLines.push('');
                 });
 
-                msgLines.push(`*Total: ${formatCurrency(orderData.total)}*`);
+                msgLines.push(`Total: ${formatCurrency(orderData.total)}`);
+
                 msgLines.push(`Cliente: ${sanitize(orderData.customer.name)}`);
 
                 // Telefone do cliente (especialmente importante para guests)
@@ -470,8 +553,12 @@ export default function Page() {
                         msgLines.push(`Comp: ${sanitize(orderData.customer.details.complemento)}`);
                     }
                 } else if (orderData.customer.details) {
-                    msgLines.push(`Torre: ${sanitize(orderData.customer.details.torre)} - Apto: ${sanitize(orderData.customer.details.apto)}`);
+                    const addr = [];
+                    if (orderData.customer.details.torre) addr.push(`Torre ${sanitize(orderData.customer.details.torre)}`);
+                    if (orderData.customer.details.apto) addr.push(`Apto ${sanitize(orderData.customer.details.apto)}`);
+                    msgLines.push(`Endereço: ${addr.join(', ')}`);
                 }
+
 
                 msgLines.push(`Pgto: ${sanitize(orderData.paymentMethod)}`);
 
@@ -487,35 +574,39 @@ export default function Page() {
                     msgLines.push(`[+] Pontos Ganhos: ${earned}`);
                 }
 
-                console.log(`✅ Pedido ${shortId} processado com sucesso. Redirecionando para WhatsApp...`);
+                console.log(`✅ Pedido ${shortId} processado com sucesso. Tentando auto-envio...`);
 
-                // Codificação robusta da mensagem
                 const encodedMsg = encodeURIComponent(msgLines.join('\n'));
+                const customerPhone = orderData.customer.details?.telefone?.replace(/\D/g, '');
 
-                // Detectar se é mobile para usar protocolo nativo
-                const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+                // 🤖 Tentar Auto-Envio via n8n (Robô -> Cliente)
+                const autoSent = customerPhone ? await API.sendToAutoBot(customerPhone, msgLines.join('\n')) : false;
 
-                // Redirecionamento unificado e seguro com tratamento de erro
-                try {
-                    if (isMobile) {
-                        // Protocolo nativo - abre direto no app do WhatsApp
-                        window.location.href = `whatsapp://send?phone=${WHATSAPP_PHONE}&text=${encodedMsg}`;
-                    } else {
-                        // Desktop - usa link com fallback
-                        const whatsappUrl = `https://wa.me/${WHATSAPP_PHONE}?text=${encodedMsg}`;
-                        const link = document.createElement('a');
-                        link.href = whatsappUrl;
-                        link.target = '_blank';
-                        link.rel = 'noopener noreferrer';
-                        document.body.appendChild(link);
-                        link.click();
-                        setTimeout(() => document.body.removeChild(link), LINK_CLEANUP_DELAY_MS);
+                if (!autoSent) {
+                    // 🔄 FALLBACK: Se o robô falhar ou não tiver telefone, abre manual (Cliente -> Loja)
+                    console.log('🔄 [Híbrido] Auto-envio falhou. Ativando fallback wa.me...');
+                    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+                    try {
+                        if (isMobile) {
+                            window.location.href = `whatsapp://send?phone=${WHATSAPP_PHONE}&text=${encodedMsg}`;
+                        } else {
+                            const whatsappUrl = `https://wa.me/${WHATSAPP_PHONE}?text=${encodedMsg}`;
+                            const link = document.createElement('a');
+                            link.href = whatsappUrl;
+                            link.target = '_blank';
+                            link.rel = 'noopener noreferrer';
+                            document.body.appendChild(link);
+                            link.click();
+                            setTimeout(() => document.body.removeChild(link), LINK_CLEANUP_DELAY_MS);
+                        }
+                    } catch (linkError) {
+                        window.open(`https://wa.me/${WHATSAPP_PHONE}?text=${encodedMsg}`, '_blank');
                     }
-                } catch (linkError) {
-                    console.error('❌ Erro ao abrir WhatsApp:', linkError);
-                    // Fallback: tentar window.open direto
-                    window.open(`https://wa.me/${WHATSAPP_PHONE}?text=${encodedMsg}`, '_blank');
+                } else {
+                    console.log('✅ [Híbrido] Pedido enviado automaticamente pelo robô!');
+                    showToast('✅ Pedido enviado automaticamente!', 'success');
                 }
+
 
                 alert(
                     '🎉 Pedido Enviado!',
@@ -545,6 +636,16 @@ export default function Page() {
                 }
 
             } else {
+                // 🧪 BYPASS DE TESTE: Ignorar validação de estoque apenas em LOCALHOST
+                const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+                const isTestOrder = isLocalhost && orderData.cart.some((item: any) => item.isTestBypass);
+
+                if (!response.success && !isTestOrder) {
+                    showToast(response.message || 'Erro ao processar estoque.', 'error');
+                    setIsSubmitting(false);
+                    return;
+                }
+
                 showToast(response.message || 'Erro ao salvar.', 'error');
             }
         } catch (e) {
@@ -592,6 +693,15 @@ export default function Page() {
             <CustomModal />
             <Toast message={toast.message} type={toast.type} isVisible={toast.visible} onClose={() => setToast({ ...toast, visible: false })} />
             <InstallPrompt />
+
+            {/* 🔥 STATUS HUB BANNER */}
+            {currentOrderId && (
+                <OrderStatusBanner
+                    orderId={currentOrderId}
+                    onViewHistory={() => setActiveTab('orders')}
+                />
+            )}
+
 
             {activeMixId ? (
                 <MixGourmetView

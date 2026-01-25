@@ -8,6 +8,9 @@ const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || 'https://script.
 const CACHE_VERSION = '2.0.0';
 
 export const API = {
+    supabase,
+    isSupabaseConfigured,
+
 
     // ========================================
     // CATALOG CACHE - STALE-WHILE-REVALIDATE
@@ -479,10 +482,29 @@ export const API = {
     },
     async submitOrder(orderData: any) {
         try {
+            // 1. TENTATIVA SUPABASE (Para Realtime e Status 2.0 via n8n)
+            if (isSupabaseConfigured() && supabase) {
+                const shortId = String(orderData.id || orderData.idVenda || '').slice(0, 8).toUpperCase();
+
+                await supabase.from('orders').insert([{
+                    short_id: shortId,
+                    customer_phone: orderData.userPhone || orderData.customer?.details?.telefone,
+                    total: orderData.total,
+                    status: 'Aguardando WhatsApp',
+                    items: JSON.stringify(orderData.cart),
+                    raw_data: orderData
+                }]);
+            }
+
+            // 2. ENVIO PADRÃO PARA GOOGLE SHEETS
             const response = await fetch(API_URL + '?action=createOrder', { method: 'POST', body: JSON.stringify(orderData) });
             return await response.json();
-        } catch (e) { return { success: false }; }
+        } catch (e) {
+            console.error('❌ [API] Erro ao submeter pedido:', e);
+            return { success: false };
+        }
     },
+
     async getCustomerOrders(customerId: string) {
         try {
             const response = await fetch(`${API_URL}?action=getOrders&customerId=${customerId}&_t=${Date.now()}`);
@@ -546,10 +568,59 @@ export const API = {
     async clearCacheAndReload() {
         if ('serviceWorker' in navigator) {
             const registrations = await navigator.serviceWorker.getRegistrations();
-            for (const reg of registrations) await reg.unregister();
+            for (const registration of registrations) {
+                await registration.unregister();
+            }
         }
         window.location.reload();
     },
+
+    // 🤖 NOVO: Fluxo Híbrido Automático
+    async sendToAutoBot(phone: string, message: string) {
+        try {
+            // URL do Webhook do seu n8n (Produção)
+            const N8N_URL = 'https://primary-production-c573.up.railway.app/webhook/send-order';
+
+            const response = await fetch(N8N_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone, message })
+            });
+
+            if (!response.ok) throw new Error('n8n error');
+            const data = await response.json();
+            return data.success; // Retorna true se o robô enviou
+        } catch (e) {
+            console.warn('⚠️ [Automação] Falha no robô, usando fallback manual.');
+            return false;
+        }
+    },
+
+    // 🧪 TEST BYPASS: Busca produto ignorando filtros de status
+    async fetchProductByIdForce(productId: string) {
+        console.log(`🧪 [TEST BYPASS] Buscando produto forçado: ${productId}`);
+        try {
+            const url = `${API_URL}?action=getProductWithAdditions&productId=${productId}&force=true&_t=${Date.now()}`;
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data.error) return null;
+
+            // Normalização básica de campos
+            return {
+                ...data,
+                id: data.id || data.ID_Geladinho,
+                nome: data.nome || data.Nome_Geladinho,
+                price: Number(data.price || data.Preco_Venda || 0),
+                estoque: 999, // Bypass de estoque para teste
+                imagem: data.imagem || data.URL_IMAGEM_CACHE
+            };
+        } catch (error) {
+            console.error('❌ [TEST BYPASS] Erro ao buscar produto:', error);
+            return null;
+        }
+    },
+
 
     // ========================================
     // GAMIFICATION FUNCTIONS REMOVED

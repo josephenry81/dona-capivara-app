@@ -480,6 +480,15 @@ function syncProductsToSupabase() {
       isActive = strVal === 'TRUE' || strVal === 'SIM' || strVal === 'YES' || strVal === '1' || strVal === 'S' || strVal === 'OK';
     }
     
+    // 📦 NOVA COLUNA: Mostrar_Catalogo controla visibilidade no catálogo
+    // Se não existir, assume TRUE (comportamento padrão)
+    let showInCatalog = true;
+    const showValue = p.Mostrar_Catalogo;
+    if (showValue !== null && showValue !== undefined && showValue !== '') {
+      const showStr = String(showValue).toUpperCase().trim();
+      showInCatalog = showStr === 'TRUE' || showStr === 'SIM' || showStr === 'YES' || showStr === '1' || showStr === 'S';
+    }
+    
     return {
       id: p.ID_Geladinho,
       nome: p.Nome_Geladinho,
@@ -488,7 +497,8 @@ function syncProductsToSupabase() {
       categoria_id: p.ID_Categoria,
       descricao: p.Descricao || '',
       imagem_url: normalizarUrlImagem(p) || '',
-      ativo: isActive, // ✅ Agora usa valor real!
+      ativo: isActive,
+      mostrar_catalogo: showInCatalog, // ✅ NOVA COLUNA
       updated_at: new Date().toISOString()
     };
   });
@@ -1485,17 +1495,11 @@ function createOrder(d) {
   let obs = pts > 0 ? `Usou ${pts} pts` : (d.referralCode ? `Ref: ${d.referralCode}` : '');
   if (d.couponCode) obs += ` | Cupom: ${d.couponCode}`;
 
-  // 2. Registrar Venda
-  const nomeCliente = d.customer?.name || d.customer?.details?.nome || 'Visitante';
-  const telefoneCliente = d.customer?.details?.telefone || '';
-  const isGuest = !d.customer?.id || d.customer?.id === 'GUEST';
-
   V.appendRow([
-    id, now, isGuest ? 'GUEST' : d.customer.id, obs,
+    id, now, d.customer?.id || 'GUEST', obs,
     d.total, d.total, 'Pendente', disc, pts > 0,
-    d.deliveryFee, nomeCliente, d.customer?.details?.torre,
-    d.customer?.details?.apto, d.paymentMethod, d.scheduling || 'Imediata',
-    telefoneCliente
+    d.deliveryFee, d.customer?.name, d.customer?.details?.torre,
+    d.customer?.details?.apto, d.paymentMethod, d.scheduling || 'Imediata'
   ]);
 
   if (d.cart) {

@@ -15,10 +15,11 @@ export default function PageTransition({ children, className = '', variant = 'fa
             initial="hidden"
             animate="visible"
             exit="exit"
-            variants={anim}
+            variants={anim as any}
             className={className}
             style={{ width: '100%', height: '100%' }}
         >
+
             {children}
         </motion.div>
     );
