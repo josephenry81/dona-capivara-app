@@ -34,9 +34,17 @@ interface MixGourmetViewProps {
     mixId: string;
     onBack: () => void;
     onAddToCart: (mixData: any) => void;
+    onToggleFavorite?: (productId: string) => void;
+    favorites?: string[];
 }
 
-export default function MixGourmetView({ mixId, onBack, onAddToCart }: MixGourmetViewProps) {
+export default function MixGourmetView({
+    mixId,
+    onBack,
+    onAddToCart,
+    onToggleFavorite,
+    favorites = []
+}: MixGourmetViewProps) {
     const [mix, setMix] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -210,11 +218,20 @@ export default function MixGourmetView({ mixId, onBack, onAddToCart }: MixGourme
                 <div className="absolute inset-0 bg-black/10"></div>
                 <button
                     onClick={onBack}
-                    className="absolute top-4 left-4 bg-white/90 backdrop-blur-md p-2 rounded-full shadow-lg hover:scale-110 transition active:scale-95"
+                    className="absolute top-4 left-4 bg-white/90 backdrop-blur-md p-2 rounded-full shadow-lg hover:scale-110 transition active:scale-95 z-20"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
+                </button>
+
+                {/* Favorite Button for Mix */}
+                <button
+                    onClick={() => onToggleFavorite?.(mixId)}
+                    className="absolute top-4 right-4 bg-white/90 backdrop-blur-md p-2 rounded-full shadow-lg hover:scale-110 transition active:scale-95 z-20 text-lg"
+                    title={favorites.includes(mixId) ? "Remover dos Favoritos" : "Favoritar"}
+                >
+                    {favorites.includes(mixId) ? '❤️' : '🤍'}
                 </button>
                 <div className="relative text-center text-white z-10">
                     <h1 className="text-3xl font-bold">🍦 {mix.name}</h1>
@@ -434,26 +451,11 @@ export default function MixGourmetView({ mixId, onBack, onAddToCart }: MixGourme
                 <>
                     {/* Bottom Bar - Same as ProductDetailView */}
                     <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 p-4 pb-8 flex items-center gap-4 z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
-                        {/* Quantity Selector */}
-                        <div className="flex items-center bg-gray-100 rounded-xl px-3 py-2 h-14">
-                            <button
-                                onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                                className="w-8 text-xl font-bold text-gray-500 hover:text-pink-500 transition"
-                            >
-                                -
-                            </button>
-                            <span className="w-8 text-center font-bold text-gray-800 text-lg">{quantity}</span>
-                            <button
-                                onClick={() => setQuantity(q => q + 1)}
-                                className="w-8 text-xl font-bold text-gray-500 hover:text-pink-500 transition"
-                            >
-                                +
-                            </button>
-                        </div>
 
                         {/* Add to Cart Button */}
                         <button
                             onClick={handleAddToCart}
+                            data-tour="add-to-cart"
                             disabled={selectedFlavors.length === 0}
                             className="flex-1 h-14 bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white font-bold rounded-xl shadow-lg shadow-orange-200 hover:opacity-90 transition flex justify-between items-center px-6 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                         >

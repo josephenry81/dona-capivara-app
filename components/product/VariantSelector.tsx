@@ -35,13 +35,13 @@ export default function VariantSelector({ variants, onSelect, disabled = false }
     };
 
     return (
-        <div className="mb-6">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <span className="text-lg">📏</span>
-                Escolha o Tamanho
+        <div className="mb-8">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-pink-500"></span>
+                Opções Disponíveis
             </h3>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-4">
                 {variants.map((variant) => {
                     const isOutOfStock = variant.stock <= 0;
                     const isDisabled = disabled || isOutOfStock;
@@ -52,54 +52,51 @@ export default function VariantSelector({ variants, onSelect, disabled = false }
                             onClick={() => !isDisabled && onSelect(variant.id)}
                             disabled={isDisabled}
                             className={`
-                                relative flex flex-col items-center justify-center
-                                min-w-[90px] p-3 rounded-xl border-2 transition-all duration-200
+                                relative flex flex-col items-start justify-center
+                                min-w-[110px] p-4 rounded-[24px] border-2 transition-all duration-300
                                 ${variant.isSelected
-                                    ? 'border-pink-500 bg-pink-50 shadow-md scale-105'
-                                    : 'border-gray-200 bg-white hover:border-pink-300 hover:bg-pink-25'
+                                    ? 'border-pink-500 bg-pink-50 shadow-xl shadow-pink-100/50 scale-[1.05] z-10'
+                                    : 'border-gray-100 bg-white hover:border-pink-200 hover:shadow-lg'
                                 }
-                                ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                                ${isOutOfStock ? 'bg-gray-100' : ''}
+                                ${isDisabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
                             `}
                         >
-                            {/* Selection indicator */}
-                            <div className={`
-                                absolute -top-1 -right-1 w-5 h-5 rounded-full
-                                flex items-center justify-center text-xs
-                                transition-all duration-200
-                                ${variant.isSelected
-                                    ? 'bg-pink-500 text-white scale-100'
-                                    : 'bg-gray-200 text-gray-400 scale-75'
-                                }
-                            `}>
-                                {variant.isSelected ? '✓' : '○'}
-                            </div>
+                            {/* Selection flag */}
+                            {variant.isSelected && (
+                                <div className="absolute top-2 right-2">
+                                    <div className="w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center shadow-lg shadow-pink-500/40 animate-in zoom-in-50 duration-300">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            )}
 
-                            {/* Variant label (weight/size) */}
+                            {/* Variant label */}
                             <span className={`
-                                text-sm font-bold mb-1
-                                ${variant.isSelected ? 'text-pink-600' : 'text-gray-800'}
+                                text-sm font-black tracking-tight mb-1
+                                ${variant.isSelected ? 'text-pink-600' : 'text-gray-900'}
                             `}>
                                 {variant.label}
                             </span>
 
                             {/* Price */}
                             <span className={`
-                                text-xs font-medium
-                                ${variant.isSelected ? 'text-pink-500' : 'text-gray-600'}
+                                text-xs font-bold tabular-nums
+                                ${variant.isSelected ? 'text-pink-400' : 'text-gray-400'}
                             `}>
                                 {formatPrice(variant.price)}
                             </span>
 
                             {/* Stock status */}
                             {isOutOfStock ? (
-                                <span className="text-[10px] text-red-500 mt-1 font-medium">
+                                <div className="mt-2 text-[8px] font-black uppercase tracking-widest text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
                                     Esgotado
-                                </span>
+                                </div>
                             ) : variant.stock <= 5 ? (
-                                <span className="text-[10px] text-orange-500 mt-1">
-                                    Últimas {variant.stock}
-                                </span>
+                                <div className="mt-2 text-[8px] font-black uppercase tracking-widest text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full">
+                                    Apenas {variant.stock}
+                                </div>
                             ) : null}
                         </button>
                     );

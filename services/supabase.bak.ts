@@ -84,7 +84,6 @@ export async function fetchCatalogFromSupabase() {
             price: Number(p.preco || 0),
             estoque: Number(p.estoque || 0),
             categoriaId: p.categoria_id,
-            subcategoria: p.subcategoria || '',
             descricao: p.descricao || '',
             imagem: p.imagem_url || '',
             peso: p.peso || 'N/A',
@@ -95,8 +94,7 @@ export async function fetchCatalogFromSupabase() {
         })),
         categories: (categoriesRes.data || []).map(c => ({
             id: c.id,
-            nome: c.nome,
-            imagem: c.imagem_url || ''
+            nome: c.nome
         })),
         banners: (bannersRes.data || []).map(b => ({
             id: b.id,

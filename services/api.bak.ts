@@ -164,7 +164,6 @@ export const API = {
                     imagem: p.URL_IMAGEM_CACHE || '',
                     estoque: Number(p[' Estoque_Atual'] || p.Estoque_Atual || 0),
                     categoriaId: p.ID_Categoria,
-                    subcategoria: p.Subcategoria || p.ID_Subcategoria || '',
                     hasAdditions: p.Tem_Adicionais || false,
                     descricao: p.Descricao,
                     peso: p.Peso || 'N/A',
@@ -175,8 +174,7 @@ export const API = {
 
                 const categories = (catalogData.categories || []).map((c: any) => ({
                     id: c.ID_Categoria,
-                    nome: c.Nome_Categoria,
-                    imagem: c.Imagem_Categoria || ''
+                    nome: c.Nome_Categoria
                 }));
 
                 const banners = (catalogData.banners || []).map((b: any) => ({

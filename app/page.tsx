@@ -11,6 +11,7 @@ import InstallPrompt from '@/components/ui/InstallPrompt';
 import LoadingCapybara from '@/components/ui/LoadingCapybara';
 import { API } from '@/services/api';
 import { useModal } from '@/components/ui/Modal';
+import { ReviewService } from '@/services/reviews';
 import { OnboardingModal, GuidedTour, HelpButton } from '@/components/onboarding';
 import { getHiddenProductIds } from '@/config/productGroups';
 
@@ -80,6 +81,7 @@ export default function Page() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
     const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as any, ts: 0 });
+    const [averageRatings, setAverageRatings] = useState<Record<string, number>>({});
 
     const { modalState, hideModal, confirm, alert, Modal: CustomModal } = useModal();
 
@@ -150,6 +152,12 @@ export default function Page() {
                 setProducts(visibleProducts);
                 setCategories(data.categories || []);
                 setBanners(data.banners || []);
+
+                // 🔄 NEW: Fetch all product ratings in parallel
+                ReviewService.getAllAverageRatings().then(ratings => {
+                    setAverageRatings(ratings);
+                    console.log('⭐ [Ratings] Loaded for', Object.keys(ratings).length, 'products');
+                });
 
                 // 🔄 SYNC FAVORITES: Remove IDs that don't exist in current catalog
                 if (data && (fetchedProducts.length > 0 || data.categories?.length > 0)) {
@@ -630,6 +638,8 @@ export default function Page() {
                     mixId={activeMixId}
                     onBack={() => setActiveMixId(null)}
                     onAddToCart={addMixToCart}
+                    onToggleFavorite={toggleFavorite}
+                    favorites={favorites}
                 />
             ) : selectedProduct ? (
                 <ProductDetailView
@@ -637,6 +647,9 @@ export default function Page() {
                     onBack={() => setSelectedProduct(null)}
                     onAddToCart={(p, q, additions) => { addToCart(p, q, additions); setSelectedProduct(null); }}
                     user={user}
+                    onToggleFavorite={toggleFavorite}
+                    favorites={favorites}
+                    averageRatings={averageRatings}
                 />
             ) : (
                 <>
@@ -653,6 +666,7 @@ export default function Page() {
                             onHeaderAction={handleHeaderAction}
                             isLoading={isLoading}
                             hasError={hasError}
+                            averageRatings={averageRatings}
                             onRetry={() => {
                                 // A função loadCatalog já está definida no useEffect, 
                                 // mas precisamos de uma forma de dispará-la novamente.

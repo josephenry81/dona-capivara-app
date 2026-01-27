@@ -33,9 +33,20 @@ interface ProductDetailProps {
     onBack: () => void;
     onAddToCart: (product: Product, quantity: number, additions?: SelectedAddition[]) => void;
     user?: any;
+    onToggleFavorite?: (productId: string) => void;
+    favorites?: string[];
+    averageRatings?: Record<string, number>;
 }
 
-export default function ProductDetailView({ product, onBack, onAddToCart, user }: ProductDetailProps) {
+export default function ProductDetailView({
+    product,
+    onBack,
+    onAddToCart,
+    user,
+    onToggleFavorite,
+    favorites = [],
+    averageRatings = {}
+}: ProductDetailProps) {
     const [quantity, setQuantity] = useState(1);
     const [reviews, setReviews] = useState<Review[]>([]);
     const [showReviewForm, setShowReviewForm] = useState(false);
@@ -141,7 +152,6 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
                             isSelected: (p.id || p.ID_Geladinho) === product.id
                         }));
                         setVariants(variantList);
-                        console.log('📦 [Variants] Loaded:', variantList);
                     }
                 }
             }
@@ -149,7 +159,32 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
         fetchProductData();
     }, [product]);
 
-    // 📦 VARIANT SELECTION HANDLER
+    // ⚡ NEW: Helper to check if a value is valid for display (not falsy or "N/A")
+    const isValidValue = (val: any) => {
+        if (!val) return false;
+        const stringVal = String(val).trim().toUpperCase();
+        return stringVal !== 'N/A' && stringVal !== '"N/A"' && stringVal !== 'NONE';
+    };
+
+    //  NEW: Helper to determine if a product is new
+    const getProductBadge = () => {
+        const p = displayProduct as any;
+        const creationDate = p.Data || p.criado_em || p.createdAt;
+        if (!creationDate) return 'Novidade imperdível';
+
+        try {
+            const date = new Date(creationDate);
+            const now = new Date();
+            const diffTime = Math.abs(now.getTime() - date.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            return diffDays <= 30 ? 'Novidade imperdível' : 'Favorito da Casa';
+        } catch (e) {
+            return 'Novidade imperdível';
+        }
+    };
+
+    // �📦 VARIANT SELECTION HANDLER
     const handleVariantSelect = async (variantId: string) => {
         setSelectedVariantId(variantId);
         setQuantity(1); // Reset quantity on variant change
@@ -322,167 +357,217 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
         const totalPrice = unitPrice * quantity;
 
         return (
-            <div className="min-h-screen bg-gradient-to-b from-pink-50 to-white flex flex-col relative animate-in slide-in-from-right duration-300">
+            <div className="min-h-screen bg-[#FAFAFA] flex flex-col relative animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <CustomModal />
 
                 {/* Fixed Navigation Button */}
                 <button
                     onClick={onBack}
-                    className="fixed top-4 left-4 z-50 bg-white/90 backdrop-blur-md p-3 rounded-full shadow-lg border border-gray-100 hover:scale-110 transition active:scale-95"
+                    className="fixed top-6 left-6 z-50 bg-white/80 backdrop-blur-xl p-3.5 rounded-2xl shadow-xl shadow-pink-100/20 border border-white/40 hover:scale-105 transition active:scale-95 group"
                     aria-label="Voltar"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-800 group-hover:text-pink-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
                     </svg>
                 </button>
 
                 {/* Hero Section - Mix */}
-                <div className="relative h-[30vh] w-full bg-gradient-to-br from-pink-400 via-purple-400 to-orange-400 flex items-center justify-center">
-                    <div className="absolute inset-0 bg-black/10"></div>
-                    <div className="relative text-center text-white z-10">
-                        <h1 className="text-4xl font-bold mb-2">🍦 {displayProduct.nome}</h1>
-                        <p className="text-sm opacity-90">Monte sua combinação perfeita!</p>
+                <div className="relative h-[35vh] lg:h-[40vh] w-full overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#FF4B82] via-[#FF758F] to-[#FF9E3D] animate-gradient-xy"></div>
+                    <div className="absolute inset-0 bg-[url('/mesh-gradient.png')] opacity-30 bg-cover mix-blend-overlay"></div>
+                    <div className="relative h-full flex flex-col items-center justify-center text-white px-6 text-center">
+                        <div className="inline-block px-4 py-1.5 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold tracking-widest uppercase mb-4 border border-white/30">
+                            Customizável
+                        </div>
+                        <h1 className="text-4xl lg:text-5xl font-extrabold mb-3 drop-shadow-lg tracking-tight">
+                            {displayProduct.nome}
+                        </h1>
+                        <p className="text-sm lg:text-base opacity-90 max-w-xs mx-auto leading-relaxed font-medium">
+                            {displayProduct.descricao || 'Crie sua própria combinação de sabores e adicionais!'}
+                        </p>
                     </div>
                 </div>
 
                 {/* Content Body */}
-                <div className="flex-1 p-6 flex flex-col -mt-8 bg-white rounded-t-[35px] relative z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] pb-32">
+                <div className="flex-1 px-4 lg:px-8 flex flex-col -mt-10 bg-white/80 backdrop-blur-2xl rounded-t-[40px] relative z-10 border-t border-white/60 shadow-[0_-20px_50px_rgba(0,0,0,0.06)] pb-36">
 
-                    <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6 opacity-50"></div>
+                    <div className="w-16 h-1.5 bg-gray-200/60 rounded-full mx-auto my-6"></div>
 
-                    {/* Mix Info Card */}
-                    <div className="bg-gradient-to-r from-pink-50 to-purple-50 p-5 rounded-2xl mb-6 border-2 border-pink-200">
-                        <div className="flex items-center gap-3 mb-3">
-                            <span className="text-3xl">🎨</span>
-                            <div>
-                                <h2 className="text-xl font-bold text-gray-800">Monte seu Mix</h2>
-                                <p className="text-sm text-gray-600">{displayProduct.descricao || 'Personalize do seu jeito!'}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-baseline gap-2 bg-white p-3 rounded-xl">
-                            <span className="text-sm text-gray-600">Preço base:</span>
-                            <span className="text-2xl font-bold text-pink-600">R$ {basePrice.toFixed(2)}</span>
-                        </div>
-                    </div>
-
-                    {/* Flavors Section (GRP-003) */}
-                    {flavorGroup && (
-                        <div className="mb-6">
-                            <div className="flex items-center gap-2 mb-4">
-                                <span className="text-2xl">🍓</span>
-                                <h3 className="text-lg font-bold text-gray-800">
-                                    {flavorGroup.name}
-                                    <span className="text-sm font-normal text-gray-500 ml-2">
-                                        (Escolha {flavorGroup.min} a {flavorGroup.max})
-                                    </span>
-                                </h3>
-                            </div>
-
-                            <AdditionGroup
-                                group={flavorGroup}
-                                selectedOptions={selectedOptionsByGroup[flavorGroup.id] || []}
-                                onSelectionChange={(optionId) => handleAdditionSelection(flavorGroup.id, optionId, flavorGroup)}
-                            />
-                        </div>
-                    )}
-
-                    {/* Other Addition Groups (Caldas, Toppings, etc.) */}
-                    {otherGroups && otherGroups.length > 0 && (
-                        <div className="space-y-4 mb-6">
-                            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                                <span>🎨</span> Personalize ainda mais
-                            </h3>
-                            {otherGroups.map((group: any) => (
-                                <AdditionGroup
-                                    key={group.id}
-                                    group={group}
-                                    selectedOptions={selectedOptionsByGroup[group.id] || []}
-                                    onSelectionChange={(optionId) => handleAdditionSelection(group.id, optionId, group)}
-                                />
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Price Breakdown */}
-                    <div className="bg-gray-50 p-5 rounded-2xl mb-6 space-y-3 border border-gray-200">
-                        <h3 className="font-bold text-gray-800 mb-3">💰 Resumo do Pedido</h3>
-
-                        <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Base Mix:</span>
-                            <span className="font-semibold">R$ {basePrice.toFixed(2)}</span>
-                        </div>
-
-                        {selectedAdditions.length > 0 && (
-                            <div className="space-y-2 border-t pt-2">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-gray-600">Selecionados ({selectedAdditions.length}):</span>
-                                    <span className="font-semibold">R$ {additionsTotal.toFixed(2)}</span>
-                                </div>
-                                {selectedAdditions.map((add, idx) => (
-                                    <div key={idx} className="flex justify-between text-xs text-gray-500 ml-2">
-                                        <span>• {add.option_name}</span>
-                                        <span>R$ {add.option_price.toFixed(2)}</span>
+                    <div className="max-w-3xl mx-auto w-full">
+                        {/* Mix Header / Summary Card */}
+                        <div className="bg-gradient-to-br from-white to-pink-50/30 p-6 rounded-[32px] mb-8 border border-pink-100/50 shadow-sm">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-14 h-14 bg-pink-100 rounded-2xl flex items-center justify-center text-2xl shadow-inner">
+                                        ✨
                                     </div>
-                                ))}
+                                    <div>
+                                        <h2 className="text-xl font-black text-gray-800 tracking-tight">Monte seu Mix</h2>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Preço base aplicado: R$ {basePrice.toFixed(2).replace('.', ',')}</p>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-wider mb-1">Valor Unitário</p>
+                                    <div className="text-2xl font-black text-[#FF4B82]">
+                                        R$ {unitPrice.toFixed(2).replace('.', ',')}
+                                    </div>
+                                </div>
                             </div>
-                        )}
+                        </div>
 
-                        <div className="border-t pt-3 flex justify-between items-center">
-                            <span className="font-bold text-gray-800">Preço Unitário:</span>
-                            <span className="text-xl font-bold text-pink-600">R$ {unitPrice.toFixed(2)}</span>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div className="space-y-8">
+                                {/* Flavors Section */}
+                                {flavorGroup && (
+                                    <section>
+                                        <div className="flex items-center justify-between mb-4 px-2">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center text-orange-600">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
+                                                    </svg>
+                                                </div>
+                                                <h3 className="text-lg font-bold text-gray-800">{flavorGroup.name}</h3>
+                                            </div>
+                                            <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">
+                                                {selectedOptionsByGroup[flavorGroup.id]?.length || 0}/{flavorGroup.max}
+                                            </span>
+                                        </div>
+
+                                        <div className="bg-gray-50/50 p-2 rounded-[30px] border border-gray-100/50">
+                                            <AdditionGroup
+                                                group={flavorGroup}
+                                                selectedOptions={selectedOptionsByGroup[flavorGroup.id] || []}
+                                                onSelectionChange={(optionId) => handleAdditionSelection(flavorGroup.id, optionId, flavorGroup)}
+                                            />
+                                        </div>
+                                    </section>
+                                )}
+
+                                {/* Other Addition Groups */}
+                                {otherGroups && otherGroups.length > 0 && (
+                                    <section className="space-y-6">
+                                        <div className="flex items-center gap-3 mb-2 px-2">
+                                            <div className="w-8 h-8 bg-pink-100 rounded-lg flex items-center justify-center text-pink-600">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                                                </svg>
+                                            </div>
+                                            <h3 className="text-lg font-bold text-gray-800">Toppings e Extras</h3>
+                                        </div>
+                                        <div className="space-y-4">
+                                            {otherGroups.map((group: any) => (
+                                                <div key={group.id} className="bg-gray-50/50 p-2 rounded-[30px] border border-gray-100/50">
+                                                    <AdditionGroup
+                                                        group={group}
+                                                        selectedOptions={selectedOptionsByGroup[group.id] || []}
+                                                        onSelectionChange={(optionId) => handleAdditionSelection(group.id, optionId, group)}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </section>
+                                )}
+                            </div>
+
+                            <div className="space-y-8">
+                                {/* Price Breakdown Card */}
+                                <section className="sticky top-24">
+                                    <div className="bg-white p-8 rounded-[40px] shadow-2xl shadow-pink-100/30 border border-gray-100 relative overflow-hidden group">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-pink-50 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-pink-100 transition-colors"></div>
+
+                                        <h3 className="font-bold text-gray-900 text-xl mb-6 flex items-center gap-2">
+                                            <span className="w-2 h-6 bg-pink-500 rounded-full"></span>
+                                            Resumo do Pedido
+                                        </h3>
+
+                                        <div className="space-y-4 relative z-10">
+                                            <div className="flex justify-between items-center text-gray-600">
+                                                <span className="font-medium">Base do Mix</span>
+                                                <span className="font-bold text-gray-800">R$ {basePrice.toFixed(2)}</span>
+                                            </div>
+
+                                            {selectedAdditions.length > 0 && (
+                                                <div className="pt-4 border-t border-dashed border-gray-200 space-y-3">
+                                                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Adicionais selecionados</p>
+                                                    {selectedAdditions.map((add, idx) => (
+                                                        <div key={idx} className="flex justify-between items-center group/item transition-all">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-pink-300 group-hover/item:scale-150 transition-transform"></div>
+                                                                <span className="text-sm text-gray-500 group-hover/item:text-gray-800 transition-colors">{add.option_name}</span>
+                                                            </div>
+                                                            <span className="text-sm font-semibold text-gray-700">R$ {add.option_price.toFixed(2)}</span>
+                                                        </div>
+                                                    ))}
+                                                    <div className="flex justify-between items-center pt-2 text-pink-500 font-bold">
+                                                        <span className="text-sm">Subtotal Adicionais</span>
+                                                        <span>R$ {additionsTotal.toFixed(2)}</span>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div className="pt-6 border-t-2 border-gray-100 flex justify-between items-end">
+                                                <div>
+                                                    <p className="text-xs text-gray-400 font-bold mb-1 uppercase">Total por unidade</p>
+                                                    <div className="text-3xl font-black text-gray-900">
+                                                        R$ {unitPrice.toFixed(2)}
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col items-end">
+                                                    <p className="text-xs text-gray-400 font-bold mb-1 uppercase">Quantidade</p>
+                                                    <div className="bg-gray-100 rounded-2xl p-1.5 flex items-center gap-3">
+                                                        <button onClick={handleDecrement} className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center font-bold text-pink-600 hover:scale-105 active:scale-95 transition-all disabled:opacity-50">−</button>
+                                                        <span className="w-6 text-center font-black text-gray-800">{quantity}</span>
+                                                        <button onClick={handleIncrement} className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center font-bold text-pink-600 hover:scale-105 active:scale-95 transition-all disabled:opacity-50">+</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Evaluation Summary */}
+                                    {averageRating > 0 && (
+                                        <div className="mt-6 flex items-center justify-center gap-4 bg-gray-50/50 p-4 rounded-3xl border border-gray-100">
+                                            <RatingStars rating={averageRating} size="md" />
+                                            <div className="text-sm">
+                                                <span className="font-bold text-gray-800">{averageRating.toFixed(1)}</span>
+                                                <span className="text-gray-400 mx-1.5">•</span>
+                                                <span className="text-gray-500 font-medium">({reviews.length} avaliações)</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </section>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Reviews */}
-                    {averageRating > 0 && (
-                        <div className="mb-24">
-                            <div className="flex items-center gap-2 mb-4">
-                                <RatingStars rating={averageRating} size="md" />
-                                <span className="text-sm text-gray-600">
-                                    ({reviews.length} {reviews.length === 1 ? 'avaliação' : 'avaliações'})
-                                </span>
-                            </div>
-                        </div>
-                    )}
+                    {/* Footer Actions - Mix */}
+                    <div className="fixed bottom-0 left-0 w-full bg-white/80 backdrop-blur-2xl border-t border-white/50 p-6 pb-10 flex items-center justify-center gap-5 z-40 shadow-[0_-15px_40px_rgba(0,0,0,0.08)]">
+                        <div className="max-w-3xl w-full flex items-center gap-4">
+                            <ShareButton product={product} variant="icon" />
 
-                    {/* Footer Actions */}
-                    <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 p-4 pb-8 flex items-center gap-4 z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
-
-                        {/* Quantity Selector */}
-                        <div className="flex items-center bg-gray-100 rounded-xl px-3 py-2 h-14">
                             <button
-                                onClick={handleDecrement}
-                                className="w-8 text-xl font-bold text-gray-500 hover:text-pink-600 transition"
+                                onClick={handleAddToCart}
+                                disabled={product.estoque < 1}
+                                className={`flex-1 h-16 group relative overflow-hidden font-black text-lg rounded-[24px] shadow-2xl transition-all duration-300 active:scale-95 flex items-center justify-center ${product.estoque > 0
+                                    ? 'bg-gradient-to-r from-pink-500 via-pink-600 to-purple-600 text-white shadow-pink-200'
+                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                                    }`}
                             >
-                                −
-                            </button>
-                            <span className="w-8 text-center font-bold text-gray-800 text-lg">{quantity}</span>
-                            <button
-                                onClick={handleIncrement}
-                                className="w-8 text-xl font-bold text-gray-500 hover:text-pink-600 transition"
-                            >
-                                +
+                                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                <div className="relative flex items-center justify-between w-full px-8">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-2xl">🛒</span>
+                                        <span>{product.estoque > 0 ? 'Adicionar ao Carrinho' : 'Produto Esgotado'}</span>
+                                    </div>
+                                    {product.estoque > 0 && (
+                                        <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-2xl text-base tabular-nums border border-white/20">
+                                            R$ {totalPrice.toFixed(2)}
+                                        </div>
+                                    )}
+                                </div>
                             </button>
                         </div>
-
-                        <ShareButton product={product} variant="icon" />
-
-                        {/* Add to Cart Button */}
-                        <button
-                            onClick={handleAddToCart}
-                            disabled={product.estoque < 1}
-                            className={`flex-1 h-14 font-bold rounded-xl shadow-lg transition flex justify-between items-center px-6 active:scale-95 ${product.estoque > 0
-                                ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-pink-200 hover:opacity-90'
-                                : 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
-                                }`}
-                        >
-                            <span>🛒 {product.estoque > 0 ? 'Adicionar' : 'Esgotado'}</span>
-                            {product.estoque > 0 && (
-                                <span className="bg-white/20 px-2 py-1 rounded text-sm whitespace-nowrap">
-                                    R$ {totalPrice.toFixed(2)}
-                                </span>
-                            )}
-                        </button>
                     </div>
 
                 </div>
@@ -494,249 +579,273 @@ export default function ProductDetailView({ product, onBack, onAddToCart, user }
     // ============================================
 
     return (
-        <div className="min-h-screen bg-white flex flex-col relative animate-in slide-in-from-right duration-300">
+        <div className="min-h-screen bg-[#FAFAFA] flex flex-col relative animate-in fade-in slide-in-from-right-4 duration-500">
             <CustomModal />
 
-            {/* ═══════════════════════════════════════════════════════════════ */}
-            {/* HEADER - Fundo Rosa com Imagem */}
-            {/* ═══════════════════════════════════════════════════════════════ */}
-            <div className="relative bg-gradient-to-br from-[#FF4B82] to-[#FF9E3D] pt-4 pb-24">
+            {/* HEADER - Styled with dynamic background */}
+            <div className="relative h-[48vh] lg:h-[58vh] w-full overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-[#FF4E76] via-[#FF698B] to-[#FF9E3D]"></div>
 
-                {/* Botão Voltar */}
+
+                {/* Back Button */}
                 <button
                     onClick={onBack}
-                    className="absolute top-4 left-4 z-50 bg-white/20 backdrop-blur-md p-3 rounded-full hover:bg-white/30 transition active:scale-95"
+                    className="absolute top-6 left-6 z-50 bg-white/20 backdrop-blur-xl p-3.5 rounded-2xl hover:bg-white/30 transition-all active:scale-95 border border-white/30 group"
                     aria-label="Voltar"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="group-hover:-translate-x-1 transition-transform"><path d="m15 18-6-6 6-6" /></svg>
                 </button>
 
-                {/* Botão Share/Menu */}
-                <div className="absolute top-4 right-4 z-50">
+                {/* Top Action Buttons */}
+                <div className="absolute top-6 right-6 z-50 flex gap-3">
                     <ShareButton product={product} variant="icon" />
+                    <button
+                        onClick={() => onToggleFavorite?.(product.id)}
+                        className="bg-white/20 backdrop-blur-xl p-3.5 rounded-2xl hover:bg-white/30 transition-all active:scale-95 border border-white/20 text-white"
+                        title={favorites.includes(product.id) ? "Remover dos Favoritos" : "Favoritar"}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill={favorites.includes(product.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" /></svg>
+                    </button>
                 </div>
 
-                {/* Imagem do Produto - Centralizada com Sombra */}
-                <div className="flex justify-center mt-8">
-                    <div className="relative w-64 h-64 lg:w-80 lg:h-80">
-                        <Image
-                            src={displayProduct.imagem || 'https://via.placeholder.com/500'}
-                            alt={displayProduct.nome}
-                            fill
-                            sizes="(max-width: 1024px) 256px, 320px"
-                            className="object-cover rounded-3xl shadow-2xl"
-                            quality={85}
-                            priority
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* Botão Favorito - Posição Absoluta na borda */}
-            <button
-                className="absolute top-[280px] lg:top-[340px] right-6 z-30 bg-white p-3 rounded-full shadow-lg hover:scale-110 transition-all active:scale-95 border border-gray-100"
-                title="Favoritar"
-            >
-                🤍
-            </button>
-
-            {/* ═══════════════════════════════════════════════════════════════ */}
-            {/* CONTENT BODY - Fundo Branco */}
-            {/* ═══════════════════════════════════════════════════════════════ */}
-            <div className="flex-1 bg-white -mt-8 rounded-t-[35px] relative z-10 px-6 pt-8 pb-32">
-
-                {/* Handle decorativo */}
-                <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6 opacity-50"></div>
-
-                {/* Título do Produto */}
-                <h1 className="text-2xl lg:text-3xl font-bold text-gray-800 mb-1">{displayProduct.nome}</h1>
-
-                {/* Subtítulo / Categoria */}
-                <p className="text-gray-400 text-sm mb-4">Geladinho Gourmet • Dona Capivara</p>
-
-                {/* Bloco de Avaliações */}
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="flex items-center gap-1">
-                        <RatingStars rating={averageRating || 5} size="sm" />
-                        <span className="text-sm font-semibold text-gray-700 ml-1">
-                            {averageRating > 0 ? averageRating.toFixed(1) : '5.0'}
-                        </span>
-                    </div>
-                    <span className="text-gray-300">|</span>
-                    <span className="text-sm text-gray-500">
-                        {reviews.length > 0 ? `${reviews.length} avaliações` : 'Novo produto'}
-                    </span>
-                    {displayProduct.estoque > 0 && displayProduct.estoque < 10 && (
-                        <>
-                            <span className="text-gray-300">|</span>
-                            <span className="text-sm text-orange-500 font-medium">Restam {displayProduct.estoque}!</span>
-                        </>
-                    )}
-                </div>
-
-                {/* 📦 VARIANT SELECTOR - Only shows if product has variants */}
-                {variants.length > 1 && (
-                    <VariantSelector
-                        variants={variants}
-                        onSelect={handleVariantSelect}
-                        disabled={loadingAdditions}
-                    />
-                )}
-
-                {/* Row: Preço e Quantidade (Pill) */}
-                <div className="flex items-center justify-between mb-8 bg-gray-50 p-4 rounded-2xl">
-                    <div>
-                        <p className="text-sm text-gray-400 mb-1">Preço unitário</p>
-                        <p className="text-3xl font-bold text-[#FF4B82]">
-                            R$ {basePrice.toFixed(2).replace('.', ',')}
-                        </p>
-                        {hasAdditions && selectedAdditions.length > 0 && (
-                            <p className="text-xs text-gray-500 mt-1">
-                                + R$ {selectedAdditions.reduce((sum, a) => sum + a.option_price, 0).toFixed(2).replace('.', ',')} em adicionais
-                            </p>
-                        )}
-                    </div>
-
-                    {/* Pill de Quantidade */}
-                    <div className="flex items-center bg-white rounded-full px-2 py-2 shadow-md border border-gray-100">
-                        <button
-                            onClick={handleDecrement}
-                            className="w-10 h-10 rounded-full bg-[#FF4B82] text-white text-xl font-bold flex items-center justify-center hover:bg-[#e03a6d] transition active:scale-90"
-                        >
-                            −
-                        </button>
-                        <span className="w-12 text-center font-bold text-gray-800 text-xl">{quantity}</span>
-                        <button
-                            onClick={handleIncrement}
-                            className="w-10 h-10 rounded-full bg-[#FF4B82] text-white text-xl font-bold flex items-center justify-center hover:bg-[#e03a6d] transition active:scale-90"
-                        >
-                            +
-                        </button>
-                    </div>
-                </div>
-
-                {/* Sobre o Produto */}
-                <div className="mb-6">
-                    <h3 className="font-bold text-gray-800 text-lg mb-3">📝 Sobre o Produto</h3>
-                    <p className="text-gray-600 leading-relaxed">
-                        {displayProduct.descricao || 'Sabor inigualável da Dona Capivara. Feito com ingredientes selecionados e muito amor!'}
-                    </p>
-                </div>
-
-                {/* Ingredientes */}
-                {displayProduct.ingredientes && (
-                    <div className="mb-6">
-                        <h3 className="font-bold text-gray-800 text-lg mb-3">🧾 Ingredientes</h3>
-                        <p className="text-gray-500 text-sm leading-relaxed bg-gray-50 p-4 rounded-xl border border-gray-100">
-                            {displayProduct.ingredientes}
-                        </p>
-                    </div>
-                )}
-
-                {/* Info Badges */}
-                {(displayProduct.calorias || displayProduct.peso) && (
-                    <div className="flex gap-3 mb-6 flex-wrap">
-                        {displayProduct.calorias && (
-                            <div className="bg-orange-50 border border-orange-100 px-4 py-3 rounded-xl flex items-center gap-2">
-                                <span className="text-xl">🔥</span>
-                                <div>
-                                    <p className="text-[10px] text-gray-400 font-bold uppercase">Calorias</p>
-                                    <p className="text-sm font-bold text-orange-500">{displayProduct.calorias}</p>
-                                </div>
-                            </div>
-                        )}
-                        {displayProduct.peso && (
-                            <div className="bg-blue-50 border border-blue-100 px-4 py-3 rounded-xl flex items-center gap-2">
-                                <span className="text-xl">⚖️</span>
-                                <div>
-                                    <p className="text-[10px] text-gray-400 font-bold uppercase">Peso</p>
-                                    <p className="text-sm font-bold text-blue-500">{displayProduct.peso}</p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Additions Section - Loading Skeleton */}
-                {loadingAdditions && (
-                    <div className="space-y-4 mb-6">
-                        <h3 className="font-bold text-gray-800 mb-3">🎨 Personalize seu pedido</h3>
-                        <div className="bg-white p-4 rounded-2xl shadow-sm animate-pulse border border-gray-100">
-                            <div className="h-4 bg-gray-200 rounded w-1/3 mb-3"></div>
-                            <div className="space-y-2">
-                                <div className="h-12 bg-gray-100 rounded-xl"></div>
-                                <div className="h-12 bg-gray-100 rounded-xl"></div>
-                            </div>
+                {/* Product Hero Image */}
+                <div className="h-full flex flex-col items-center justify-center p-8 lg:p-12 relative pb-20">
+                    <div className="relative w-72 h-72 lg:w-[480px] lg:h-[480px]">
+                        <div className="absolute inset-0 bg-black/15 blur-3xl rounded-full scale-90 translate-y-12"></div>
+                        <div className="relative w-full h-full rounded-[60px] lg:rounded-[100px] overflow-hidden border-[12px] border-white/20 shadow-2xl">
+                            <Image
+                                src={displayProduct.imagem && displayProduct.imagem !== 'N/A' ? displayProduct.imagem : '/product-placeholder.png'}
+                                alt={displayProduct.nome}
+                                fill
+                                sizes="(max-width: 1024px) 288px, 480px"
+                                className="object-cover"
+                                quality={95}
+                                priority
+                            />
                         </div>
                     </div>
-                )}
-
-                {/* Additions Section - Loaded */}
-                {!loadingAdditions && hasAdditions && (
-                    <div className="space-y-4 mb-6">
-                        <h3 className="font-bold text-gray-800 text-lg mb-3">🎨 Personalize seu pedido</h3>
-                        {productWithAdditions!.addition_groups!.map(group => (
-                            <AdditionGroup
-                                key={group.id}
-                                group={group}
-                                selectedOptions={selectedOptionsByGroup[group.id] || []}
-                                onSelectionChange={(optionId) => handleAdditionSelection(group.id, optionId, group)}
-                            />
-                        ))}
-
-                        <PriceCalculator
-                            basePrice={basePrice}
-                            selectedAdditions={selectedAdditions}
-                            quantity={quantity}
-                        />
-                    </div>
-                )}
-
-                {/* Seção de Avaliações */}
-                {reviews.length > 0 && (
-                    <div className="mb-6">
-                        <h3 className="font-bold text-gray-800 text-lg mb-4">⭐ Avaliações dos Clientes</h3>
-                        <ReviewsList reviews={reviews} averageRating={averageRating} />
-                    </div>
-                )}
-
-                {/* Review Button */}
-                {user && user.id && !user.isGuest && (
-                    <button
-                        onClick={() => setShowReviewForm(true)}
-                        className="w-full bg-white border-2 border-[#FF4B82] text-[#FF4B82] font-bold py-3 rounded-xl mb-6 hover:bg-[#FFF0F5] transition active:scale-95"
-                    >
-                        ⭐️ Avaliar este Produto
-                    </button>
-                )}
+                </div>
             </div>
 
-            {/* ═══════════════════════════════════════════════════════════════ */}
-            {/* FOOTER - Botão Adicionar ao Carrinho (Fixo) */}
-            {/* ═══════════════════════════════════════════════════════════════ */}
-            <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 p-4 pb-8 z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.08)]">
-                <button
-                    onClick={handleAddToCart}
-                    disabled={product.estoque < 1}
-                    className={`w-full h-14 font-bold rounded-2xl shadow-lg transition flex justify-center items-center gap-3 active:scale-[0.98] ${product.estoque > 0
-                        ? 'bg-[#FF4B82] text-white hover:bg-[#e03a6d] shadow-pink-200'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
-                        }`}
-                >
-                    {product.estoque > 0 ? (
-                        <>
-                            <img src="/cart-icon-white.png" alt="" className="w-5 h-5" />
-                            <span>Adicionar ao Carrinho</span>
-                            <span className="bg-white/20 px-3 py-1 rounded-lg text-sm font-bold ml-2">
+            {/* CONTENT BODY */}
+            <div className="flex-1 bg-white -mt-12 rounded-t-[45px] relative z-10 px-6 lg:px-12 pt-10 pb-40 shadow-[0_-20px_60px_rgba(0,0,0,0.08)]">
+                <div className="max-w-4xl mx-auto w-full">
+                    {/* Decorative Handle */}
+                    <div className="w-20 h-1.5 bg-gray-100 rounded-full mx-auto mb-10"></div>
+
+                    <div className="mb-10">
+                        <div className="flex-1">
+
+                            {/* Product Title area */}
+                            <div className="flex flex-col gap-1 mb-2">
+                                <h1 className="text-3xl lg:text-5xl font-black text-gray-900 tracking-tight leading-none">
+                                    {displayProduct.nome}
+                                </h1>
+                            </div>
+
+                            {/* ⭐ Consolidated Info Row: Stars • Rating • Reviews • Stock */}
+                            <div className="flex flex-wrap items-center gap-2 mb-6 text-sm font-bold">
+                                <RatingStars rating={averageRatings[product.id] || averageRating || 5.0} size="sm" />
+                                <span className="text-yellow-700 tabular-nums">
+                                    {(averageRatings[product.id] || averageRating || 5.0).toFixed(1)}
+                                </span>
+                                <span className="text-gray-300 mx-0.5">•</span>
+                                <span className="text-gray-500 whitespace-nowrap">
+                                    {reviews.length > 0 ? `${reviews.length} ${reviews.length === 1 ? 'avaliação' : 'avaliações'}` : getProductBadge()}
+                                </span>
+
+                                {displayProduct.estoque > 0 && displayProduct.estoque < 15 && (
+                                    <>
+                                        <span className="text-gray-300 mx-0.5">•</span>
+                                        <span className="text-orange-500 flex items-center gap-1 animate-pulse whitespace-nowrap">
+                                            🚀 ÚLTIMAS {displayProduct.estoque} UNIDADES!
+                                        </span>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                        <div className="space-y-10">
+                            {/* 📦 VARIANT SELECTOR */}
+                            {variants.length > 1 && (
+                                <section>
+                                    <h3 className="font-black text-gray-900 text-sm uppercase tracking-widest mb-4">Selecione o Tamanho</h3>
+                                    <VariantSelector
+                                        variants={variants}
+                                        onSelect={handleVariantSelect}
+                                        disabled={loadingAdditions}
+                                    />
+                                </section>
+                            )}
+
+                            {/* Info Badges Row */}
+                            {(isValidValue(displayProduct.calorias) || isValidValue(displayProduct.peso)) && (
+                                <section className="flex gap-4">
+                                    {isValidValue(displayProduct.calorias) && (
+                                        <div className="flex-1 bg-gradient-to-br from-orange-50 to-white p-4 rounded-[24px] border border-orange-100 flex items-center gap-4 group">
+                                            <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">🔥</div>
+                                            <div>
+                                                <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Energia</p>
+                                                <p className="text-base font-black text-orange-600">{displayProduct.calorias}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {isValidValue(displayProduct.peso) && (
+                                        <div className="flex-1 bg-gradient-to-br from-blue-50 to-white p-4 rounded-[24px] border border-blue-100 flex items-center gap-4 group">
+                                            <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">⚖️</div>
+                                            <div>
+                                                <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Peso Líq.</p>
+                                                <p className="text-base font-black text-blue-600">{displayProduct.peso}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </section>
+                            )}
+
+                            {/* Description */}
+                            <section>
+                                <p className="text-gray-600 leading-relaxed text-lg font-medium mb-8">
+                                    {displayProduct.descricao || 'Sabor inigualável da Dona Capivara. Feito com ingredientes selecionados e muito amor para explodir em cada mordida!'}
+                                </p>
+
+                                {/* 💳 Price + Quantity Selector Card */}
+                                <div className="bg-gray-50/50 rounded-[32px] p-5 flex items-center justify-between border border-gray-100/50 shadow-sm">
+                                    <div className="flex flex-col">
+                                        <span className="text-gray-400 text-xs font-black uppercase tracking-widest mb-1">Preço unitário</span>
+                                        <div className="text-3xl font-black text-[#FF4B82] tracking-tighter tabular-nums">
+                                            R$ {basePrice.toFixed(2).replace('.', ',')}
+                                        </div>
+                                    </div>
+
+                                    {/* Specialized Quantity Selector for the Card */}
+                                    <div className="bg-white rounded-[24px] p-1.5 flex items-center gap-4 shadow-sm border border-gray-100">
+                                        <button
+                                            onClick={handleDecrement}
+                                            className="w-10 h-10 rounded-full bg-[#FF4B82] text-white flex items-center justify-center text-2xl font-black hover:scale-105 active:scale-90 transition-all shadow-md shadow-pink-100"
+                                        >
+                                            −
+                                        </button>
+                                        <span className="w-6 text-center font-black text-gray-800 text-lg tabular-nums">
+                                            {quantity}
+                                        </span>
+                                        <button
+                                            onClick={handleIncrement}
+                                            className="w-10 h-10 rounded-full bg-[#FF4B82] text-white flex items-center justify-center text-2xl font-black hover:scale-105 active:scale-90 transition-all shadow-md shadow-pink-100"
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+                                </div>
+                            </section>
+
+                            {/* Ingredients */}
+                            {isValidValue(displayProduct.ingredientes) && (
+                                <section>
+                                    <h3 className="font-black text-gray-900 text-sm uppercase tracking-widest mb-4">Composição</h3>
+                                    <div className="bg-[#F8F9FB] p-6 rounded-[32px] border border-gray-100">
+                                        <p className="text-gray-500 text-sm leading-relaxed font-medium italic">
+                                            "{displayProduct.ingredientes}"
+                                        </p>
+                                    </div>
+                                </section>
+                            )}
+                        </div>
+
+                        <div className="space-y-10">
+                            {/* Additions Section - Condition-based rendering */}
+                            {hasAdditions && (
+                                <section>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="font-black text-gray-900 text-sm uppercase tracking-widest">Adicionais e Extras</h3>
+                                        <div className="h-0.5 flex-1 mx-4 bg-gray-100"></div>
+                                    </div>
+
+                                    {loadingAdditions && (
+                                        <div className="space-y-4">
+                                            {[1, 2].map(i => (
+                                                <div key={i} className="h-24 bg-gray-50 rounded-[32px] animate-pulse"></div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {!loadingAdditions && (
+                                        <div className="space-y-6">
+                                            {productWithAdditions!.addition_groups!.map(group => (
+                                                <div key={group.id} className="bg-gray-50/50 p-2 rounded-[35px] border border-gray-100/50 hover:bg-white hover:shadow-xl hover:shadow-gray-200/40 transition-all duration-500">
+                                                    <AdditionGroup
+                                                        group={group}
+                                                        selectedOptions={selectedOptionsByGroup[group.id] || []}
+                                                        onSelectionChange={(optionId) => handleAdditionSelection(group.id, optionId, group)}
+                                                    />
+                                                </div>
+                                            ))}
+
+                                            <div className="bg-gradient-to-br from-white to-pink-50/50 p-6 rounded-[40px] shadow-xl shadow-pink-100/20 border border-pink-100/50">
+                                                <PriceCalculator
+                                                    basePrice={basePrice}
+                                                    selectedAdditions={selectedAdditions}
+                                                    quantity={quantity}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </section>
+                            )}
+
+                            {/* Reviews */}
+                            {reviews.length > 0 && (
+                                <section>
+                                    <h3 className="font-black text-gray-900 text-sm uppercase tracking-widest mb-6">Avaliações de Clientes</h3>
+                                    <ReviewsList reviews={reviews} averageRating={averageRating} />
+                                </section>
+                            )}
+
+                            {/* Review Button */}
+                            {user && user.id && !user.isGuest && (
+                                <button
+                                    onClick={() => setShowReviewForm(true)}
+                                    className="w-full bg-white border-2 border-[#FF4B82] text-[#FF4B82] font-black py-4 rounded-[24px] hover:bg-[#FFF0F5] transition-all hover:scale-[1.02] active:scale-95 shadow-sm"
+                                >
+                                    ✨ Deixar minha Avaliação
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* 🆕 FIXED PREMIUM FOOTER (Screenshot 2 Style) */}
+            <div className="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-3xl border-t border-gray-100 p-6 pb-12 z-40 shadow-[0_-25px_60px_rgba(0,0,0,0.15)] flex justify-center">
+                <div className="max-w-4xl w-full flex items-center gap-6">
+
+
+                    {/* Main CTA with Price Action */}
+                    <button
+                        onClick={handleAddToCart}
+                        data-tour="add-to-cart"
+                        disabled={product.estoque < 1}
+                        className={`flex-1 h-16 group relative overflow-hidden font-black text-lg rounded-[28px] shadow-2xl transition-all duration-300 active:scale-[0.97] flex items-center justify-between px-8 ${product.estoque > 0
+                            ? 'bg-[#FF4B82] text-white shadow-pink-200/50'
+                            : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                            }`}
+                    >
+                        <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+                        <span className="relative flex items-center gap-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1" /><circle cx="19" cy="21" r="1" /><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" /></svg>
+                            {product.estoque > 0 ? 'Adicionar' : 'Indisponível'}
+                        </span>
+
+                        {product.estoque > 0 && (
+                            <div className="relative bg-white/20 backdrop-blur-md px-4 py-2 rounded-2xl text-base font-black tabular-nums border border-white/20">
                                 R$ {((basePrice + selectedAdditions.reduce((sum, a) => sum + a.option_price, 0)) * quantity).toFixed(2).replace('.', ',')}
-                            </span>
-                        </>
-                    ) : (
-                        <span>Produto Esgotado</span>
-                    )}
-                </button>
+                            </div>
+                        )}
+                    </button>
+                </div>
             </div>
 
             {/* Review Form Modal */}

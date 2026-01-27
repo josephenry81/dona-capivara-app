@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 type ModalType = 'info' | 'success' | 'warning' | 'error' | 'confirm';
 
@@ -73,10 +74,19 @@ export const useModal = () => {
         [showModal]
     );
 
+
     const ModalComponent = () => {
-        if (!modalState.isOpen) return null;
+        const [mounted, setMounted] = useState(false);
+
+        useEffect(() => {
+            setMounted(true);
+            return () => setMounted(false);
+        }, []);
+
+        if (!modalState.isOpen || !mounted) return null;
 
         const getIcon = () => {
+            // ... (same implementation)
             if (modalState.icon) return modalState.icon;
             switch (modalState.type) {
                 case 'success': return '✅';
@@ -88,6 +98,7 @@ export const useModal = () => {
         };
 
         const getTypeStyles = () => {
+            // ... (same implementation)
             switch (modalState.type) {
                 case 'success': return 'from-green-400 to-emerald-600';
                 case 'warning': return 'from-orange-400 to-amber-600';
@@ -109,8 +120,8 @@ export const useModal = () => {
             setModalState((prev) => ({ ...prev, isOpen: false }));
         };
 
-        return (
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        return createPortal(
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={(e) => e.stopPropagation()}>
                 <div
                     className="bg-white dark:bg-zinc-900 rounded-3xl overflow-hidden shadow-2xl w-full max-w-sm transform animate-in zoom-in-95 duration-300 ease-out border border-white/20"
                     onClick={(e) => e.stopPropagation()}
@@ -149,7 +160,8 @@ export const useModal = () => {
 
                 {/* Backdrop overlay trigger for closing */}
                 <div className="fixed inset-0 -z-10" onClick={handleCancel} />
-            </div>
+            </div>,
+            document.body
         );
     };
 

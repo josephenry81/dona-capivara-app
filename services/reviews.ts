@@ -103,4 +103,23 @@ export class ReviewService {
         });
         return distribution;
     }
+
+    /**
+     * Get average ratings for all products in one call
+     */
+    static async getAllAverageRatings(): Promise<Record<string, number>> {
+        try {
+            const url = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL;
+            const response = await fetch(`${url}?action=getAllAverageRatings&_t=${Date.now()}`);
+            const data = await response.json();
+
+            if (data && typeof data === 'object') {
+                return data;
+            }
+            return {};
+        } catch (error) {
+            console.error('Error fetching global ratings:', error);
+            return {};
+        }
+    }
 }

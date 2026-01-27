@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import ProductCard from '../ProductCard';
 import SkeletonHomeView from '../ui/SkeletonHomeView';
 import BannerCarousel from '../common/BannerCarousel';
-import CategoryGrid from '../home/CategoryGrid';
 
 interface HomeViewProps {
     user: any;
@@ -17,7 +16,6 @@ interface HomeViewProps {
     isLoading?: boolean;
     hasError?: boolean;
     onRetry?: () => void;
-    averageRatings?: Record<string, number>;
 }
 
 export default function HomeView({
@@ -25,56 +23,19 @@ export default function HomeView({
     onAddToCart, onToggleFavorite, onProductClick, onHeaderAction,
     isLoading = false,
     hasError = false,
-    onRetry,
-    averageRatings = {}
+    onRetry
 }: HomeViewProps) {
 
     const [activeCategory, setActiveCategory] = useState('todos');
-    const [activeSubcategory, setActiveSubcategory] = useState('todas');
     const [searchTerm, setSearchTerm] = useState('');
 
-    // --- SUB-CATEGORIES DISCOVERY ---
-    // Extract unique subcategories for the selected category
-    const availableSubcategories = React.useMemo(() => {
-        if (activeCategory === 'todos') return [];
-
-        const categoryProducts = products.filter(p => (p.categoriaId || p.ID_Categoria)?.toString() === activeCategory);
-        const subs = new Set<string>();
-
-        categoryProducts.forEach(p => {
-            if (p.subcategoria) {
-                // Support comma-separated subcategories
-                p.subcategoria.split(',').forEach((s: string) => {
-                    const trimmed = s.trim();
-                    if (trimmed) subs.add(trimmed);
-                });
-            }
-        });
-
-        return Array.from(subs).sort();
-    }, [products, activeCategory]);
-
-    // --- FILTER LOGIC ---
     const filteredProducts = (products || []).filter(p => {
         const name = p.nome || p.Nome_Geladinho || '';
         if (!name) return false;
-
         const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = activeCategory === 'todos' || (p.categoriaId || p.ID_Categoria)?.toString() === activeCategory;
-
-        let matchesSubcategory = true;
-        if (activeCategory !== 'todos' && activeSubcategory !== 'todas') {
-            matchesSubcategory = p.subcategoria?.toLowerCase().includes(activeSubcategory.toLowerCase());
-        }
-
-        return matchesSearch && matchesCategory && matchesSubcategory;
+        return matchesSearch && matchesCategory;
     });
-
-    const handleCategoryChange = (catId: string) => {
-        setActiveCategory(catId);
-        setActiveSubcategory('todas'); // Reset subcategory when category changes
-    };
-
 
     // 🔥 OTIMIZAÇÃO: Mostrar skeleton apenas durante o carregamento inicial
     if (isLoading) return <SkeletonHomeView />;
@@ -164,55 +125,13 @@ export default function HomeView({
                 </div>
             )}
 
-            {/* 🆕 Visual Category Grid */}
-            <div className="pt-8">
-                <div className="px-6 mb-4 flex justify-between items-center">
-                    <h3 className="text-xl font-black text-gray-800">Categorias</h3>
-                    {activeCategory !== 'todos' && (
-                        <button
-                            onClick={() => handleCategoryChange('todos')}
-                            className="text-[#FF4B82] font-bold text-sm hover:underline"
-                        >
-                            Ver tudo
-                        </button>
-                    )}
-                </div>
-                <CategoryGrid
-                    categories={categories}
-                    activeCategory={activeCategory}
-                    onCategoryClick={handleCategoryChange}
-                />
+            {/* Categories */}
+            <div data-tour="categories" className="flex gap-3 overflow-x-auto px-6 pb-4 scrollbar-hide">
+                <button onClick={() => setActiveCategory('todos')} className={`px-6 py-2 rounded-full whitespace-nowrap font-bold text-sm transition-all ${activeCategory === 'todos' ? 'bg-[#FF4B82] text-white shadow-md' : 'bg-white text-gray-500 border border-gray-100'}`}>🔥 Todos</button>
+                {categories.map(cat => (
+                    <button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={`px-6 py-2 rounded-full whitespace-nowrap font-bold text-sm transition-all ${activeCategory === cat.id ? 'bg-[#FF4B82] text-white shadow-md' : 'bg-white text-gray-500 border border-gray-100'}`}>{cat.nome}</button>
+                ))}
             </div>
-
-            {/* 🆕 Dynamic Subcategory Pills (Only visible when a category is selected and has subcategories) */}
-            {activeCategory !== 'todos' && availableSubcategories.length > 0 && (
-                <div className="px-6 mb-6 animate-in fade-in slide-in-from-left-4 duration-500">
-                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Filtrar por tipo</p>
-                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                        <button
-                            onClick={() => setActiveSubcategory('todas')}
-                            className={`px-5 py-2 rounded-full whitespace-nowrap font-bold text-sm transition-all border-2 ${activeSubcategory === 'todas'
-                                ? 'bg-[#FF4B82] border-[#FF4B82] text-white shadow-md shadow-pink-100'
-                                : 'bg-white border-gray-100 text-gray-400'
-                                }`}
-                        >
-                            ✨ Todas
-                        </button>
-                        {availableSubcategories.map(sub => (
-                            <button
-                                key={sub}
-                                onClick={() => setActiveSubcategory(sub)}
-                                className={`px-5 py-2 rounded-full whitespace-nowrap font-bold text-sm transition-all border-2 ${activeSubcategory === sub
-                                    ? 'bg-[#FF4B82] border-[#FF4B82] text-white shadow-md shadow-pink-100'
-                                    : 'bg-white border-gray-100 text-gray-400'
-                                    }`}
-                            >
-                                {sub}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
 
             {/* Error State */}
             {hasError && (
@@ -279,7 +198,6 @@ export default function HomeView({
                             onToggleFavorite={!user?.isGuest ? onToggleFavorite : undefined}
                             onAddToCart={onAddToCart}
                             onProductClick={onProductClick}
-                            averageRating={averageRatings[product.id?.toString() || (product.ID_Geladinho || product.ID_Produto)?.toString()]}
                         />
                     ))}
                 </div>
