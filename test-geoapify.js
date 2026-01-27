@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const https = require('https');
 
 // CONFIG
@@ -21,20 +22,24 @@ console.log('\nProcessando...');
 function getCoordinates(address) {
     return new Promise((resolve, reject) => {
         const url = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(address)}&apiKey=${GEOAPIFY_API_KEY}&limit=1`;
-        https.get(url, (res) => {
-            let data = '';
-            res.on('data', (chunk) => data += chunk);
-            res.on('end', () => {
-                try {
-                    const json = JSON.parse(data);
-                    if (!json.features || json.features.length === 0) resolve(null);
-                    else {
-                        const [lon, lat] = json.features[0].geometry.coordinates;
-                        resolve({ lat, lon });
+        https
+            .get(url, res => {
+                let data = '';
+                res.on('data', chunk => (data += chunk));
+                res.on('end', () => {
+                    try {
+                        const json = JSON.parse(data);
+                        if (!json.features || json.features.length === 0) resolve(null);
+                        else {
+                            const [lon, lat] = json.features[0].geometry.coordinates;
+                            resolve({ lat, lon });
+                        }
+                    } catch (e) {
+                        reject(e);
                     }
-                } catch (e) { reject(e); }
-            });
-        }).on('error', reject);
+                });
+            })
+            .on('error', reject);
     });
 }
 
@@ -57,9 +62,9 @@ function getDistance(origin, destination) {
             }
         };
 
-        const req = https.request(options, (res) => {
+        const req = https.request(options, res => {
             let data = '';
-            res.on('data', (chunk) => data += chunk);
+            res.on('data', chunk => (data += chunk));
             res.on('end', () => {
                 try {
                     const json = JSON.parse(data);
@@ -68,7 +73,9 @@ function getDistance(origin, destination) {
                         const meters = json.sources_to_targets[0][0].distance;
                         resolve(meters / 1000);
                     }
-                } catch (e) { reject(e); }
+                } catch (e) {
+                    reject(e);
+                }
             });
         });
 
@@ -105,7 +112,6 @@ async function run() {
         } else {
             console.log('💵 R$ 5,00 (> 3km)');
         }
-
     } catch (error) {
         console.error('❌ Erro Fatal:', error);
     }

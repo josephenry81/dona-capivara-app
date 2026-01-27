@@ -1,13 +1,13 @@
 // CONFIG
 const PRICING = {
-    BASE: 3.50,
-    KM_RATE: 1.20,
-    MIN: 5.00,
+    BASE: 3.5,
+    KM_RATE: 1.2,
+    MIN: 5.0,
     DISCOUNT: 0.5
 };
 
 function calculate(type, dist) {
-    let raw = PRICING.BASE + (dist * PRICING.KM_RATE);
+    let raw = PRICING.BASE + dist * PRICING.KM_RATE;
     let fee = Math.max(raw, PRICING.MIN);
 
     if (type === 'NEIGHBOR' && dist <= 3) {

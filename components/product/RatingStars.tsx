@@ -3,18 +3,13 @@
 import React from 'react';
 
 interface RatingStarsProps {
-    rating: number;           // 0-5
+    rating: number; // 0-5
     size?: 'sm' | 'md' | 'lg'; // Tamanho
-    interactive?: boolean;     // Clicável?
+    interactive?: boolean; // Clicável?
     onChange?: (rating: number) => void;
 }
 
-export default function RatingStars({
-    rating,
-    size = 'md',
-    interactive = false,
-    onChange
-}: RatingStarsProps) {
+export default function RatingStars({ rating, size = 'md', interactive = false, onChange }: RatingStarsProps) {
     const sizeClasses = {
         sm: 'text-sm',
         md: 'text-xl',
@@ -29,7 +24,7 @@ export default function RatingStars({
 
     return (
         <div className={`flex gap-1 ${sizeClasses[size]}`}>
-            {[0, 1, 2, 3, 4].map((index) => (
+            {[0, 1, 2, 3, 4].map(index => (
                 <button
                     key={index}
                     type="button"

@@ -1,13 +1,8 @@
 'use client';
 
 import { MixCartItemProps } from '@/types/mix';
-import Image from 'next/image';
 
-export default function CartItemMix({
-    item,
-    onQuantityChange,
-    onRemove
-}: MixCartItemProps) {
+export default function CartItemMix({ item, onQuantityChange, onRemove }: MixCartItemProps) {
     const handleQuantityChange = (delta: number) => {
         const newQty = item.quantity + delta;
         if (newQty >= 1 && newQty <= 99) {
@@ -31,7 +26,12 @@ export default function CartItemMix({
                     aria-label="Remover item"
                 >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
                     </svg>
                 </button>
             </div>
@@ -43,7 +43,9 @@ export default function CartItemMix({
                     <span className="text-gray-600">
                         Base Mix:
                         {item.price_breakdown.flavors_total === 0 && item.selected_flavors.length > 0 && (
-                            <span className="text-green-600 text-xs ml-1">(inclui {item.selected_flavors.length} sabores)</span>
+                            <span className="text-green-600 text-xs ml-1">
+                                (inclui {item.selected_flavors.length} sabores)
+                            </span>
                         )}
                     </span>
                     <span className="text-gray-800 font-medium">R$ {item.base_price.toFixed(2)}</span>
@@ -104,9 +106,7 @@ export default function CartItemMix({
                     >
                         −
                     </button>
-                    <span className="text-xl font-bold text-gray-800 w-8 text-center">
-                        {item.quantity}
-                    </span>
+                    <span className="text-xl font-bold text-gray-800 w-8 text-center">{item.quantity}</span>
                     <button
                         onClick={() => handleQuantityChange(1)}
                         disabled={item.quantity >= 99}
@@ -119,9 +119,7 @@ export default function CartItemMix({
                 {/* Subtotal */}
                 <div className="text-right">
                     <div className="text-xs text-gray-500">Subtotal</div>
-                    <div className="text-xl font-bold text-pink-600">
-                        R$ {item.item_total.toFixed(2)}
-                    </div>
+                    <div className="text-xl font-bold text-pink-600">R$ {item.item_total.toFixed(2)}</div>
                 </div>
             </div>
 

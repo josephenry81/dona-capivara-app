@@ -19,7 +19,6 @@ export default function PageTransition({ children, className = '', variant = 'fa
             className={className}
             style={{ width: '100%', height: '100%' }}
         >
-
             {children}
         </motion.div>
     );

@@ -1,7 +1,9 @@
 // Keeping all other functions, but providing the full file for safety
 import { isSupabaseConfigured, fetchCatalogFromSupabase, supabase } from './supabase';
 
-const API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL || 'https://script.google.com/macros/s/AKfycbxmXq0PmQOItVAWXqSrfgeqFZdf7FDkWo-c2BwrBY6mVtX2VGlSuL6oK9Z7iyrHxHq6Vw/exec';
+const API_URL =
+    process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL ||
+    'https://script.google.com/macros/s/AKfycbxmXq0PmQOItVAWXqSrfgeqFZdf7FDkWo-c2BwrBY6mVtX2VGlSuL6oK9Z7iyrHxHq6Vw/exec';
 
 // 🧠 CACHE VERSION - Incrementar quando houver mudanças importantes no backend
 // Isso força todos os clientes a recarregar dados quando necessário
@@ -10,7 +12,6 @@ const CACHE_VERSION = '2.0.0';
 export const API = {
     supabase,
     isSupabaseConfigured,
-
 
     // ========================================
     // CATALOG CACHE - STALE-WHILE-REVALIDATE
@@ -66,7 +67,9 @@ export const API = {
             const isOutdatedVersion = cachedVersion !== CACHE_VERSION;
 
             if (isNewVisitor || isOutdatedVersion) {
-                console.log(`🆕 [Smart Cache] ${isNewVisitor ? 'Novo visitante' : 'Versão desatualizada'} - Invalida cache local`);
+                console.log(
+                    `🆕 [Smart Cache] ${isNewVisitor ? 'Novo visitante' : 'Versão desatualizada'} - Invalida cache local`
+                );
                 this._catalogCache = null;
                 localStorage.setItem('donaCapivara_lastVisit', new Date().toISOString());
                 localStorage.setItem('donaCapivara_cacheVersion', CACHE_VERSION);
@@ -119,7 +122,6 @@ export const API = {
                 };
 
                 return catalogData;
-
             } catch (supabaseError: any) {
                 console.warn('⚠️ [Supabase] Falha, usando fallback GAS:', supabaseError.message);
                 // Continua para o fallback do Google Apps Script
@@ -138,7 +140,7 @@ export const API = {
             console.log(`🌐 [API] Fetching Catalog (Tentativa ${attempts}/${maxAttempts})...`);
 
             try {
-                if (!API_URL) throw new Error("API URL missing");
+                if (!API_URL) throw new Error('API URL missing');
                 const timestamp = Date.now();
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -194,7 +196,6 @@ export const API = {
                 console.log(`✅ [API] Sucesso! ${products.length} produtos carregados.`);
 
                 return finalData;
-
             } catch (error: any) {
                 const isTimeout = error.name === 'AbortError';
                 console.warn(`⚠️ [API] Falha na tentativa ${attempts}:`, isTimeout ? 'Timeout' : error.message);
@@ -219,10 +220,16 @@ export const API = {
 
     async login(phone: string, password: string) {
         if (String(phone).toLowerCase().trim() === 'admin' && password.trim() === 'Jxd701852@') {
-            return { success: true, customer: { id: 'ADMIN', name: 'Administrador', isAdmin: true, adminKey: 'Jxd701852@' } };
+            return {
+                success: true,
+                customer: { id: 'ADMIN', name: 'Administrador', isAdmin: true, adminKey: 'Jxd701852@' }
+            };
         }
         try {
-            const response = await fetch(API_URL + '?action=loginCustomer', { method: 'POST', body: JSON.stringify({ phone, password }) });
+            const response = await fetch(API_URL + '?action=loginCustomer', {
+                method: 'POST',
+                body: JSON.stringify({ phone, password })
+            });
             const data = await response.json();
             if (data.success && data.customer) {
                 const favArray = (data.customer.Favoritos || '').split(',').filter(Boolean);
@@ -242,7 +249,9 @@ export const API = {
                 };
             }
             return data;
-        } catch (error) { return { success: false, message: "Erro de conexão" }; }
+        } catch (_error) {
+            return { success: false, message: 'Erro de conexão' };
+        }
     },
 
     // CRITICAL FIX: Return {orders: [...]} format expected by AdminView
@@ -250,7 +259,9 @@ export const API = {
         console.log('🔍 [API] getAdminOrders chamado com adminKey:', adminKey);
         if (!API_URL) return { orders: [] };
         try {
-            const response = await fetch(`${API_URL}?action=getAdminOrders&adminKey=${adminKey}&_t=${Date.now()}`, { cache: 'no-store' });
+            const response = await fetch(`${API_URL}?action=getAdminOrders&adminKey=${adminKey}&_t=${Date.now()}`, {
+                cache: 'no-store'
+            });
             const data = await response.json();
 
             console.log('🔍 [API] Resposta bruta:', data);
@@ -270,9 +281,12 @@ export const API = {
 
                 const apto = order.Apartamento_Cliente || order.Ap || order.Apto || order.Apartamento || '-';
                 const torre = order.Torre_Cliente || order.Torre || '';
-                const address = torre ? `Torre ${torre}, Ap ${apto}` : (order.Endereco || order.Endereco_Completo || 'Retirada');
+                const address = torre
+                    ? `Torre ${torre}, Ap ${apto}`
+                    : order.Endereco || order.Endereco_Completo || 'Retirada';
 
-                const customerName = order.Nome_Cliente_Pedido ||
+                const customerName =
+                    order.Nome_Cliente_Pedido ||
                     order.Nome_Cliente ||
                     order.Cliente ||
                     order.customerName ||
@@ -309,9 +323,14 @@ export const API = {
 
     async registerCustomer(userData: any) {
         try {
-            const response = await fetch(API_URL + '?action=createCustomer', { method: 'POST', body: JSON.stringify(userData) });
+            const response = await fetch(API_URL + '?action=createCustomer', {
+                method: 'POST',
+                body: JSON.stringify(userData)
+            });
             return await response.json();
-        } catch (e) { return { success: false }; }
+        } catch (_e) {
+            return { success: false };
+        }
     },
     // ========================================
     // COUPON VALIDATION WITH CACHE
@@ -359,9 +378,10 @@ export const API = {
             console.error('❌ [Coupon Validation Error]:', e);
             return {
                 success: false,
-                message: e instanceof Error && e.name === 'TimeoutError'
-                    ? 'Timeout ao validar cupom. Tente novamente.'
-                    : 'Erro ao validar cupom. Verifique sua conexão.'
+                message:
+                    e instanceof Error && e.name === 'TimeoutError'
+                        ? 'Timeout ao validar cupom. Tente novamente.'
+                        : 'Erro ao validar cupom. Verifique sua conexão.'
             };
         }
     },
@@ -370,14 +390,12 @@ export const API = {
      * 🔥 NOVA FUNÇÃO: Validar cupom com contexto completo
      * Verifica histórico de uso, valor mínimo, etc.
      */
-    async validateCouponWithContext(data: {
-        code: string;
-        customerId: string;
-        subtotal: number;
-    }) {
+    async validateCouponWithContext(data: { code: string; customerId: string; subtotal: number }) {
         const normalizedCode = data.code.trim().toUpperCase();
 
-        console.log(`🔍 [Validação Contextual] Cupom: ${normalizedCode}, Cliente: ${data.customerId}, Subtotal: R$ ${data.subtotal}`);
+        console.log(
+            `🔍 [Validação Contextual] Cupom: ${normalizedCode}, Cliente: ${data.customerId}, Subtotal: R$ ${data.subtotal}`
+        );
 
         try {
             // 1️⃣ TENTATIVA SUPABASE RPC (Ultra-rápido)
@@ -423,7 +441,9 @@ export const API = {
             const result = await response.json();
 
             if (result.success) {
-                console.log(`✅ [Cupom Válido] Tipo: ${result.type}, Valor: ${result.value}, Tipo Uso: ${result.tipoUso}`);
+                console.log(
+                    `✅ [Cupom Válido] Tipo: ${result.type}, Valor: ${result.value}, Tipo Uso: ${result.tipoUso}`
+                );
             } else {
                 console.warn(`⚠️ [Cupom Inválido] ${result.message}`);
             }
@@ -433,13 +453,13 @@ export const API = {
             console.error('❌ [Coupon Context Validation Error]:', e);
             return {
                 success: false,
-                message: e instanceof Error && e.name === 'TimeoutError'
-                    ? 'Timeout ao validar cupom. Tente novamente.'
-                    : 'Erro ao validar cupom. Verifique sua conexão.'
+                message:
+                    e instanceof Error && e.name === 'TimeoutError'
+                        ? 'Timeout ao validar cupom. Tente novamente.'
+                        : 'Erro ao validar cupom. Verifique sua conexão.'
             };
         }
     },
-
 
     /**
      * Prefetch coupon validation (background, non-blocking)
@@ -466,7 +486,7 @@ export const API = {
         }
     },
 
-    async calculateDelivery(data: { deliveryType: string, addressData: any }) {
+    async calculateDelivery(data: { deliveryType: string; addressData: any }) {
         try {
             const response = await fetch(`${API_URL}?action=calculateDelivery`, {
                 method: 'POST',
@@ -481,29 +501,43 @@ export const API = {
     },
 
     async syncFavorites(phone: string, favorites: string[]) {
-        try { await fetch(API_URL + '?action=updateFavorites', { method: 'POST', body: JSON.stringify({ phone, favorites: favorites.join(',') }) }); } catch (e) { }
+        try {
+            await fetch(API_URL + '?action=updateFavorites', {
+                method: 'POST',
+                body: JSON.stringify({ phone, favorites: favorites.join(',') })
+            });
+        } catch (_e) {
+            // Background sync failure is non-critical
+        }
     },
     async submitOrder(orderData: any) {
         try {
             // 1. TENTATIVA SUPABASE (Para Realtime e Status 2.0 via n8n)
             if (isSupabaseConfigured() && supabase) {
-                const shortId = String(orderData.id || orderData.idVenda || '').slice(0, 8).toUpperCase();
+                const shortId = String(orderData.id || orderData.idVenda || '')
+                    .slice(0, 8)
+                    .toUpperCase();
 
-                await supabase.from('orders').insert([{
-                    short_id: shortId,
-                    customer_phone: orderData.userPhone || orderData.customer?.details?.telefone,
-                    total: orderData.total,
-                    status: 'Aguardando WhatsApp',
-                    items: JSON.stringify(orderData.cart),
-                    raw_data: orderData
-                }]);
+                await supabase.from('orders').insert([
+                    {
+                        short_id: shortId,
+                        customer_phone: orderData.userPhone || orderData.customer?.details?.telefone,
+                        total: orderData.total,
+                        status: 'Aguardando WhatsApp',
+                        items: JSON.stringify(orderData.cart),
+                        raw_data: orderData
+                    }
+                ]);
             }
 
             // 2. ENVIO PADRÃO PARA GOOGLE SHEETS
-            const response = await fetch(API_URL + '?action=createOrder', { method: 'POST', body: JSON.stringify(orderData) });
+            const response = await fetch(API_URL + '?action=createOrder', {
+                method: 'POST',
+                body: JSON.stringify(orderData)
+            });
             return await response.json();
-        } catch (e) {
-            console.error('❌ [API] Erro ao submeter pedido:', e);
+        } catch (_e) {
+            console.error('❌ [API] Erro ao submeter pedido:', _e);
             return { success: false };
         }
     },
@@ -523,43 +557,60 @@ export const API = {
                 status: order.Status || 'Pendente',
                 paymentMethod: order.Forma_de_Pagamento || 'Não informado'
             }));
-        } catch (e) {
-            console.error('❌ [API] Erro ao carregar pedidos do cliente:', e);
+        } catch (_e) {
+            console.error('❌ [API] Erro ao carregar pedidos do cliente:', _e);
             return [];
         }
     },
 
     async getOrderItems(adminKey: string, orderId: string) {
         try {
-            const response = await fetch(`${API_URL}?action=getOrderItems&orderId=${orderId}&adminKey=${adminKey}&_t=${Date.now()}`);
+            const response = await fetch(
+                `${API_URL}?action=getOrderItems&orderId=${orderId}&adminKey=${adminKey}&_t=${Date.now()}`
+            );
             return await response.json();
-        } catch (error) { return []; }
+        } catch (_error) {
+            return [];
+        }
     },
     async getDashboardStats(adminKey: string) {
         try {
-            const response = await fetch(`${API_URL}?action=getDashboardStats&adminKey=${adminKey}&_t=${Date.now()}`, { cache: 'no-store' });
+            const response = await fetch(`${API_URL}?action=getDashboardStats&adminKey=${adminKey}&_t=${Date.now()}`, {
+                cache: 'no-store'
+            });
             return await response.json();
-        } catch (e) { return null; }
+        } catch (_e) {
+            return null;
+        }
     },
     async updateOrderStatus(adminKey: string, orderId: string, newStatus: string) {
         try {
-            const response = await fetch(API_URL + '?action=updateOrderStatus', { method: 'POST', body: JSON.stringify({ adminKey, orderId, newStatus }) });
+            const response = await fetch(API_URL + '?action=updateOrderStatus', {
+                method: 'POST',
+                body: JSON.stringify({ adminKey, orderId, newStatus })
+            });
             return (await response.json()).success;
-        } catch (e) { return false; }
+        } catch (_e) {
+            return false;
+        }
     },
     async getExportData(adminKey: string) {
         try {
-            const response = await fetch(`${API_URL}?action=getExportData&adminKey=${adminKey}&_t=${Date.now()}`, { cache: 'no-store' });
+            const response = await fetch(`${API_URL}?action=getExportData&adminKey=${adminKey}&_t=${Date.now()}`, {
+                cache: 'no-store'
+            });
             return await response.json();
-        } catch (e) { return null; }
+        } catch (_e) {
+            return null;
+        }
     },
     async getProductReviews(productId: string) {
         try {
             const response = await fetch(`${API_URL}?action=getReviews&productId=${productId}&_t=${Date.now()}`);
             const data = await response.json();
             return Array.isArray(data) ? data : [];
-        } catch (e) {
-            console.error('Error fetching reviews:', e);
+        } catch (_e) {
+            console.error('Error fetching reviews:', _e);
             return [];
         }
     },
@@ -570,7 +621,7 @@ export const API = {
                 body: JSON.stringify(reviewData)
             });
             return await response.json();
-        } catch (e) {
+        } catch (_e) {
             return { success: false, message: 'Erro de conexão' };
         }
     },
@@ -591,7 +642,6 @@ export const API = {
     // Funções removidas: spinWheel, getUserPrizes, redeemPrize, getUserSpins, saveScratchPrize
     // Para histórico, ver conversa: c2f372ec-27fb-4e1f-9b61-c3d495f9b260
 
-
     // ========================================
     // ADDITIONS SYSTEM API FUNCTIONS
     // ========================================
@@ -607,11 +657,7 @@ export const API = {
     /**
      * Server-side price calculation and validation
      */
-    async calculateItemPrice(data: {
-        productId: string;
-        selectedAdditions: any[];
-        quantity: number;
-    }) {
+    async calculateItemPrice(data: { productId: string; selectedAdditions: any[]; quantity: number }) {
         try {
             const response = await fetch(API_URL + '?action=calculateItemPrice', {
                 method: 'POST',
@@ -783,9 +829,7 @@ export const API = {
             const catalog = await this.fetchCatalogData(true);
             if (catalog?.products) {
                 for (const id of productIds) {
-                    const found = catalog.products.find((p: any) =>
-                        p.id === id || p.ID_Geladinho === id
-                    );
+                    const found = catalog.products.find((p: any) => p.id === id || p.ID_Geladinho === id);
                     if (found) {
                         results.push(found);
                     } else {
@@ -800,9 +844,7 @@ export const API = {
 
             // 2. Fetch missing products directly (for hidden products)
             if (missingIds.length > 0) {
-                const fetchPromises = missingIds.map(id =>
-                    this.getProductWithAdditions(id).catch(() => null)
-                );
+                const fetchPromises = missingIds.map(id => this.getProductWithAdditions(id).catch(() => null));
                 const fetchedProducts = await Promise.all(fetchPromises);
 
                 for (const product of fetchedProducts) {
@@ -841,9 +883,7 @@ export const API = {
     async getMinhasChances(customerId: string) {
         try {
             const timestamp = Date.now();
-            const response = await fetch(
-                `${API_URL}?action=getMinhasChances&customerId=${customerId}&_t=${timestamp}`
-            );
+            const response = await fetch(`${API_URL}?action=getMinhasChances&customerId=${customerId}&_t=${timestamp}`);
             const data = await response.json();
             return data;
         } catch (error) {
@@ -868,7 +908,10 @@ export const API = {
      * @param customerId - ID of the customer trying to use the code
      * @returns { valid: boolean, message: string, alreadyUsed?: boolean }
      */
-    async validateReferralCode(code: string, customerId: string): Promise<{
+    async validateReferralCode(
+        code: string,
+        customerId: string
+    ): Promise<{
         valid: boolean;
         message: string;
         alreadyUsed?: boolean;

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { API } from '@/services/api';
 
 interface PromotionWidgetProps {
@@ -16,20 +16,12 @@ interface RaffleData {
     faltam: number;
 }
 
-export default function PromotionWidget({ customerId, customerName }: PromotionWidgetProps) {
+export default function PromotionWidget({ customerId, customerName: _customerName }: PromotionWidgetProps) {
     const [data, setData] = useState<RaffleData | null>(null);
     const [loading, setLoading] = useState(true);
     const [showDetails, setShowDetails] = useState(false);
 
-    useEffect(() => {
-        if (customerId && customerId !== 'GUEST') {
-            loadRaffleData();
-        } else {
-            setLoading(false);
-        }
-    }, [customerId]);
-
-    const loadRaffleData = async () => {
+    const loadRaffleData = useCallback(async () => {
         try {
             const response = await API.getMinhasChances(customerId);
             setData(response);
@@ -38,7 +30,15 @@ export default function PromotionWidget({ customerId, customerName }: PromotionW
         } finally {
             setLoading(false);
         }
-    };
+    }, [customerId]);
+
+    useEffect(() => {
+        if (customerId && customerId !== 'GUEST') {
+            loadRaffleData();
+        } else {
+            setLoading(false);
+        }
+    }, [customerId, loadRaffleData]);
 
     // Don't show for guest users
     if (!customerId || customerId === 'GUEST' || loading) {
@@ -78,7 +78,8 @@ export default function PromotionWidget({ customerId, customerName }: PromotionW
                         </div>
 
                         <p className="text-xs opacity-90 mb-3">
-                            Faltam <span className="font-bold">R$ {data.faltam.toFixed(2)}</span> para sua próxima chance!
+                            Faltam <span className="font-bold">R$ {data.faltam.toFixed(2)}</span> para sua próxima
+                            chance!
                         </p>
 
                         {/* Progress bar */}
@@ -89,9 +90,7 @@ export default function PromotionWidget({ customerId, customerName }: PromotionW
                             />
                         </div>
 
-                        <p className="text-xs mt-2 opacity-75">
-                            Toque para ver seus números
-                        </p>
+                        <p className="text-xs mt-2 opacity-75">Toque para ver seus números</p>
                     </div>
                 </div>
             </div>
@@ -104,17 +103,13 @@ export default function PromotionWidget({ customerId, customerName }: PromotionW
                 >
                     <div
                         className="bg-white rounded-3xl max-w-md w-full p-6 max-h-[80vh] overflow-y-auto"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={e => e.stopPropagation()}
                     >
                         {/* Header */}
                         <div className="text-center mb-6">
                             <span className="text-6xl mb-2 block">🎬</span>
-                            <h2 className="text-2xl font-bold text-gray-800 mb-1">
-                                Promoção Cinema
-                            </h2>
-                            <p className="text-sm text-gray-600">
-                                Ganhe ingressos comprando!
-                            </p>
+                            <h2 className="text-2xl font-bold text-gray-800 mb-1">Promoção Cinema</h2>
+                            <p className="text-sm text-gray-600">Ganhe ingressos comprando!</p>
                         </div>
 
                         {/* Progress Card */}
@@ -131,9 +126,7 @@ export default function PromotionWidget({ customerId, customerName }: PromotionW
                                     </div>
                                     <div className="flex justify-between text-sm">
                                         <span className="text-gray-600">Próximo número em:</span>
-                                        <span className="font-bold text-pink-600">
-                                            R$ {data.faltam.toFixed(2)}
-                                        </span>
+                                        <span className="font-bold text-pink-600">R$ {data.faltam.toFixed(2)}</span>
                                     </div>
                                 </div>
 
@@ -162,7 +155,9 @@ export default function PromotionWidget({ customerId, customerName }: PromotionW
                             {totalNumbers === 0 ? (
                                 <div className="text-center py-8 text-gray-500">
                                     <p className="text-sm">Você ainda não tem números da sorte.</p>
-                                    <p className="text-xs mt-1">Compre mais R$ 18,00 para ganhar sua primeira chance!</p>
+                                    <p className="text-xs mt-1">
+                                        Compre mais R$ 18,00 para ganhar sua primeira chance!
+                                    </p>
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-3 gap-3">
@@ -171,10 +166,11 @@ export default function PromotionWidget({ customerId, customerName }: PromotionW
                                             key={index}
                                             className={`
                         relative rounded-xl p-3 text-center font-bold text-lg
-                        ${numero.ganhou
-                                                    ? 'bg-gradient-to-br from-yellow-400 to-orange-500 text-white shadow-lg'
-                                                    : 'bg-gradient-to-br from-gray-100 to-gray-200 text-gray-700'
-                                                }
+                        ${
+                            numero.ganhou
+                                ? 'bg-gradient-to-br from-yellow-400 to-orange-500 text-white shadow-lg'
+                                : 'bg-gradient-to-br from-gray-100 to-gray-200 text-gray-700'
+                        }
                       `}
                                         >
                                             {numero.ganhou && (
@@ -183,9 +179,7 @@ export default function PromotionWidget({ customerId, customerName }: PromotionW
                                                 </div>
                                             )}
                                             {numero.numero}
-                                            {numero.ganhou && (
-                                                <div className="text-[10px] mt-1">Vencedor!</div>
-                                            )}
+                                            {numero.ganhou && <div className="text-[10px] mt-1">Vencedor!</div>}
                                         </div>
                                     ))}
                                 </div>
@@ -194,11 +188,11 @@ export default function PromotionWidget({ customerId, customerName }: PromotionW
 
                         {/* Rules */}
                         <div className="bg-blue-50 rounded-xl p-4 mb-4">
-                            <h4 className="font-semibold text-sm text-blue-900 mb-2">
-                                📋 Como Funciona
-                            </h4>
+                            <h4 className="font-semibold text-sm text-blue-900 mb-2">📋 Como Funciona</h4>
                             <ul className="text-xs text-blue-800 space-y-1">
-                                <li>• A cada <strong>R$ 18,00</strong> gastos você ganha 1 número</li>
+                                <li>
+                                    • A cada <strong>R$ 18,00</strong> gastos você ganha 1 número
+                                </li>
                                 <li>• Números são gerados automaticamente</li>
                                 <li>• Acompanhe o sorteio pelo nosso Instagram</li>
                                 <li>• Prêmios incríveis te esperam! 🎁</li>

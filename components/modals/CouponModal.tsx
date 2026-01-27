@@ -22,13 +22,7 @@ interface CouponInfo {
 
 type FeedbackType = 'success' | 'error' | 'warning' | 'loading' | null;
 
-export default function CouponModal({
-    isOpen,
-    onClose,
-    onApplyCoupon,
-    cartTotal,
-    customerId
-}: CouponModalProps) {
+export default function CouponModal({ isOpen, onClose, onApplyCoupon, cartTotal, customerId }: CouponModalProps) {
     // Estados
     const [step, setStep] = useState<1 | 2 | 3>(1);
     const [couponCode, setCouponCode] = useState('');
@@ -49,12 +43,15 @@ export default function CouponModal({
     };
 
     // Calcular desconto
-    const calculateDiscount = useCallback((coupon: CouponInfo): number => {
-        if (coupon.type === 'PORCENTAGEM') {
-            return cartTotal * (coupon.value / 100);
-        }
-        return Math.min(coupon.value, cartTotal);
-    }, [cartTotal]);
+    const calculateDiscount = useCallback(
+        (coupon: CouponInfo): number => {
+            if (coupon.type === 'PORCENTAGEM') {
+                return cartTotal * (coupon.value / 100);
+            }
+            return Math.min(coupon.value, cartTotal);
+        },
+        [cartTotal]
+    );
 
     // Reset ao abrir
     useEffect(() => {
@@ -149,7 +146,7 @@ export default function CouponModal({
                         message: result.message || 'Cupom inválido'
                     });
                 }
-            } catch (error) {
+            } catch (_error) {
                 setValidatedCoupon(null);
                 setFeedback({
                     type: 'error',
@@ -212,11 +209,7 @@ export default function CouponModal({
             return (
                 <div className={styles.buttonsFooter}>
                     <div className={styles.buttons}>
-                        <button
-                            onClick={handleClear}
-                            className={styles.btnSecondary}
-                            disabled={!couponCode}
-                        >
+                        <button onClick={handleClear} className={styles.btnSecondary} disabled={!couponCode}>
                             Limpar
                         </button>
                         <button
@@ -235,16 +228,10 @@ export default function CouponModal({
             return (
                 <div className={styles.buttonsFooter}>
                     <div className={styles.buttons}>
-                        <button
-                            onClick={() => setStep(1)}
-                            className={styles.btnSecondary}
-                        >
+                        <button onClick={() => setStep(1)} className={styles.btnSecondary}>
                             Voltar
                         </button>
-                        <button
-                            onClick={handleApply}
-                            className={styles.btnPrimary}
-                        >
+                        <button onClick={handleApply} className={styles.btnPrimary}>
                             <span>🎟️</span> Aplicar Cupom
                         </button>
                     </div>
@@ -258,11 +245,7 @@ export default function CouponModal({
     return (
         <>
             {/* Overlay */}
-            <div
-                className={styles.overlay}
-                onClick={onClose}
-                role="presentation"
-            />
+            <div className={styles.overlay} onClick={onClose} role="presentation" />
 
             {/* Modal Wrapper - Flex container for positioning */}
             <div className={styles.modalWrapper}>
@@ -276,16 +259,10 @@ export default function CouponModal({
                                 <h2 id="coupon-modal-title" className={styles.headerTitle}>
                                     Cupom de Desconto
                                 </h2>
-                                <p className={styles.headerSubtitle}>
-                                    Aplique seu cupom e economize
-                                </p>
+                                <p className={styles.headerSubtitle}>Aplique seu cupom e economize</p>
                             </div>
                         </div>
-                        <button
-                            onClick={onClose}
-                            className={styles.closeButton}
-                            aria-label="Fechar"
-                        >
+                        <button onClick={onClose} className={styles.closeButton} aria-label="Fechar">
                             ✕
                         </button>
                     </div>
@@ -322,12 +299,12 @@ export default function CouponModal({
                                         id="coupon-input"
                                         type="text"
                                         value={couponCode}
-                                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                        onChange={e => setCouponCode(e.target.value.toUpperCase())}
                                         placeholder="Ex: BEMVINDO10"
                                         className={`${styles.input} ${feedback.type === 'success' ? styles.inputSuccess : ''} ${feedback.type === 'error' ? styles.inputError : ''}`}
                                         autoComplete="off"
                                         onFocus={handleInputFocus}
-                                        onKeyDown={(e) => {
+                                        onKeyDown={e => {
                                             if (e.key === 'Enter' && validatedCoupon) {
                                                 handleContinue();
                                             }
@@ -387,14 +364,11 @@ export default function CouponModal({
                                             <span className={styles.couponDetailHighlight}>
                                                 {validatedCoupon.type === 'PORCENTAGEM'
                                                     ? `${validatedCoupon.value}%`
-                                                    : formatCurrency(validatedCoupon.value)
-                                                }
+                                                    : formatCurrency(validatedCoupon.value)}
                                             </span>
                                         </div>
                                         {validatedCoupon.tipoUso === 'UNICO' && (
-                                            <div className={styles.couponWarning}>
-                                                ⚠️ Cupom de uso único
-                                            </div>
+                                            <div className={styles.couponWarning}>⚠️ Cupom de uso único</div>
                                         )}
                                     </div>
                                     <div className={styles.couponCardFooter}>

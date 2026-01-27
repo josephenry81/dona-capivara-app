@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { API } from '../../services/api';
 import { useModal } from '../ui/Modal';
-
 
 interface Flavor {
     id: string;
@@ -52,15 +52,10 @@ export default function MixGourmetView({
     // Selections
     const [selectedFlavors, setSelectedFlavors] = useState<string[]>([]);
     const [selectedAdditions, setSelectedAdditions] = useState<any[]>([]);
-    const [quantity, setQuantity] = useState(1);
+    const [quantity, _setQuantity] = useState(1);
     const { alert, Modal: CustomModal } = useModal();
 
-
-    useEffect(() => {
-        loadMixData();
-    }, [mixId]);
-
-    const loadMixData = async () => {
+    async function loadMixData() {
         setLoading(true);
         setError(null);
         try {
@@ -77,7 +72,11 @@ export default function MixGourmetView({
         } finally {
             setLoading(false);
         }
-    };
+    }
+
+    useEffect(() => {
+        loadMixData();
+    }, [mixId, loadMixData]);
 
     // Handle flavor selection (max 2)
     const toggleFlavor = (flavorId: string) => {
@@ -95,21 +94,22 @@ export default function MixGourmetView({
     // Handle addition toggle
     const toggleAddition = (groupId: string, option: AdditionOption) => {
         setSelectedAdditions(prev => {
-            const existingIndex = prev.findIndex(
-                a => a.group_id === groupId && a.option_id === option.id
-            );
+            const existingIndex = prev.findIndex(a => a.group_id === groupId && a.option_id === option.id);
 
             if (existingIndex >= 0) {
                 return prev.filter((_, i) => i !== existingIndex);
             }
 
-            return [...prev, {
-                group_id: groupId,
-                group_name: mix.addition_groups.find((g: any) => g.id === groupId)?.name || '',
-                option_id: option.id,
-                option_name: option.name,
-                option_price: option.price
-            }];
+            return [
+                ...prev,
+                {
+                    group_id: groupId,
+                    group_name: mix.addition_groups.find((g: any) => g.id === groupId)?.name || '',
+                    option_id: option.id,
+                    option_name: option.name,
+                    option_price: option.price
+                }
+            ];
         });
     };
 
@@ -186,9 +186,7 @@ export default function MixGourmetView({
                     <h3 className="text-xl font-bold text-gray-800 mb-2">
                         {error ? 'Ops! Algo deu errado' : 'Mix não encontrado'}
                     </h3>
-                    <p className="text-gray-500 mb-6">
-                        {error || 'Não conseguimos localizar este Mix no momento.'}
-                    </p>
+                    <p className="text-gray-500 mb-6">{error || 'Não conseguimos localizar este Mix no momento.'}</p>
                     <div className="flex flex-col gap-3">
                         {error && (
                             <button
@@ -220,7 +218,13 @@ export default function MixGourmetView({
                     onClick={onBack}
                     className="absolute top-4 left-4 bg-white/90 backdrop-blur-md p-2 rounded-full shadow-lg hover:scale-110 transition active:scale-95 z-20"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 text-gray-800"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
                 </button>
@@ -229,7 +233,7 @@ export default function MixGourmetView({
                 <button
                     onClick={() => onToggleFavorite?.(mixId)}
                     className="absolute top-4 right-4 bg-white/90 backdrop-blur-md p-2 rounded-full shadow-lg hover:scale-110 transition active:scale-95 z-20 text-lg"
-                    title={favorites.includes(mixId) ? "Remover dos Favoritos" : "Favoritar"}
+                    title={favorites.includes(mixId) ? 'Remover dos Favoritos' : 'Favoritar'}
                 >
                     {favorites.includes(mixId) ? '❤️' : '🤍'}
                 </button>
@@ -318,11 +322,12 @@ export default function MixGourmetView({
                                         key={flavor.id}
                                         className={`
                                             flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer
-                                            ${!isAvailable
-                                                ? 'bg-gray-100 border-gray-200 opacity-60 cursor-not-allowed'
-                                                : isSelected
-                                                    ? 'bg-[pink-50] border-pink-500 shadow-sm'
-                                                    : 'bg-white border-gray-200 hover:border-pink-500/50 hover:shadow-sm'
+                                            ${
+                                                !isAvailable
+                                                    ? 'bg-gray-100 border-gray-200 opacity-60 cursor-not-allowed'
+                                                    : isSelected
+                                                      ? 'bg-[pink-50] border-pink-500 shadow-sm'
+                                                      : 'bg-white border-gray-200 hover:border-pink-500/50 hover:shadow-sm'
                                             }
                                         `}
                                     >
@@ -335,11 +340,14 @@ export default function MixGourmetView({
                                         />
 
                                         {flavor.image_url ? (
-                                            <img
-                                                src={flavor.image_url}
-                                                alt={flavor.name}
-                                                className="w-12 h-12 rounded-lg object-cover bg-gray-100"
-                                            />
+                                            <div className="relative w-12 h-12 shrink-0 rounded-lg overflow-hidden bg-gray-100">
+                                                <Image
+                                                    src={flavor.image_url}
+                                                    alt={flavor.name}
+                                                    fill
+                                                    className="object-cover"
+                                                />
+                                            </div>
                                         ) : (
                                             <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-[pink-50] to-orange-50 flex items-center justify-center text-2xl">
                                                 🍦
@@ -347,7 +355,9 @@ export default function MixGourmetView({
                                         )}
 
                                         <div className="flex-1">
-                                            <p className={`font-semibold text-sm ${!isAvailable ? 'line-through text-gray-400' : 'text-gray-800'}`}>
+                                            <p
+                                                className={`font-semibold text-sm ${!isAvailable ? 'line-through text-gray-400' : 'text-gray-800'}`}
+                                            >
                                                 {flavor.name}
                                             </p>
                                             {flavor.category && (
@@ -396,11 +406,12 @@ export default function MixGourmetView({
                                             key={option.id}
                                             className={`
                                                 flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer
-                                                ${!isAvailable
-                                                    ? 'bg-gray-100 border-gray-200 opacity-60 cursor-not-allowed'
-                                                    : isSelected
-                                                        ? 'bg-orange-50 border-orange-400 shadow-sm'
-                                                        : 'bg-white border-gray-200 hover:border-orange-400/50 hover:shadow-sm'
+                                                ${
+                                                    !isAvailable
+                                                        ? 'bg-gray-100 border-gray-200 opacity-60 cursor-not-allowed'
+                                                        : isSelected
+                                                          ? 'bg-orange-50 border-orange-400 shadow-sm'
+                                                          : 'bg-white border-gray-200 hover:border-orange-400/50 hover:shadow-sm'
                                                 }
                                             `}
                                         >
@@ -413,11 +424,14 @@ export default function MixGourmetView({
                                             />
 
                                             {option.image_url ? (
-                                                <img
-                                                    src={option.image_url}
-                                                    alt={option.name}
-                                                    className="w-12 h-12 rounded-lg object-cover bg-gray-100"
-                                                />
+                                                <div className="relative w-12 h-12 shrink-0 rounded-lg overflow-hidden bg-gray-100">
+                                                    <Image
+                                                        src={option.image_url}
+                                                        alt={option.name}
+                                                        fill
+                                                        className="object-cover"
+                                                    />
+                                                </div>
                                             ) : (
                                                 <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-orange-50 to-yellow-50 flex items-center justify-center text-2xl">
                                                     🧁
@@ -425,7 +439,9 @@ export default function MixGourmetView({
                                             )}
 
                                             <div className="flex-1">
-                                                <p className={`font-semibold text-sm ${!isAvailable ? 'line-through text-gray-400' : 'text-gray-800'}`}>
+                                                <p
+                                                    className={`font-semibold text-sm ${!isAvailable ? 'line-through text-gray-400' : 'text-gray-800'}`}
+                                                >
                                                     {option.name}
                                                 </p>
                                             </div>
@@ -451,7 +467,6 @@ export default function MixGourmetView({
                 <>
                     {/* Bottom Bar - Same as ProductDetailView */}
                     <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 p-4 pb-8 flex items-center gap-4 z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
-
                         {/* Add to Cart Button */}
                         <button
                             onClick={handleAddToCart}
@@ -460,9 +475,7 @@ export default function MixGourmetView({
                             className="flex-1 h-14 bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white font-bold rounded-xl shadow-lg shadow-orange-200 hover:opacity-90 transition flex justify-between items-center px-6 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <span>Adicionar</span>
-                            <span className="bg-white/20 px-2 py-1 rounded text-sm">
-                                R$ {price.total.toFixed(2)}
-                            </span>
+                            <span className="bg-white/20 px-2 py-1 rounded text-sm">R$ {price.total.toFixed(2)}</span>
                         </button>
                     </div>
                 </>
@@ -470,5 +483,3 @@ export default function MixGourmetView({
         </div>
     );
 }
-
-

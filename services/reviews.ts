@@ -1,5 +1,3 @@
-import { API } from './api';
-
 export interface Review {
     id: string;
     customerName: string;

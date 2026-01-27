@@ -1,9 +1,11 @@
 # 🎨 GUIA DE OTIMIZAÇÃO DE FONTES - Next.js Font Optimization
 
 ## 📋 Objetivo
+
 Migrar de Google Fonts CDN para `next/font/google` para melhorar performance e privacidade.
 
 ## 🎯 Benefícios
+
 - ✅ **-100ms** no First Contentful Paint
 - ✅ **Zero layout shift** (FOUT/FOIT eliminado)
 - ✅ **Privacidade**: Fontes hospedadas localmente
@@ -82,8 +84,8 @@ export default function RootLayout({
 body {
     /* ✅ ATUALIZAR para usar a variável CSS */
     font-family: var(--font-poppins), sans-serif;
-    background-color: #F5F6FA;
-    color: #2D3436;
+    background-color: #f5f6fa;
+    color: #2d3436;
     padding-bottom: 80px;
     /* Space for bottom nav */
 }
@@ -104,23 +106,23 @@ body {
 Se quiser usar a fonte via Tailwind classes:
 
 ```typescript
-import type { Config } from "tailwindcss";
+import type { Config } from 'tailwindcss';
 
 const config: Config = {
-  content: [
-    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./app/**/*.{js,ts,jsx,tsx,mdx}",
-  ],
-  theme: {
-    extend: {
-      fontFamily: {
-        // ← ADICIONAR
-        poppins: ['var(--font-poppins)', 'sans-serif'],
-      },
+    content: [
+        './pages/**/*.{js,ts,jsx,tsx,mdx}',
+        './components/**/*.{js,ts,jsx,tsx,mdx}',
+        './app/**/*.{js,ts,jsx,tsx,mdx}'
+    ],
+    theme: {
+        extend: {
+            fontFamily: {
+                // ← ADICIONAR
+                poppins: ['var(--font-poppins)', 'sans-serif']
+            }
+        }
     },
-  },
-  plugins: [],
+    plugins: []
 };
 export default config;
 ```
@@ -130,11 +132,13 @@ Uso: `<div className="font-poppins">Texto</div>`
 ## ✅ Verificação
 
 ### Antes da mudança:
+
 1. Abra DevTools → Network
 2. Filtre por "fonts.googleapis.com"
 3. Você verá requisições externas
 
 ### Depois da mudança:
+
 1. Abra DevTools → Network
 2. Filtre por "fonts"
 3. Fontes serão servidas do próprio domínio (`/_next/static/media/`)
@@ -156,12 +160,12 @@ npm run start
 
 ## 📊 Impacto Esperado
 
-| Métrica | Antes | Depois | Melhoria |
-|---------|-------|--------|----------|
-| First Contentful Paint | ~1.2s | ~1.1s | -100ms |
-| Cumulative Layout Shift | 0.05 | 0.00 | -100% |
-| Requisições externas | 2 | 0 | -100% |
-| Lighthouse Performance | 85 | 90+ | +5pts |
+| Métrica                 | Antes | Depois | Melhoria |
+| ----------------------- | ----- | ------ | -------- |
+| First Contentful Paint  | ~1.2s | ~1.1s  | -100ms   |
+| Cumulative Layout Shift | 0.05  | 0.00   | -100%    |
+| Requisições externas    | 2     | 0      | -100%    |
+| Lighthouse Performance  | 85    | 90+    | +5pts    |
 
 ## ⚠️ Notas Importantes
 
@@ -173,6 +177,7 @@ npm run start
 ## 🔄 Rollback (se necessário)
 
 Se algo der errado, basta:
+
 1. Reverter mudanças em `layout.tsx`
 2. Restaurar `@import` em `globals.css`
 3. Executar `npm run build` novamente

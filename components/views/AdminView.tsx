@@ -28,8 +28,7 @@ export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
     const [printItems, setPrintItems] = useState<any[]>([]);
     const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as any });
     const [updatingOrderIds, setUpdatingOrderIds] = useState<Set<string>>(new Set());
-    const { confirm, alert, Modal: CustomModal } = useModal();
-
+    const { confirm, alert: _alert, Modal: CustomModal } = useModal();
 
     const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
         setToast({ visible: true, message: msg, type });
@@ -40,9 +39,10 @@ export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
         id: order.ID_Venda,
         status: order.Status || 'Pendente',
         customerName: order.Nome_Cliente || 'Cliente',
-        address: order.Torre && order.Apartamento
-            ? `Torre ${order.Torre} - Apto ${order.Apartamento}`
-            : (order.Endereco || 'Sem endereço'),
+        address:
+            order.Torre && order.Apartamento
+                ? `Torre ${order.Torre} - Apto ${order.Apartamento}`
+                : order.Endereco || 'Sem endereço',
         date: order.Data_Venda,
         payment: order.Forma_Pagamento || order.Forma_de_Pagamento || 'N/A',
         total: Number(order.Total_Venda || 0),
@@ -68,14 +68,16 @@ export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
             }
 
             if (statsData) setStats(statsData);
-        } catch (error) {
+        } catch (_error) {
             showToast('Erro ao carregar dados.', 'error');
         } finally {
             setLoading(false);
         }
     }, [adminKey, onLogout]);
 
-    useEffect(() => { if (adminKey) loadAll(); }, [adminKey, loadAll]);
+    useEffect(() => {
+        if (adminKey) loadAll();
+    }, [adminKey, loadAll]);
 
     const changeStatus = async (orderId: string, currentStatus: string) => {
         if (updatingOrderIds.has(orderId)) return;
@@ -98,7 +100,7 @@ export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
             }
         }
 
-        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+        setOrders(prev => prev.map(o => (o.id === orderId ? { ...o, status: newStatus } : o)));
         const success = await API.updateOrderStatus(adminKey, orderId, newStatus);
 
         setUpdatingOrderIds(prev => {
@@ -108,7 +110,10 @@ export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
         });
 
         if (success) showToast('Pedido atualizado!');
-        else { showToast('Erro ao atualizar.', 'error'); loadAll(); }
+        else {
+            showToast('Erro ao atualizar.', 'error');
+            loadAll();
+        }
     };
 
     const handleGenerateImage = async (order: any) => {
@@ -134,7 +139,7 @@ export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
                         link.href = canvas.toDataURL('image/png');
                         link.click();
                         showToast('Imagem baixada!', 'success');
-                    } catch (err) {
+                    } catch (_err) {
                         showToast('Erro ao criar imagem.', 'error');
                     }
                 }
@@ -149,9 +154,13 @@ export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
         const data = await API.getExportData(adminKey);
         if (data && data.vendas) {
             const headers = Object.keys(data.vendas[0]).join(',');
-            const rows = data.vendas.map((v: any) =>
-                Object.values(v).map(val => `"${val}"`).join(',')
-            ).join('\n');
+            const rows = data.vendas
+                .map((v: any) =>
+                    Object.values(v)
+                        .map(val => `"${val}"`)
+                        .join(',')
+                )
+                .join('\n');
             const csv = `${headers}\n${rows}`;
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
@@ -172,7 +181,12 @@ export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
     return (
         <div className="min-h-screen bg-gray-50 p-4 pb-24">
             <CustomModal />
-            <Toast message={toast.message} type={toast.type} isVisible={toast.visible} onClose={() => setToast({ ...toast, visible: false })} />
+            <Toast
+                message={toast.message}
+                type={toast.type}
+                isVisible={toast.visible}
+                onClose={() => setToast({ ...toast, visible: false })}
+            />
 
             <div className="max-w-4xl mx-auto">
                 <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-3xl shadow-sm sticky top-0 z-10 border border-gray-100">
@@ -200,8 +214,18 @@ export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
                         </div>
                     </div>
                     <div className="flex gap-2">
-                        <button onClick={loadAll} className="bg-gray-100 p-3 rounded-full text-xl hover:scale-110 active:scale-95 transition">🔄</button>
-                        <button onClick={onLogout} className="bg-red-50 p-3 rounded-full text-xl hover:scale-110 active:scale-95 transition">🚪</button>
+                        <button
+                            onClick={loadAll}
+                            className="bg-gray-100 p-3 rounded-full text-xl hover:scale-110 active:scale-95 transition"
+                        >
+                            🔄
+                        </button>
+                        <button
+                            onClick={onLogout}
+                            className="bg-red-50 p-3 rounded-full text-xl hover:scale-110 active:scale-95 transition"
+                        >
+                            🚪
+                        </button>
                     </div>
                 </div>
 
@@ -229,8 +253,17 @@ export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
                             </div>
 
                             <div className="grid md:grid-cols-2 gap-4">
-                                <GoalTracker title="Meta de Vendas" current={stats.goals.currentSales} target={stats.goals.sales} />
-                                <GoalTracker title="Meta de Lucro" current={stats.goals.currentProfit} target={stats.goals.profit} color="#10B981" />
+                                <GoalTracker
+                                    title="Meta de Vendas"
+                                    current={stats.goals.currentSales}
+                                    target={stats.goals.sales}
+                                />
+                                <GoalTracker
+                                    title="Meta de Lucro"
+                                    current={stats.goals.currentProfit}
+                                    target={stats.goals.profit}
+                                    color="#10B981"
+                                />
                             </div>
 
                             <div className="grid md:grid-cols-2 gap-4">
@@ -249,70 +282,89 @@ export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
                             exit={{ opacity: 0 }}
                             className="space-y-3"
                         >
-                            {loading && <p className="text-center text-gray-400 py-10 animate-pulse">Consultando pedidos...</p>}
+                            {loading && (
+                                <p className="text-center text-gray-400 py-10 animate-pulse">Consultando pedidos...</p>
+                            )}
 
                             {!loading && orders.length === 0 && (
                                 <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-100">
                                     <p className="text-6xl mb-4">✨</p>
                                     <p className="text-gray-500 font-bold text-lg">Tudo limpo por aqui!</p>
-                                    <p className="text-gray-400 text-sm mt-2">Novos pedidos aparecerão instantaneamente.</p>
+                                    <p className="text-gray-400 text-sm mt-2">
+                                        Novos pedidos aparecerão instantaneamente.
+                                    </p>
                                 </div>
                             )}
 
-                            {!loading && orders.length > 0 && orders.map(order => (
-                                <motion.div
-                                    layout
-                                    key={order.id}
-                                    className={`bg-white p-5 rounded-3xl shadow-sm border-l-4 transition-all ${order.status === 'Pendente' ? 'border-orange-400' : 'border-green-500 hover:shadow-md'}`}
-                                >
-                                    <div className="flex justify-between mb-2">
-                                        <span className="font-mono text-[10px] text-gray-300 bg-gray-50 px-2 py-1 rounded-full uppercase">#{order.id.slice(0, 8)}</span>
-                                        <span className="text-xs font-bold text-gray-400">{new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                    </div>
-
-                                    <h3 className="font-bold text-gray-800 text-lg">{order.customerName}</h3>
-                                    <p className="text-sm text-gray-500 mb-1">{order.address}</p>
-
-                                    {order.scheduling && order.scheduling !== 'Imediata' && (
-                                        <div className="flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full mb-3 w-fit">
-                                            <span>📅</span> {order.scheduling}
-                                        </div>
-                                    )}
-
-                                    <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-50">
-                                        <div>
-                                            <p className="text-[10px] text-gray-400 uppercase font-bold tracking-tight">Pagamento em {order.payment}</p>
-                                            <p className="text-xl text-[#FF4B82] font-black">R$ {order.total.toFixed(2)}</p>
+                            {!loading &&
+                                orders.length > 0 &&
+                                orders.map(order => (
+                                    <motion.div
+                                        layout
+                                        key={order.id}
+                                        className={`bg-white p-5 rounded-3xl shadow-sm border-l-4 transition-all ${order.status === 'Pendente' ? 'border-orange-400' : 'border-green-500 hover:shadow-md'}`}
+                                    >
+                                        <div className="flex justify-between mb-2">
+                                            <span className="font-mono text-[10px] text-gray-300 bg-gray-50 px-2 py-1 rounded-full uppercase">
+                                                #{order.id.slice(0, 8)}
+                                            </span>
+                                            <span className="text-xs font-bold text-gray-400">
+                                                {new Date(order.date).toLocaleTimeString([], {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                            </span>
                                         </div>
 
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => handleGenerateImage(order)}
-                                                className="bg-blue-50 text-blue-600 p-3 rounded-2xl hover:bg-blue-100 transition active:scale-90"
-                                                title="Baixar Imagem"
-                                            >
-                                                🖨️
-                                            </button>
+                                        <h3 className="font-bold text-gray-800 text-lg">{order.customerName}</h3>
+                                        <p className="text-sm text-gray-500 mb-1">{order.address}</p>
 
-                                            <button
-                                                onClick={() => changeStatus(order.id, order.status)}
-                                                disabled={updatingOrderIds.has(order.id)}
-                                                className={`px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all active:scale-95 ${updatingOrderIds.has(order.id)
-                                                    ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400'
-                                                    : order.status === 'Pendente'
-                                                        ? 'bg-[#FF4B82] text-white shadow-lg shadow-pink-100'
-                                                        : 'bg-green-500 text-white shadow-lg shadow-green-100'
+                                        {order.scheduling && order.scheduling !== 'Imediata' && (
+                                            <div className="flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full mb-3 w-fit">
+                                                <span>📅</span> {order.scheduling}
+                                            </div>
+                                        )}
+
+                                        <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-50">
+                                            <div>
+                                                <p className="text-[10px] text-gray-400 uppercase font-bold tracking-tight">
+                                                    Pagamento em {order.payment}
+                                                </p>
+                                                <p className="text-xl text-[#FF4B82] font-black">
+                                                    R$ {order.total.toFixed(2)}
+                                                </p>
+                                            </div>
+
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => handleGenerateImage(order)}
+                                                    className="bg-blue-50 text-blue-600 p-3 rounded-2xl hover:bg-blue-100 transition active:scale-90"
+                                                    title="Baixar Imagem"
+                                                >
+                                                    🖨️
+                                                </button>
+
+                                                <button
+                                                    onClick={() => changeStatus(order.id, order.status)}
+                                                    disabled={updatingOrderIds.has(order.id)}
+                                                    className={`px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all active:scale-95 ${
+                                                        updatingOrderIds.has(order.id)
+                                                            ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400'
+                                                            : order.status === 'Pendente'
+                                                              ? 'bg-[#FF4B82] text-white shadow-lg shadow-pink-100'
+                                                              : 'bg-green-500 text-white shadow-lg shadow-green-100'
                                                     }`}
-                                            >
-                                                {updatingOrderIds.has(order.id)
-                                                    ? 'Processando'
-                                                    : order.status === 'Pendente' ? 'Entregar' : 'Entregue ✅'
-                                                }
-                                            </button>
+                                                >
+                                                    {updatingOrderIds.has(order.id)
+                                                        ? 'Processando'
+                                                        : order.status === 'Pendente'
+                                                          ? 'Entregar'
+                                                          : 'Entregue ✅'}
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
-                                </motion.div>
-                            ))}
+                                    </motion.div>
+                                ))}
                         </motion.div>
                     )}
 
@@ -323,10 +375,13 @@ export default function AdminView({ onLogout, adminKey }: AdminViewProps) {
                             exit={{ opacity: 0, scale: 0.95 }}
                             className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100 text-center"
                         >
-                            <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">📊</div>
+                            <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">
+                                📊
+                            </div>
                             <h2 className="text-2xl font-bold text-gray-800 mb-2">Exportar Dados</h2>
                             <p className="text-gray-500 mb-8 max-w-sm mx-auto">
-                                Baixe todo o histórico de vendas e itens em formato CSV para abrir no Excel ou Planilhas Google.
+                                Baixe todo o histórico de vendas e itens em formato CSV para abrir no Excel ou Planilhas
+                                Google.
                             </p>
 
                             <button

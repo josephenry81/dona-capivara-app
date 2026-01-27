@@ -25,6 +25,7 @@ const isNewVisitor = !localStorage.getItem('donaCapivara_lastVisit');
 ```
 
 **Comportamento:**
+
 - ✅ **Novo visitante:** Cache é invalidado, dados são carregados do servidor
 - ✅ **Visitante recorrente:** Usa cache se ainda válido (performance)
 - ✅ **Versão desatualizada:** Cache é invalidado automaticamente
@@ -32,6 +33,7 @@ const isNewVisitor = !localStorage.getItem('donaCapivara_lastVisit');
 ### 3. **Marcadores de Controle**
 
 Dois novos marcadores no localStorage:
+
 - `donaCapivara_lastVisit`: Data/hora da última visita
 - `donaCapivara_cacheVersion`: Versão do cache atual
 
@@ -68,16 +70,19 @@ Dois novos marcadores no localStorage:
 ## 🎯 Benefícios
 
 ### ✅ Para Novos Visitantes
+
 - **Sempre veem dados atualizados** (cache é invalidado automaticamente)
 - **Sem tela vazia** (dados são carregados do servidor)
 - **Experiência perfeita** desde a primeira visita
 
 ### ✅ Para Visitantes Recorrentes
+
 - **Performance mantida** (cache de 30 minutos)
 - **Carregamento instantâneo** quando cache válido
 - **Atualização automática** quando versão muda
 
 ### ✅ Para Administradores
+
 - **Controle total** via versionamento
 - **Invalidação global** incrementando `CACHE_VERSION`
 - **Sem necessidade de limpar cache manualmente**
@@ -90,13 +95,13 @@ Quando você fizer mudanças importantes no backend/Google Sheets:
 
 1. Abra `services/api.ts`
 2. Localize a linha:
-   ```typescript
-   const CACHE_VERSION = '1.0.0';
-   ```
+    ```typescript
+    const CACHE_VERSION = '1.0.0';
+    ```
 3. Incremente a versão:
-   ```typescript
-   const CACHE_VERSION = '1.0.1'; // ou 1.1.0, 2.0.0, etc.
-   ```
+    ```typescript
+    const CACHE_VERSION = '1.0.1'; // ou 1.1.0, 2.0.0, etc.
+    ```
 4. Faça commit e deploy
 
 **Resultado:** Todos os usuários recarregarão os dados na próxima visita!
@@ -104,6 +109,7 @@ Quando você fizer mudanças importantes no backend/Google Sheets:
 ### Forçar Atualização Manual (Usuário Individual)
 
 O botão "Forçar Atualização" no perfil agora limpa:
+
 - Cache em memória
 - Marcadores de visitante
 - Versão do cache
@@ -156,23 +162,25 @@ O sistema agora mostra logs detalhados no console:
 ### Validação de Cache
 
 O cache é considerado válido se:
+
 1. Existe (`_catalogCache !== null`)
 2. Não expirou (`age < 30 minutos`)
 3. Versão corresponde (`version === CACHE_VERSION`)
 
 ### Casos de Uso
 
-| Cenário | Comportamento |
-|---------|---------------|
-| Primeira visita | ❌ Cache invalidado → Carrega do servidor |
-| Visita após 10 min | ✅ Usa cache (rápido) |
-| Visita após 40 min | ❌ Cache expirado → Recarrega |
-| Nova versão disponível | ❌ Cache invalidado → Recarrega |
-| Erro de rede | ⚠️ Usa cache expirado como fallback |
+| Cenário                | Comportamento                             |
+| ---------------------- | ----------------------------------------- |
+| Primeira visita        | ❌ Cache invalidado → Carrega do servidor |
+| Visita após 10 min     | ✅ Usa cache (rápido)                     |
+| Visita após 40 min     | ❌ Cache expirado → Recarrega             |
+| Nova versão disponível | ❌ Cache invalidado → Recarrega           |
+| Erro de rede           | ⚠️ Usa cache expirado como fallback       |
 
 ## 🎓 Conclusão
 
 Esta solução combina o melhor dos dois mundos:
+
 - **Performance** para usuários recorrentes (cache)
 - **Dados atualizados** para novos visitantes (invalidação inteligente)
 - **Controle total** para administradores (versionamento)

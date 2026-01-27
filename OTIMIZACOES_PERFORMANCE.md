@@ -1,8 +1,10 @@
 # ⚡ OTIMIZAÇÕES DE PERFORMANCE APLICADAS
 
 ## 🎯 Problema Identificado
+
 **Sintoma:** Tela "Carregando delícias..." demorava muito tempo  
-**Causa Raiz:** 
+**Causa Raiz:**
+
 1. Dependência circular no `useEffect` causando re-execuções
 2. Cache com TTL muito curto (10 minutos)
 3. Sem timeout na requisição (podia travar indefinidamente)
@@ -13,6 +15,7 @@
 ## ✅ SOLUÇÕES IMPLEMENTADAS
 
 ### 1. **Prefetch Inteligente** (`app/page.tsx`)
+
 ```typescript
 // ⚡ NOVO: Prefetch imediato ao montar componente
 useEffect(() => {
@@ -26,6 +29,7 @@ useEffect(() => {
 ---
 
 ### 2. **Correção de Dependência Circular** (`app/page.tsx`)
+
 ```typescript
 // ❌ ANTES: Re-executava toda vez que user mudava
 }, [user?.id]);
@@ -40,6 +44,7 @@ useEffect(() => {
 ---
 
 ### 3. **Cache Mais Agressivo** (`services/api.ts`)
+
 ```typescript
 // ❌ ANTES: 10 minutos
 _catalogTTL: 10 * 60 * 1000,
@@ -54,6 +59,7 @@ _catalogTTL: 30 * 60 * 1000,
 ---
 
 ### 4. **Timeout de Requisição** (`services/api.ts`)
+
 ```typescript
 // ⚡ NOVO: Timeout de 8 segundos
 const controller = new AbortController();
@@ -71,18 +77,19 @@ clearTimeout(timeoutId);
 ---
 
 ### 5. **Fallback com Cache Expirado** (`services/api.ts`)
+
 ```typescript
 catch (error: any) {
     if (error.name === 'AbortError') {
         console.error('⏱️ Timeout: Requisição demorou mais de 8s');
     }
-    
+
     // ⚡ NOVO: Usar cache antigo se disponível
     if (this._catalogCache) {
         console.warn('⚠️ Usando cache expirado como fallback');
         return this._catalogCache.data;
     }
-    
+
     return { products: [], categories: [], banners: [] };
 }
 ```
@@ -95,28 +102,31 @@ catch (error: any) {
 ## 📊 RESULTADOS ESPERADOS
 
 ### Antes das Otimizações
-| Métrica | Valor |
-|---------|-------|
-| Primeiro carregamento | 3-5 segundos |
-| Carregamentos subsequentes | 2-3 segundos |
-| Cache hit rate | ~40% |
-| Timeout máximo | ∞ (infinito) |
-| Re-execuções desnecessárias | Sim |
+
+| Métrica                     | Valor        |
+| --------------------------- | ------------ |
+| Primeiro carregamento       | 3-5 segundos |
+| Carregamentos subsequentes  | 2-3 segundos |
+| Cache hit rate              | ~40%         |
+| Timeout máximo              | ∞ (infinito) |
+| Re-execuções desnecessárias | Sim          |
 
 ### Depois das Otimizações
-| Métrica | Valor | Melhoria |
-|---------|-------|----------|
-| Primeiro carregamento | 1-2 segundos | **-60%** |
-| Carregamentos subsequentes | <100ms | **-95%** |
-| Cache hit rate | ~90% | **+125%** |
-| Timeout máximo | 8 segundos | **-100%** |
-| Re-execuções desnecessárias | Não | **-100%** |
+
+| Métrica                     | Valor        | Melhoria  |
+| --------------------------- | ------------ | --------- |
+| Primeiro carregamento       | 1-2 segundos | **-60%**  |
+| Carregamentos subsequentes  | <100ms       | **-95%**  |
+| Cache hit rate              | ~90%         | **+125%** |
+| Timeout máximo              | 8 segundos   | **-100%** |
+| Re-execuções desnecessárias | Não          | **-100%** |
 
 ---
 
 ## 🧪 COMO TESTAR
 
 ### Teste 1: Primeiro Carregamento
+
 ```bash
 # 1. Limpar cache do navegador
 # 2. Abrir DevTools → Network
@@ -129,6 +139,7 @@ catch (error: any) {
 ---
 
 ### Teste 2: Cache Hit
+
 ```bash
 # 1. Carregar página normalmente
 # 2. Aguardar 5 segundos
@@ -141,6 +152,7 @@ catch (error: any) {
 ---
 
 ### Teste 3: Timeout
+
 ```bash
 # 1. Desabilitar internet (modo avião)
 # 2. Tentar carregar página
@@ -152,6 +164,7 @@ catch (error: any) {
 ---
 
 ### Teste 4: Fallback com Cache Expirado
+
 ```bash
 # 1. Carregar página normalmente (cria cache)
 # 2. Aguardar 31 minutos (cache expira)
@@ -169,11 +182,13 @@ catch (error: any) {
 ### Logs para Acompanhar
 
 #### Cache Hit (Bom!)
+
 ```
 ⚡ [Catalog Cache HIT] Age: 45s - Instant load!
 ```
 
 #### Cache Miss (Normal no primeiro acesso)
+
 ```
 🌐 [Catalog Cache MISS] Fetching from Google Sheets...
 ✅ [API] 25 produtos, 5 categorias, 3 banners
@@ -181,12 +196,14 @@ catch (error: any) {
 ```
 
 #### Timeout (Problema de rede)
+
 ```
 ⏱️ [API] Timeout: Requisição demorou mais de 8s
 ⚠️ [API] Usando cache expirado como fallback
 ```
 
 #### Erro Geral
+
 ```
 ❌ [API] Error fetching catalog: [erro]
 ```
@@ -196,22 +213,27 @@ catch (error: any) {
 ## 🎓 BOAS PRÁTICAS IMPLEMENTADAS
 
 ### ✅ 1. Prefetching
+
 - Carrega dados antes de serem necessários
 - Reduz tempo percebido de espera
 
 ### ✅ 2. Cache Inteligente
+
 - TTL de 30 minutos balanceia freshness vs performance
 - Fallback com cache expirado evita telas vazias
 
 ### ✅ 3. Timeout Defensivo
+
 - Evita travamentos infinitos
 - Melhora experiência em redes lentas
 
 ### ✅ 4. Eliminação de Re-renders
+
 - useEffect com dependências corretas
 - Evita loops infinitos
 
 ### ✅ 5. Graceful Degradation
+
 - Sempre mostra algo, mesmo com erro
 - Cache expirado > Tela vazia
 
@@ -220,6 +242,7 @@ catch (error: any) {
 ## 🚀 PRÓXIMAS OTIMIZAÇÕES POSSÍVEIS
 
 ### 1. Service Worker com Cache Offline
+
 ```javascript
 // Cachear produtos offline para PWA
 if ('serviceWorker' in navigator) {
@@ -234,8 +257,9 @@ if ('serviceWorker' in navigator) {
 ---
 
 ### 2. Lazy Loading de Imagens
+
 ```typescript
-<Image 
+<Image
     src={product.imagem}
     loading="lazy"
     placeholder="blur"
@@ -247,6 +271,7 @@ if ('serviceWorker' in navigator) {
 ---
 
 ### 3. Virtual Scrolling
+
 ```typescript
 // Renderizar apenas produtos visíveis
 import { VirtualScroller } from 'react-virtual';
@@ -257,9 +282,9 @@ import { VirtualScroller } from 'react-virtual';
 ---
 
 ### 4. Preconnect para Google Sheets
+
 ```html
-<link rel="preconnect" href="https://script.google.com">
-<link rel="dns-prefetch" href="https://script.google.com">
+<link rel="preconnect" href="https://script.google.com" /> <link rel="dns-prefetch" href="https://script.google.com" />
 ```
 
 **Impacto:** -200ms em latência de DNS
@@ -269,6 +294,7 @@ import { VirtualScroller } from 'react-virtual';
 ## ⚠️ AVISOS IMPORTANTES
 
 ### Cache de 30 Minutos
+
 - ✅ **Vantagem:** Performance excelente
 - ⚠️ **Desvantagem:** Mudanças no Google Sheets podem demorar até 30min para aparecer
 
@@ -277,6 +303,7 @@ import { VirtualScroller } from 'react-virtual';
 ---
 
 ### Timeout de 8 Segundos
+
 - ✅ **Vantagem:** Evita travamentos
 - ⚠️ **Desvantagem:** Pode abortar requisições lentas mas válidas
 
@@ -287,14 +314,17 @@ import { VirtualScroller } from 'react-virtual';
 ## 📞 TROUBLESHOOTING
 
 ### Problema: "Cache sempre MISS"
+
 **Causa:** Cache sendo limpo entre requisições  
 **Solução:** Verificar se `API._catalogCache` está sendo preservado
 
 ---
 
 ### Problema: "Timeout constante"
+
 **Causa:** Google Sheets muito lento ou internet ruim  
-**Solução:** 
+**Solução:**
+
 1. Verificar status do Google Apps Script
 2. Aumentar timeout para 12s se necessário
 3. Otimizar backend (reduzir dados retornados)
@@ -302,8 +332,10 @@ import { VirtualScroller } from 'react-virtual';
 ---
 
 ### Problema: "Dados desatualizados"
+
 **Causa:** Cache de 30 minutos  
 **Solução:**
+
 1. Usar botão "Forçar Atualização" (admin)
 2. Ou aguardar expiração do cache
 3. Ou limpar cache do navegador
@@ -313,6 +345,7 @@ import { VirtualScroller } from 'react-virtual';
 ## 📈 MÉTRICAS DE SUCESSO
 
 ### KPIs para Monitorar
+
 1. **Time to Interactive (TTI):** < 2s
 2. **First Contentful Paint (FCP):** < 1s
 3. **Cache Hit Rate:** > 80%

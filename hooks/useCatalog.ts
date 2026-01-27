@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { API } from '../services/api';
 import { CatalogData } from '../types';
 
@@ -11,7 +11,7 @@ export function useCatalog() {
             const data = await API.fetchCatalogData(false); // false = bypass internal cache since we use RQ
             return data;
         },
-        staleTime: 1000 * 60 * 15, // 15 minutes freshness
+        staleTime: 1000 * 60 * 15 // 15 minutes freshness
     });
 }
 

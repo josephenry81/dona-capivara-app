@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const https = require('https');
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbxsShwfocez3scNzHeoIn0vaX4-3oOHGajiVT_KlCoOJsirpxTaC-sGkHMObi3R7BtxoA/exec';
+const API_URL =
+    'https://script.google.com/macros/s/AKfycbxsShwfocez3scNzHeoIn0vaX4-3oOHGajiVT_KlCoOJsirpxTaC-sGkHMObi3R7BtxoA/exec';
 
 function testEndpoint(label, data) {
     return new Promise((resolve, reject) => {
@@ -15,18 +17,18 @@ function testEndpoint(label, data) {
             }
         };
 
-        const req = https.request(url, options, (res) => {
+        const req = https.request(url, options, res => {
             let body = '';
-            res.on('data', chunk => body += chunk);
+            res.on('data', chunk => (body += chunk));
             res.on('end', () => {
-                // GAS redireciona (302) às vezes, mas fetch segue. https.request não segue redirect automaticamente se for cross-domain auth, 
+                // GAS redireciona (302) às vezes, mas fetch segue. https.request não segue redirect automaticamente se for cross-domain auth,
                 // mas para exec web app anonimo costuma ser 200 direto ou 302 para conteúdo.
                 // Se receber 302, precisamos seguir.
                 if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
                     console.log(`Checking Redirect for ${label}...`);
-                    https.get(res.headers.location, (res2) => {
+                    https.get(res.headers.location, res2 => {
                         let body2 = '';
-                        res2.on('data', c => body2 += c);
+                        res2.on('data', c => (body2 += c));
                         res2.on('end', () => {
                             resolve({ label, status: res2.statusCode, body: body2 });
                         });

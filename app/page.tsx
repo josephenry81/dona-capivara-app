@@ -15,48 +15,38 @@ import { ReviewService } from '@/services/reviews';
 import { OnboardingModal, GuidedTour, HelpButton } from '@/components/onboarding';
 import { getHiddenProductIds } from '@/config/productGroups';
 
-
 // ⚡ DYNAMIC IMPORTS - Lazy load heavy components
 const CartView = dynamic(() => import('@/components/views/CartView'), {
     loading: () => <LoadingCapybara />,
     ssr: false
 });
 
-
 const ProductDetailView = dynamic(() => import('@/components/views/ProductDetailView'), {
     loading: () => <LoadingCapybara />,
     ssr: false
 });
-
 
 const MixGourmetView = dynamic(() => import('@/components/views/MixGourmetView'), {
     loading: () => <LoadingCapybara />,
     ssr: false
 });
 
-
 const AdminView = dynamic(() => import('@/components/views/AdminView'), {
     loading: () => <LoadingCapybara />,
     ssr: false
 });
-
 
 const ProfileView = dynamic(() => import('@/components/views/ProfileView'), {
     loading: () => <LoadingCapybara />,
     ssr: false
 });
 
-
-
-
-
-
 // 🔧 CONFIGURAÇÃO E CONSTANTES
 const WHATSAPP_PHONE = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || '5541991480096';
 const ORDER_ID_LENGTH = 8;
 const LINK_CLEANUP_DELAY_MS = 100;
 const LOCALE = 'pt-BR';
-const TIMEZONE = 'America/Sao_Paulo';
+const _TIMEZONE = 'America/Sao_Paulo';
 const CURRENCY = 'BRL';
 
 declare global {
@@ -64,7 +54,6 @@ declare global {
         donaCapivaraDebug: any;
     }
 }
-
 
 export default function Page() {
     const [user, setUser] = useState<any>(null);
@@ -79,24 +68,20 @@ export default function Page() {
     const [isLoading, setIsLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
+    const [_currentOrderId, setCurrentOrderId] = useState<string | null>(null);
     const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as any, ts: 0 });
     const [averageRatings, setAverageRatings] = useState<Record<string, number>>({});
 
-    const { modalState, hideModal, confirm, alert, Modal: CustomModal } = useModal();
+    const { modalState: _modalState, hideModal: _hideModal, confirm, alert, Modal: CustomModal } = useModal();
 
     // 🎓 ONBOARDING STATES
     const [showOnboarding, setShowOnboarding] = useState(false);
     const [showTour, setShowTour] = useState(false);
+    const [onboardingComplete, setOnboardingComplete] = useState(true); // Assume complete until checked
 
     const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
         setToast({ visible: true, message, type, ts: Date.now() });
     }, []);
-
-
-
-
-
 
     useEffect(() => {
         const savedUser = localStorage.getItem('donaCapivaraUser');
@@ -106,7 +91,9 @@ export default function Page() {
                 const parsed = JSON.parse(savedUser);
                 setUser(parsed);
                 if (parsed.favorites) setFavorites(parsed.favorites);
-            } catch (e) { localStorage.removeItem('donaCapivaraUser'); }
+            } catch (_e) {
+                localStorage.removeItem('donaCapivaraUser');
+            }
         }
 
         // ✅ REFERRAL LINK DETECTION
@@ -119,6 +106,10 @@ export default function Page() {
                 // Limpar URL sem recarregar página
                 window.history.replaceState({}, '', window.location.pathname);
             }
+
+            // Check if onboarding is complete
+            const onboardingDone = localStorage.getItem('dcap_onboarding_done') === 'true';
+            setOnboardingComplete(onboardingDone);
         }
 
         // ⚡ CARREGAMENTO DE CATÁLOGO: Aguarda dados antes de renderizar
@@ -174,7 +165,9 @@ export default function Page() {
                                         const updatedUser = { ...userObj, favorites: validFavs };
                                         localStorage.setItem('donaCapivaraUser', JSON.stringify(updatedUser));
                                     }
-                                } catch (e) { }
+                                } catch (_e) {
+                                    /* JSON parse failed, ignore */
+                                }
                             }
                         }
                         return validFavs;
@@ -189,112 +182,123 @@ export default function Page() {
         };
 
         loadCatalog();
-    }, []); // ⚡ CRÍTICO: Removida dependência de user?.id para evitar re-execuções
-
+    }, [showToast]);
 
     // ⚡ MEMOIZED: Add to cart function
-    const addToCart = useCallback((product: any, qtyToAdd = 1, additions?: any[]) => {
-        setCart(prev => {
-            // Se additions estiverem presentes, tratar como item único, MESMO que seja o mesmo produto base
-            const hasAdditions = additions && additions.length > 0;
+    const addToCart = useCallback(
+        (product: any, qtyToAdd = 1, additions?: any[]) => {
+            setCart(prev => {
+                // Se additions estiverem presentes, tratar como item único, MESMO que seja o mesmo produto base
+                const hasAdditions = additions && additions.length > 0;
 
-            // --- QI 145: VALIDAÇÃO DE ESTOQUE UNIFICADA ---
-            // Calcular quanto desse produto já existe no carrinho (com ou sem adicionais)
-            const currentInCart = prev
-                .filter(item => item.id === product.id)
-                .reduce((total, item) => total + item.quantity, 0);
+                // --- QI 145: VALIDAÇÃO DE ESTOQUE UNIFICADA ---
+                // Calcular quanto desse produto já existe no carrinho (com ou sem adicionais)
+                const currentInCart = prev
+                    .filter(item => item.id === product.id)
+                    .reduce((total, item) => total + item.quantity, 0);
 
-            if (currentInCart + qtyToAdd > product.estoque) {
-                showToast(`Estoque insuficiente! Você já tem ${currentInCart} no carrinho e o estoque total é ${product.estoque}.`, 'error');
-                return prev;
-            }
+                if (currentInCart + qtyToAdd > product.estoque) {
+                    showToast(
+                        `Estoque insuficiente! Você já tem ${currentInCart} no carrinho e o estoque total é ${product.estoque}.`,
+                        'error'
+                    );
+                    return prev;
+                }
 
-            // Para itens com adicionais, sempre criar novo item de carrinho (não agrupar)
-            if (hasAdditions) {
-                const additionsSubtotal = additions.reduce((sum: number, a: any) => sum + a.option_price, 0);
-                const unitPrice = product.price + additionsSubtotal;
+                // Para itens com adicionais, sempre criar novo item de carrinho (não agrupar)
+                if (hasAdditions) {
+                    const additionsSubtotal = additions.reduce((sum: number, a: any) => sum + a.option_price, 0);
+                    const unitPrice = product.price + additionsSubtotal;
 
-                const newItem = {
-                    ...product,
-                    quantity: qtyToAdd,
-                    selected_additions: additions,
-                    additions_subtotal: additionsSubtotal,
-                    unit_price: unitPrice,
-                    cart_item_id: `${product.id}-${Date.now()}` // ID único
-                };
+                    const newItem = {
+                        ...product,
+                        quantity: qtyToAdd,
+                        selected_additions: additions,
+                        additions_subtotal: additionsSubtotal,
+                        unit_price: unitPrice,
+                        cart_item_id: `${product.id}-${Date.now()}` // ID único
+                    };
+
+                    showToast(`Adicionado ao carrinho!`, 'success');
+                    return [...prev, newItem];
+                }
+
+                // Para itens sem adicionais, agrupar se já existir
+                const existingSimpleItem = prev.find(item => item.id === product.id && !item.selected_additions);
 
                 showToast(`Adicionado ao carrinho!`, 'success');
-                return [...prev, newItem];
-            }
 
-            // Para itens sem adicionais, agrupar se já existir
-            const existingSimpleItem = prev.find(item => item.id === product.id && !item.selected_additions);
-
-            showToast(`Adicionado ao carrinho!`, 'success');
-
-            if (existingSimpleItem) {
-                return prev.map(item =>
-                    (item.id === product.id && !item.selected_additions)
-                        ? { ...item, quantity: item.quantity + qtyToAdd }
-                        : item
-                );
-            } else {
-                return [...prev, { ...product, quantity: qtyToAdd }];
-            }
-        });
-    }, [showToast]);
+                if (existingSimpleItem) {
+                    return prev.map(item =>
+                        item.id === product.id && !item.selected_additions
+                            ? { ...item, quantity: item.quantity + qtyToAdd }
+                            : item
+                    );
+                } else {
+                    return [...prev, { ...product, quantity: qtyToAdd }];
+                }
+            });
+        },
+        [showToast]
+    );
 
     const decreaseQuantity = (itemToDecrease: any) => {
         setCart(prev => {
             const itemId = itemToDecrease.cart_item_id || itemToDecrease.id;
 
-            return prev.map(item => {
-                const currentId = item.cart_item_id || item.id;
+            return prev
+                .map(item => {
+                    const currentId = item.cart_item_id || item.id;
 
-                if (currentId === itemId) {
-                    const newQuantity = item.quantity - 1;
+                    if (currentId === itemId) {
+                        const newQuantity = item.quantity - 1;
 
-                    // If quantity would be 0, filter it out
-                    if (newQuantity <= 0) {
-                        return null; // Mark for removal
+                        // If quantity would be 0, filter it out
+                        if (newQuantity <= 0) {
+                            return null; // Mark for removal
+                        }
+
+                        // Return item with decreased quantity
+                        return { ...item, quantity: newQuantity };
                     }
 
-                    // Return item with decreased quantity
-                    return { ...item, quantity: newQuantity };
-                }
-
-                return item;
-            }).filter(item => item !== null) as any[]; // Remove null entries
+                    return item;
+                })
+                .filter(item => item !== null) as any[]; // Remove null entries
         });
     };
 
     const removeFromCart = (id: string) => setCart(prev => prev.filter(i => (i.cart_item_id || i.id) !== id));
 
     // ⚡ MEMOIZED: Toggle favorite function
-    const toggleFavorite = useCallback((productId: string) => {
-        setFavorites(prev => {
-            let newFavs;
-            if (prev.includes(productId)) {
-                showToast('Removido dos favoritos', 'info');
-                newFavs = prev.filter(id => id !== productId);
-            } else {
-                showToast('Salvo nos favoritos!', 'success');
-                newFavs = [...prev, productId];
-            }
-            if (user && !user.isGuest) {
-                API.syncFavorites(user.phone, newFavs);
-                const updated = { ...user, favorites: newFavs };
-                setUser(updated);
-                localStorage.setItem('donaCapivaraUser', JSON.stringify(updated));
-            }
-            return newFavs;
-        });
-    }, [user, showToast]);
+    const toggleFavorite = useCallback(
+        (productId: string) => {
+            setFavorites(prev => {
+                let newFavs;
+                if (prev.includes(productId)) {
+                    showToast('Removido dos favoritos', 'info');
+                    newFavs = prev.filter(id => id !== productId);
+                } else {
+                    showToast('Salvo nos favoritos!', 'success');
+                    newFavs = [...prev, productId];
+                }
+                if (user && !user.isGuest) {
+                    API.syncFavorites(user.phone, newFavs);
+                    const updated = { ...user, favorites: newFavs };
+                    setUser(updated);
+                    localStorage.setItem('donaCapivaraUser', JSON.stringify(updated));
+                }
+                return newFavs;
+            });
+        },
+        [user, showToast]
+    );
 
     // 🍪 HANDLE PRODUCT CLICK - Detects Mix products
     // ⚡ MEMOIZED
     const handleProductClick = useCallback((product: any) => {
-        const isMix = product.ID_Tipo_Produto === 'TP-003' ||
+        const isMix =
+            product.ID_Tipo_Produto === 'TP-003' ||
             product.id?.includes('MIX') ||
             product.nome?.toLowerCase().includes('mix') ||
             product.type === 'mix';
@@ -313,9 +317,6 @@ export default function Page() {
             if (pendingOrder) setCurrentOrderId(pendingOrder);
         }
     }, []);
-
-
-
 
     // 🔧 DEBUGGING: Expose hidden features
     useEffect(() => {
@@ -404,7 +405,7 @@ export default function Page() {
         setIsSubmitting(true);
 
         // --- CRITICAL FIX: ID RESOLUTION ---
-        const userId = user?.isGuest ? 'GUEST' : (user.id || user.ID_Cliente || 'GUEST');
+        const userId = user?.isGuest ? 'GUEST' : user.id || user.ID_Cliente || 'GUEST';
 
         const finalOrder = {
             ...orderData,
@@ -416,7 +417,7 @@ export default function Page() {
             }
         };
 
-        showToast("Enviando pedido...", "info");
+        showToast('Enviando pedido...', 'info');
 
         try {
             const response: any = await API.submitOrder(finalOrder);
@@ -445,7 +446,6 @@ export default function Page() {
                 msgLines.push(`ID: ${shortId}`);
                 msgLines.push(`----------------`);
 
-
                 if (orderData.scheduling && orderData.scheduling !== 'Imediata') {
                     msgLines.push(`>> AGENDADO: ${sanitize(orderData.scheduling)}\n`);
                 }
@@ -466,7 +466,9 @@ export default function Page() {
                     if (item.selected_additions && item.selected_additions.length > 0) {
                         if (!item.isMix) msgLines.push(`  \u2022 Base: ${formatCurrency(item.price)}`);
                         item.selected_additions.forEach((add: any) => {
-                            msgLines.push(`  \u2022 ${sanitize(add.option_name)} (+${formatCurrency(add.option_price)})`);
+                            msgLines.push(
+                                `  \u2022 ${sanitize(add.option_name)} (+${formatCurrency(add.option_price)})`
+                            );
                         });
                     }
 
@@ -489,7 +491,9 @@ export default function Page() {
 
                 // Exibição detalhada de descontos
                 if (orderData.couponCode && orderData.couponDiscount > 0) {
-                    msgLines.push(`[CUPOM] ${sanitize(orderData.couponCode)}: -${formatCurrency(orderData.couponDiscount)}`);
+                    msgLines.push(
+                        `[CUPOM] ${sanitize(orderData.couponCode)}: -${formatCurrency(orderData.couponDiscount)}`
+                    );
                 }
 
                 if (orderData.pointsDiscount > 0) {
@@ -507,11 +511,11 @@ export default function Page() {
                     }
                 } else if (orderData.customer.details) {
                     const addr = [];
-                    if (orderData.customer.details.torre) addr.push(`Torre ${sanitize(orderData.customer.details.torre)}`);
+                    if (orderData.customer.details.torre)
+                        addr.push(`Torre ${sanitize(orderData.customer.details.torre)}`);
                     if (orderData.customer.details.apto) addr.push(`Apto ${sanitize(orderData.customer.details.apto)}`);
                     msgLines.push(`Endereço: ${addr.join(', ')}`);
                 }
-
 
                 msgLines.push(`Pgto: ${sanitize(orderData.paymentMethod)}`);
 
@@ -530,7 +534,7 @@ export default function Page() {
                 console.log(`✅ Pedido ${shortId} processado com sucesso. Tentando auto-envio...`);
 
                 const encodedMsg = encodeURIComponent(msgLines.join('\n'));
-                const customerPhone = orderData.customer.details?.telefone?.replace(/\D/g, '');
+                const _customerPhone = orderData.customer.details?.telefone?.replace(/\D/g, '');
 
                 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
                 try {
@@ -546,11 +550,9 @@ export default function Page() {
                         link.click();
                         setTimeout(() => document.body.removeChild(link), LINK_CLEANUP_DELAY_MS);
                     }
-                } catch (linkError) {
+                } catch (_linkError) {
                     window.open(`https://wa.me/${WHATSAPP_PHONE}?text=${encodedMsg}`, '_blank');
                 }
-
-
 
                 alert(
                     '🎉 Pedido Enviado!',
@@ -578,10 +580,7 @@ export default function Page() {
                     setUser(updatedUser);
                     localStorage.setItem('donaCapivaraUser', JSON.stringify(updatedUser));
                 }
-
             } else {
-
-
                 showToast(response.message || 'Erro ao salvar.', 'error');
             }
         } catch (e) {
@@ -609,7 +608,12 @@ export default function Page() {
         return (
             <>
                 <CustomModal />
-                <Toast message={toast.message} type={toast.type} isVisible={toast.visible} onClose={() => setToast({ ...toast, visible: false })} />
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    isVisible={toast.visible}
+                    onClose={() => setToast({ ...toast, visible: false })}
+                />
                 <AuthView onLogin={handleLogin} onGuest={() => setUser({ isGuest: true })} />
             </>
         );
@@ -619,7 +623,7 @@ export default function Page() {
         return (
             <>
                 <CustomModal />
-                <AdminView onLogout={() => { localStorage.removeItem('donaCapivaraUser'); setUser(null); }} adminKey={user.adminKey} />
+                <AdminView onLogout={handleLogout} adminKey={user.adminKey} />
             </>
         );
     }
@@ -627,11 +631,13 @@ export default function Page() {
     return (
         <main className="min-h-screen bg-[#F5F6FA] relative">
             <CustomModal />
-            <Toast message={toast.message} type={toast.type} isVisible={toast.visible} onClose={() => setToast({ ...toast, visible: false })} />
+            <Toast
+                message={toast.message}
+                type={toast.type}
+                isVisible={toast.visible}
+                onClose={() => setToast({ ...toast, visible: false })}
+            />
             <InstallPrompt />
-
-
-
 
             {activeMixId ? (
                 <MixGourmetView
@@ -645,7 +651,10 @@ export default function Page() {
                 <ProductDetailView
                     product={selectedProduct}
                     onBack={() => setSelectedProduct(null)}
-                    onAddToCart={(p, q, additions) => { addToCart(p, q, additions); setSelectedProduct(null); }}
+                    onAddToCart={(p, q, additions) => {
+                        addToCart(p, q, additions);
+                        setSelectedProduct(null);
+                    }}
                     user={user}
                     onToggleFavorite={toggleFavorite}
                     favorites={favorites}
@@ -668,7 +677,7 @@ export default function Page() {
                             hasError={hasError}
                             averageRatings={averageRatings}
                             onRetry={() => {
-                                // A função loadCatalog já está definida no useEffect, 
+                                // A função loadCatalog já está definida no useEffect,
                                 // mas precisamos de uma forma de dispará-la novamente.
                                 // Já que ela é definida localmente no useEffect,
                                 // o mais simples é expor o trigger de recarga via window
@@ -680,34 +689,64 @@ export default function Page() {
                             }}
                         />
                     )}
-                    {activeTab === 'favorites' && <FavoritesView products={products} favorites={favorites} onAddToCart={addToCart} onToggleFavorite={toggleFavorite} onProductClick={handleProductClick} />}
-                    {activeTab === 'cart' && <CartView cart={cart} user={user} addToCart={addToCart} decreaseQuantity={decreaseQuantity} removeFromCart={removeFromCart} onSubmitOrder={handleSubmitOrder} />}
-                    {activeTab === 'profile' && !user.isGuest && <ProfileView user={user} onLogout={() => { localStorage.removeItem('donaCapivaraUser'); setUser(null); setFavorites([]); }} onNavigate={setActiveTab} onUpdateUser={setUser} />}
-                    {activeTab === 'orders' && !user.isGuest && <OrderHistoryView user={user} onBack={() => setActiveTab('profile')} />}
-                    {activeTab !== 'orders' && <BottomNav activeTab={activeTab} onTabChange={setActiveTab} cartCount={cart.length} favoriteCount={favorites.length} isGuest={user.isGuest} />}
+                    {activeTab === 'favorites' && (
+                        <FavoritesView
+                            products={products}
+                            favorites={favorites}
+                            onAddToCart={addToCart}
+                            onToggleFavorite={toggleFavorite}
+                            onProductClick={handleProductClick}
+                        />
+                    )}
+                    {activeTab === 'cart' && (
+                        <CartView
+                            cart={cart}
+                            user={user}
+                            addToCart={addToCart}
+                            decreaseQuantity={decreaseQuantity}
+                            removeFromCart={removeFromCart}
+                            onSubmitOrder={handleSubmitOrder}
+                        />
+                    )}
+                    {activeTab === 'profile' && !user.isGuest && (
+                        <ProfileView
+                            user={user}
+                            onLogout={handleLogout}
+                            onNavigate={setActiveTab}
+                            onUpdateUser={setUser}
+                        />
+                    )}
+                    {activeTab === 'orders' && !user.isGuest && (
+                        <OrderHistoryView user={user} onBack={() => setActiveTab('profile')} />
+                    )}
+                    {activeTab !== 'orders' && (
+                        <BottomNav
+                            activeTab={activeTab}
+                            onTabChange={setActiveTab}
+                            cartCount={cart.length}
+                            favoriteCount={favorites.length}
+                            isGuest={user.isGuest}
+                        />
+                    )}
                 </>
             )}
 
             {/* 🎓 SISTEMA DE ONBOARDING */}
-            <OnboardingModal
-                onComplete={() => setShowOnboarding(false)}
-                onStartTour={() => setShowTour(true)}
-            />
+            <OnboardingModal onComplete={() => setShowOnboarding(false)} onStartTour={() => setShowTour(true)} />
 
-            <GuidedTour
-                isActive={showTour}
-                onComplete={() => setShowTour(false)}
-            />
+            <GuidedTour isActive={showTour} onComplete={() => setShowTour(false)} />
 
-            <HelpButton
-                onRestartTutorial={() => {
-                    setShowOnboarding(true);
-                    // Force remount by clearing and setting
-                    setTimeout(() => setShowOnboarding(true), 100);
-                }}
-                whatsappNumber={WHATSAPP_PHONE}
-            />
+            {/* Only show floating HelpButton during onboarding/tour */}
+            {(!onboardingComplete || showOnboarding || showTour) && (
+                <HelpButton
+                    onRestartTutorial={() => {
+                        setShowOnboarding(true);
+                        // Force remount by clearing and setting
+                        setTimeout(() => setShowOnboarding(true), 100);
+                    }}
+                    whatsappNumber={WHATSAPP_PHONE}
+                />
+            )}
         </main>
     );
 }
-

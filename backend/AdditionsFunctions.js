@@ -28,7 +28,10 @@ function getProductWithAdditions(productId) {
     }
 
     // Get addition groups for this product
-    const grupoIds = String(produto.IDs_Grupos_Adicionais || '').split(',').map(id => id.trim()).filter(id => id);
+    const grupoIds = String(produto.IDs_Grupos_Adicionais || '')
+        .split(',')
+        .map(id => id.trim())
+        .filter(id => id);
 
     if (grupoIds.length === 0) {
         return produto; // No groups configured
@@ -98,7 +101,7 @@ function validateAndCalculatePrice(data) {
     }
 
     // Validate each selected addition
-    for (const selection of (selectedAdditions || [])) {
+    for (const selection of selectedAdditions || []) {
         const grupo = produto.addition_groups.find(g => g.id === selection.group_id);
         if (!grupo) {
             return { success: false, error: `Grupo ${selection.group_id} não encontrado` };

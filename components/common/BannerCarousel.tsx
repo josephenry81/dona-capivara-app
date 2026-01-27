@@ -33,7 +33,7 @@ export default function BannerCarousel({
         if (!isAutoPlaying || banners.length <= 1) return;
 
         intervalRef.current = setInterval(() => {
-            setCurrentIndex((prev) => (prev + 1) % banners.length);
+            setCurrentIndex(prev => (prev + 1) % banners.length);
         }, autoPlayInterval);
 
         return () => {
@@ -54,11 +54,11 @@ export default function BannerCarousel({
     };
 
     const handlePrevious = () => {
-        setCurrentIndex((prev) => (prev - 1 + banners.length) % banners.length);
+        setCurrentIndex(prev => (prev - 1 + banners.length) % banners.length);
     };
 
     const handleNext = () => {
-        setCurrentIndex((prev) => (prev + 1) % banners.length);
+        setCurrentIndex(prev => (prev + 1) % banners.length);
     };
 
     // Touch handlers for swipe
@@ -190,10 +190,9 @@ export default function BannerCarousel({
                         <button
                             key={index}
                             onClick={() => goToSlide(index)}
-                            className={`transition-all duration-300 rounded-full ${index === currentIndex
-                                ? 'w-8 h-2 bg-white'
-                                : 'w-2 h-2 bg-white/50 hover:bg-white/75'
-                                }`}
+                            className={`transition-all duration-300 rounded-full ${
+                                index === currentIndex ? 'w-8 h-2 bg-white' : 'w-2 h-2 bg-white/50 hover:bg-white/75'
+                            }`}
                             aria-label={`Ir para banner ${index + 1}`}
                         />
                     ))}

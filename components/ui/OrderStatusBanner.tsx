@@ -24,7 +24,9 @@ export default function OrderStatusBanner({ orderId, onViewHistory }: OrderStatu
                             <span className="text-xl">🛵</span>
                         </div>
                         <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Pedido #{orderId.slice(0, 8)}</p>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                Pedido #{orderId.slice(0, 8)}
+                            </p>
                             <p className="text-sm font-bold text-gray-800">Aguardando confirmação...</p>
                         </div>
                     </div>
@@ -40,9 +42,9 @@ export default function OrderStatusBanner({ orderId, onViewHistory }: OrderStatu
                     <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-100">
                         <motion.div
                             className="h-full bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D]"
-                            initial={{ width: "0%" }}
-                            animate={{ width: "100%" }}
-                            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                            initial={{ width: '0%' }}
+                            animate={{ width: '100%' }}
+                            transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
                         />
                     </div>
                 </div>

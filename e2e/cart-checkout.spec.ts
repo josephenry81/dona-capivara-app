@@ -32,11 +32,9 @@ test.describe('Cart and Checkout Flow', () => {
 
             // Check if cart indicator shows items
             // Look for badge or counter on cart
-            const cartBadge = page.locator('[data-testid="cart-count"]').or(
-                page.locator('.badge')
-            ).or(
-                page.locator('span').filter({ hasText: /^[1-9]$/ })
-            );
+            page.locator('[data-testid="cart-count"]')
+                .or(page.locator('.badge'))
+                .or(page.locator('span').filter({ hasText: /^[1-9]$/ }));
 
             // Cart should have at least 1 item
             await expect(page.locator('body')).toContainText(/1|carrinho/i);
@@ -100,11 +98,10 @@ test.describe('Cart and Checkout Flow', () => {
         }
 
         // Look for coupon input
-        const couponInput = page.locator('input[placeholder*="cupom" i]').or(
-            page.locator('input[name*="coupon" i]')
-        ).or(
-            page.getByPlaceholder(/cupom|código/i)
-        );
+        const couponInput = page
+            .locator('input[placeholder*="cupom" i]')
+            .or(page.locator('input[name*="coupon" i]'))
+            .or(page.getByPlaceholder(/cupom|código/i));
 
         // Coupon field should exist in cart
         if (await couponInput.isVisible()) {

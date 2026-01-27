@@ -27,22 +27,22 @@ export const useModal = () => {
         isOpen: false,
         title: '',
         message: '',
-        type: 'info',
+        type: 'info'
     });
 
     const hideModal = useCallback(() => {
-        setModalState((prev) => ({ ...prev, isOpen: false }));
+        setModalState(prev => ({ ...prev, isOpen: false }));
         if (modalState.resolve) {
             modalState.resolve(false);
         }
     }, [modalState]);
 
     const showModal = useCallback((options: ModalOptions) => {
-        return new Promise<boolean>((resolve) => {
+        return new Promise<boolean>(resolve => {
             setModalState({
                 ...options,
                 isOpen: true,
-                resolve,
+                resolve
             });
         });
     }, []);
@@ -54,7 +54,7 @@ export const useModal = () => {
                 message,
                 type,
                 showCancel: false,
-                confirmText: 'Entendido',
+                confirmText: 'Entendido'
             });
         },
         [showModal]
@@ -68,12 +68,11 @@ export const useModal = () => {
                 type: 'confirm',
                 showCancel: true,
                 confirmText: 'Confirmar',
-                cancelText: 'Cancelar',
+                cancelText: 'Cancelar'
             });
         },
         [showModal]
     );
-
 
     const ModalComponent = () => {
         const [mounted, setMounted] = useState(false);
@@ -89,46 +88,61 @@ export const useModal = () => {
             // ... (same implementation)
             if (modalState.icon) return modalState.icon;
             switch (modalState.type) {
-                case 'success': return '✅';
-                case 'warning': return '⚠️';
-                case 'error': return '❌';
-                case 'confirm': return '❓';
-                default: return 'ℹ️';
+                case 'success':
+                    return '✅';
+                case 'warning':
+                    return '⚠️';
+                case 'error':
+                    return '❌';
+                case 'confirm':
+                    return '❓';
+                default:
+                    return 'ℹ️';
             }
         };
 
         const getTypeStyles = () => {
             // ... (same implementation)
             switch (modalState.type) {
-                case 'success': return 'from-green-400 to-emerald-600';
-                case 'warning': return 'from-orange-400 to-amber-600';
-                case 'error': return 'from-red-400 to-rose-600';
-                case 'confirm': return 'from-blue-400 to-indigo-600';
-                default: return 'from-pink-400 to-orange-500';
+                case 'success':
+                    return 'from-green-400 to-emerald-600';
+                case 'warning':
+                    return 'from-orange-400 to-amber-600';
+                case 'error':
+                    return 'from-red-400 to-rose-600';
+                case 'confirm':
+                    return 'from-blue-400 to-indigo-600';
+                default:
+                    return 'from-pink-400 to-orange-500';
             }
         };
 
         const handleConfirm = () => {
             if (modalState.onConfirm) modalState.onConfirm();
             if (modalState.resolve) modalState.resolve(true);
-            setModalState((prev) => ({ ...prev, isOpen: false }));
+            setModalState(prev => ({ ...prev, isOpen: false }));
         };
 
         const handleCancel = () => {
             if (modalState.onCancel) modalState.onCancel();
             if (modalState.resolve) modalState.resolve(false);
-            setModalState((prev) => ({ ...prev, isOpen: false }));
+            setModalState(prev => ({ ...prev, isOpen: false }));
         };
 
         return createPortal(
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={(e) => e.stopPropagation()}>
+            <div
+                className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+                onClick={e => e.stopPropagation()}
+            >
                 <div
                     className="bg-white dark:bg-zinc-900 rounded-3xl overflow-hidden shadow-2xl w-full max-w-sm transform animate-in zoom-in-95 duration-300 ease-out border border-white/20"
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={e => e.stopPropagation()}
                 >
                     {/* Header/Banner */}
                     <div className={`h-24 bg-gradient-to-br ${getTypeStyles()} flex items-center justify-center`}>
-                        <span className="text-5xl drop-shadow-lg transform scale-110 active:scale-125 transition-transform duration-500">{getIcon()}</span>
+                        <span className="text-5xl drop-shadow-lg transform scale-110 active:scale-125 transition-transform duration-500">
+                            {getIcon()}
+                        </span>
                     </div>
 
                     <div className="p-6 text-center">
@@ -192,6 +206,6 @@ export const useModal = () => {
         hideModal,
         alert,
         confirm,
-        Modal: ModalComponent,
+        Modal: ModalComponent
     };
 };

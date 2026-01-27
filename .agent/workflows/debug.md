@@ -19,41 +19,44 @@ This command activates DEBUG mode for systematic investigation of issues, errors
 When `/debug` is triggered:
 
 1. **Gather information**
-   - Error message
-   - Reproduction steps
-   - Expected vs actual behavior
-   - Recent changes
+    - Error message
+    - Reproduction steps
+    - Expected vs actual behavior
+    - Recent changes
 
 2. **Form hypotheses**
-   - List possible causes
-   - Order by likelihood
+    - List possible causes
+    - Order by likelihood
 
 3. **Investigate systematically**
-   - Test each hypothesis
-   - Check logs, data flow
-   - Use elimination method
+    - Test each hypothesis
+    - Check logs, data flow
+    - Use elimination method
 
 4. **Fix and prevent**
-   - Apply fix
-   - Explain root cause
-   - Add prevention measures
+    - Apply fix
+    - Explain root cause
+    - Add prevention measures
 
 ---
 
 ## Output Format
 
-```markdown
+````markdown
 ## 🔍 Debug: [Issue]
 
 ### 1. Symptom
+
 [What's happening]
 
 ### 2. Information Gathered
+
 - Error: `[error message]`
 - File: `[filepath]`
 - Line: [line number]
 
 ### 3. Hypotheses
+
 1. ❓ [Most likely cause]
 2. ❓ [Second possibility]
 3. ❓ [Less likely cause]
@@ -67,9 +70,11 @@ When `/debug` is triggered:
 [What I checked] → [Result]
 
 ### 5. Root Cause
+
 🎯 **[Explanation of why this happened]**
 
 ### 6. Fix
+
 ```[language]
 // Before
 [broken code]
@@ -77,9 +82,12 @@ When `/debug` is triggered:
 // After
 [fixed code]
 ```
+````
 
 ### 7. Prevention
+
 🛡️ [How to prevent this in the future]
+
 ```
 
 ---
@@ -87,10 +95,12 @@ When `/debug` is triggered:
 ## Examples
 
 ```
+
 /debug login not working
 /debug API returns 500
 /debug form doesn't submit
 /debug data not saving
+
 ```
 
 ---
@@ -101,3 +111,4 @@ When `/debug` is triggered:
 - **Test hypotheses** - don't guess randomly
 - **Explain why** - not just what to fix
 - **Prevent recurrence** - add tests, validation
+```

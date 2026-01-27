@@ -53,14 +53,13 @@ export default function HelpButton({ onRestartTutorial, whatsappNumber = '551199
             {/* FAB Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`fixed bottom-24 right-4 z-[100] w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 active:scale-90 ${isOpen
+                className={`fixed bottom-24 right-4 z-[100] w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 active:scale-90 ${
+                    isOpen
                         ? 'bg-gray-700 rotate-45'
                         : 'bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] hover:shadow-xl hover:scale-105'
-                    }`}
+                }`}
             >
-                <span className="text-2xl text-white">
-                    {isOpen ? '✕' : '❓'}
-                </span>
+                <span className="text-2xl text-white">{isOpen ? '✕' : '❓'}</span>
             </button>
 
             {/* Menu Dropdown */}
@@ -115,7 +114,10 @@ export default function HelpButton({ onRestartTutorial, whatsappNumber = '551199
                         <div className="p-4 bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] flex items-center justify-between">
                             <h2 className="text-white font-bold text-lg">❓ Perguntas Frequentes</h2>
                             <button
-                                onClick={() => { setShowFAQ(false); setIsOpen(false); }}
+                                onClick={() => {
+                                    setShowFAQ(false);
+                                    setIsOpen(false);
+                                }}
                                 className="text-white/80 hover:text-white text-2xl"
                             >
                                 ✕
@@ -125,17 +127,14 @@ export default function HelpButton({ onRestartTutorial, whatsappNumber = '551199
                         {/* FAQ List */}
                         <div className="p-4 overflow-y-auto max-h-[60vh] space-y-3">
                             {faqItems.map((item, index) => (
-                                <details
-                                    key={index}
-                                    className="bg-gray-50 rounded-xl overflow-hidden group"
-                                >
+                                <details key={index} className="bg-gray-50 rounded-xl overflow-hidden group">
                                     <summary className="p-4 font-bold text-gray-800 cursor-pointer flex justify-between items-center hover:bg-gray-100 transition">
                                         <span className="text-sm pr-4">{item.question}</span>
-                                        <span className="text-[#FF4B82] group-open:rotate-180 transition-transform">▼</span>
+                                        <span className="text-[#FF4B82] group-open:rotate-180 transition-transform">
+                                            ▼
+                                        </span>
                                     </summary>
-                                    <div className="px-4 pb-4 text-gray-600 text-sm leading-relaxed">
-                                        {item.answer}
-                                    </div>
+                                    <div className="px-4 pb-4 text-gray-600 text-sm leading-relaxed">{item.answer}</div>
                                 </details>
                             ))}
                         </div>

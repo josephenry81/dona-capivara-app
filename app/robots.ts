@@ -1,11 +1,11 @@
-import { MetadataRoute } from 'next'
+import { MetadataRoute } from 'next';
 
 export default function robots(): MetadataRoute.Robots {
     return {
         rules: {
             userAgent: '*',
-            allow: '/',
+            allow: '/'
         },
-        sitemap: 'https://app.donacapivara.com.br/sitemap.xml',
-    }
+        sitemap: 'https://app.donacapivara.com.br/sitemap.xml'
+    };
 }

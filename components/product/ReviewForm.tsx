@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import RatingStars from './RatingStars';
 import { useModal } from '../ui/Modal';
 
-
 interface ReviewFormProps {
     productId: string;
     productName: string;
@@ -13,18 +12,11 @@ interface ReviewFormProps {
     onCancel: () => void;
 }
 
-export default function ReviewForm({
-    productId,
-    productName,
-    user,
-    onSubmit,
-    onCancel
-}: ReviewFormProps) {
+export default function ReviewForm({ productId: _productId, productName, user, onSubmit, onCancel }: ReviewFormProps) {
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const { alert, Modal: CustomModal } = useModal();
-
 
     // FIX: Validação interna de segurança
     useEffect(() => {
@@ -58,9 +50,7 @@ export default function ReviewForm({
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
             <CustomModal />
             <div className="bg-white rounded-2xl p-6 max-w-md w-full animate-in slide-in-from-bottom duration-300">
-                <h2 className="text-xl font-bold text-gray-800 mb-4">
-                    Avaliar Produto
-                </h2>
+                <h2 className="text-xl font-bold text-gray-800 mb-4">Avaliar Produto</h2>
 
                 <div className="bg-gray-50 p-3 rounded-xl mb-4">
                     <p className="text-sm font-bold text-gray-700">{productName}</p>
@@ -68,39 +58,24 @@ export default function ReviewForm({
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">
-                            Sua avaliação:
-                        </label>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">Sua avaliação:</label>
                         <div className="flex justify-center">
-                            <RatingStars
-                                rating={rating}
-                                size="lg"
-                                interactive
-                                onChange={setRating}
-                            />
+                            <RatingStars rating={rating} size="lg" interactive onChange={setRating} />
                         </div>
-                        {rating > 0 && (
-                            <p className="text-center text-sm text-gray-500 mt-2">
-                                {rating} de 5 estrelas
-                            </p>
-                        )}
+                        {rating > 0 && <p className="text-center text-sm text-gray-500 mt-2">{rating} de 5 estrelas</p>}
                     </div>
 
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">
-                            Comentário (opcional):
-                        </label>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">Comentário (opcional):</label>
                         <textarea
                             value={comment}
-                            onChange={(e) => setComment(e.target.value)}
+                            onChange={e => setComment(e.target.value)}
                             placeholder="Conte sua experiência com este produto..."
                             maxLength={500}
                             rows={4}
                             className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition resize-none"
                         />
-                        <p className="text-xs text-gray-400 mt-1">
-                            {comment.length}/500 caracteres
-                        </p>
+                        <p className="text-xs text-gray-400 mt-1">{comment.length}/500 caracteres</p>
                     </div>
 
                     <div className="flex gap-2">

@@ -14,7 +14,6 @@ test.describe('Homepage - Product Catalog', () => {
     });
 
     test('should display the homepage with product catalog', async ({ page }) => {
-
         // Wait for page to load
         await page.waitForLoadState('networkidle');
 
@@ -27,11 +26,9 @@ test.describe('Homepage - Product Catalog', () => {
         await page.waitForTimeout(2000);
 
         // Check if any product cards are visible
-        const productCards = page.locator('[data-testid="product-card"]').or(
-            page.locator('.product-card')
-        ).or(
-            page.getByRole('button', { name: /adicionar|comprar/i })
-        );
+        page.locator('[data-testid="product-card"]')
+            .or(page.locator('.product-card'))
+            .or(page.getByRole('button', { name: /adicionar|comprar/i }));
 
         // If specific selectors don't work, look for any clickable product elements
         const anyProducts = page.locator('button').filter({ hasText: /\+|adicionar/i });
@@ -62,18 +59,19 @@ test.describe('Navigation Flow', () => {
 
     test('should navigate to cart view', async ({ page }) => {
         // Find and click cart icon/button
-        const cartButton = page.locator('button').filter({ hasText: /carrinho|cart/i }).or(
-            page.locator('[data-testid="cart-button"]')
-        ).or(
-            page.locator('svg').filter({ hasText: /cart/i }).locator('..')
-        );
+        page.locator('button')
+            .filter({ hasText: /carrinho|cart/i })
+            .or(page.locator('[data-testid="cart-button"]'))
+            .or(page.locator('svg').filter({ hasText: /cart/i }).locator('..'));
 
         // Try clicking cart if visible
-        const cartNav = page.getByRole('button').filter({ has: page.locator('svg') }).nth(2);
+        const cartNav = page
+            .getByRole('button')
+            .filter({ has: page.locator('svg') })
+            .nth(2);
         if (await cartNav.isVisible()) {
             await cartNav.click();
             await page.waitForTimeout(500);
         }
     });
 });
-

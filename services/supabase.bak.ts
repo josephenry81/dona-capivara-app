@@ -14,9 +14,7 @@ if (typeof window !== 'undefined') {
 }
 
 // Cliente Supabase (só inicializa se credenciais existirem)
-export const supabase = supabaseUrl && supabaseKey
-    ? createClient(supabaseUrl, supabaseKey)
-    : null;
+export const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 /**
  * Verifica se o Supabase está configurado
@@ -43,20 +41,9 @@ export async function fetchCatalogFromSupabase() {
 
     // Buscar tudo em paralelo para máxima velocidade
     const [productsRes, categoriesRes, bannersRes] = await Promise.all([
-        supabase
-            .from('products')
-            .select('*')
-            .eq('ativo', true)
-            .order('nome'),
-        supabase
-            .from('categories')
-            .select('*')
-            .order('ordem'),
-        supabase
-            .from('banners')
-            .select('*')
-            .eq('ativo', true)
-            .order('ordem')
+        supabase.from('products').select('*').eq('ativo', true).order('nome'),
+        supabase.from('categories').select('*').order('ordem'),
+        supabase.from('banners').select('*').eq('ativo', true).order('ordem')
     ]);
 
     // Verificar erros

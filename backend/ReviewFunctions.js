@@ -45,10 +45,7 @@ function createReview(data) {
 
     // Verificar se já avaliou
     const avaliacoes = sheetToJSON(sheet);
-    const jaAvaliou = avaliacoes.some(a =>
-        a.ID_Cliente === data.customerId &&
-        a.ID_Produto === data.productId
-    );
+    const jaAvaliou = avaliacoes.some(a => a.ID_Cliente === data.customerId && a.ID_Produto === data.productId);
 
     if (jaAvaliou) {
         return {
@@ -68,7 +65,7 @@ function createReview(data) {
         data.rating,
         data.comment || '',
         new Date(),
-        'Pendente'  // Status inicial: Pendente (Admin precisa aprovar)
+        'Pendente' // Status inicial: Pendente (Admin precisa aprovar)
     ]);
 
     return { success: true, reviewId: id };

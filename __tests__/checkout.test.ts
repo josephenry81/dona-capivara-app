@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
+import { describe, it, expect } from '@jest/globals';
 
 // Mock de funções auxiliares para testes
 describe('WhatsApp Integration - Checkout Flow', () => {
@@ -19,9 +19,9 @@ describe('WhatsApp Integration - Checkout Flow', () => {
             expect(sanitize('')).toBe('');
         });
 
-        it('deve converter null/undefined para string vazia', () => {
-            expect(sanitize(null as any)).toBe('null');
-            expect(sanitize(undefined as any)).toBe('undefined');
+        it('deve lidar com null/undefined', () => {
+            expect(sanitize(null as any)).toBe('');
+            expect(sanitize(undefined as any)).toBe('');
         });
     });
 
@@ -30,7 +30,9 @@ describe('WhatsApp Integration - Checkout Flow', () => {
             new Intl.NumberFormat('pt-BR', {
                 style: 'currency',
                 currency: 'BRL'
-            }).format(value);
+            })
+                .format(value)
+                .replace(/\u00A0/g, ' ');
 
         it('deve formatar valores corretamente', () => {
             expect(formatCurrency(10.5)).toBe('R$ 10,50');
@@ -39,7 +41,7 @@ describe('WhatsApp Integration - Checkout Flow', () => {
         });
 
         it('deve lidar com valores negativos', () => {
-            expect(formatCurrency(-5.50)).toBe('-R$ 5,50');
+            expect(formatCurrency(-5.5)).toBe('-R$ 5,50');
         });
     });
 
@@ -50,11 +52,11 @@ describe('WhatsApp Integration - Checkout Flow', () => {
                     {
                         nome: 'Geladão Morango',
                         quantity: 2,
-                        price: 6.00,
+                        price: 6.0,
                         selected_additions: []
                     }
                 ],
-                total: 12.00,
+                total: 12.0,
                 customer: {
                     name: 'João Silva',
                     fullAddress: 'Rua Teste, 123'
@@ -67,7 +69,7 @@ describe('WhatsApp Integration - Checkout Flow', () => {
             msgLines.push(`ID: TEST1234`);
             msgLines.push(`----------------`);
 
-            orderData.cart.forEach((item) => {
+            orderData.cart.forEach(item => {
                 msgLines.push(`${item.quantity}x ${item.nome}`);
                 msgLines.push(`  Total Item: R$ ${(item.price * item.quantity).toFixed(2)}`);
                 msgLines.push('');
@@ -92,12 +94,8 @@ describe('WhatsApp Integration - Checkout Flow', () => {
                 nome: 'Mix Gourmet',
                 quantity: 1,
                 isMix: true,
-                selected_flavors: [
-                    { flavor_name: 'Morango' },
-                    { flavor_name: 'Chocolate' },
-                    { flavor_name: 'Limão' }
-                ],
-                unit_price: 9.00
+                selected_flavors: [{ flavor_name: 'Morango' }, { flavor_name: 'Chocolate' }, { flavor_name: 'Limão' }],
+                unit_price: 9.0
             };
 
             const msgLines: string[] = [];
@@ -105,7 +103,7 @@ describe('WhatsApp Integration - Checkout Flow', () => {
 
             if (item.isMix && item.selected_flavors && item.selected_flavors.length > 0) {
                 msgLines.push(`  *Sabores:*`);
-                item.selected_flavors.forEach((flv) => {
+                item.selected_flavors.forEach(flv => {
                     msgLines.push(`  - ${flv.flavor_name}`);
                 });
             }
@@ -121,8 +119,8 @@ describe('WhatsApp Integration - Checkout Flow', () => {
         it('deve incluir descontos separados (cupom e pontos)', () => {
             const orderData = {
                 couponCode: 'BEMVINDO',
-                couponDiscount: 1.20,
-                pointsDiscount: 5.00
+                couponDiscount: 1.2,
+                pointsDiscount: 5.0
             };
 
             const msgLines: string[] = [];
@@ -172,7 +170,9 @@ describe('WhatsApp Integration - Checkout Flow', () => {
 
         it('deve lidar com ID undefined', () => {
             const rawId = undefined;
-            const shortId = String(rawId || 'PENDENTE').slice(0, 8).toUpperCase();
+            const shortId = String(rawId || 'PENDENTE')
+                .slice(0, 8)
+                .toUpperCase();
 
             expect(shortId).toBe('PENDENTE');
         });

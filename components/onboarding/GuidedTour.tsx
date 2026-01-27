@@ -52,6 +52,12 @@ export default function GuidedTour({ isActive, onComplete }: GuidedTourProps) {
     const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
     const [isVisible, setIsVisible] = useState(false);
 
+    const handleComplete = useCallback(() => {
+        localStorage.setItem('dcap_tour_done', 'true');
+        setIsVisible(false);
+        onComplete();
+    }, [onComplete]);
+
     const updateTargetPosition = useCallback(() => {
         if (!isActive) return;
 
@@ -70,7 +76,7 @@ export default function GuidedTour({ isActive, onComplete }: GuidedTourProps) {
                 handleComplete();
             }
         }
-    }, [currentStep, isActive]);
+    }, [currentStep, isActive, handleComplete]);
 
     useEffect(() => {
         if (isActive) {
@@ -93,12 +99,6 @@ export default function GuidedTour({ isActive, onComplete }: GuidedTourProps) {
         }
     };
 
-    const handleComplete = () => {
-        localStorage.setItem('dcap_tour_done', 'true');
-        setIsVisible(false);
-        onComplete();
-    };
-
     const handleSkip = () => {
         localStorage.setItem('dcap_tour_done', 'true');
         setIsVisible(false);
@@ -119,12 +119,24 @@ export default function GuidedTour({ isActive, onComplete }: GuidedTourProps) {
             case 'bottom':
                 return {
                     top: targetRect.bottom + padding + 12,
-                    left: Math.max(16, Math.min(targetRect.left + targetRect.width / 2 - tooltipWidth / 2, window.innerWidth - tooltipWidth - 16))
+                    left: Math.max(
+                        16,
+                        Math.min(
+                            targetRect.left + targetRect.width / 2 - tooltipWidth / 2,
+                            window.innerWidth - tooltipWidth - 16
+                        )
+                    )
                 };
             case 'top':
                 return {
                     top: targetRect.top - tooltipHeight - padding - 12,
-                    left: Math.max(16, Math.min(targetRect.left + targetRect.width / 2 - tooltipWidth / 2, window.innerWidth - tooltipWidth - 16))
+                    left: Math.max(
+                        16,
+                        Math.min(
+                            targetRect.left + targetRect.width / 2 - tooltipWidth / 2,
+                            window.innerWidth - tooltipWidth - 16
+                        )
+                    )
                 };
             case 'left':
                 return {
@@ -158,14 +170,7 @@ export default function GuidedTour({ isActive, onComplete }: GuidedTourProps) {
                         />
                     </mask>
                 </defs>
-                <rect
-                    x="0"
-                    y="0"
-                    width="100%"
-                    height="100%"
-                    fill="rgba(0,0,0,0.7)"
-                    mask="url(#tour-mask)"
-                />
+                <rect x="0" y="0" width="100%" height="100%" fill="rgba(0,0,0,0.7)" mask="url(#tour-mask)" />
             </svg>
 
             {/* Highlight border */}
@@ -205,8 +210,7 @@ export default function GuidedTour({ isActive, onComplete }: GuidedTourProps) {
                         {tourSteps.map((_, i) => (
                             <div
                                 key={i}
-                                className={`w-2 h-2 rounded-full ${i <= currentStep ? 'bg-[#FF4B82]' : 'bg-gray-200'
-                                    }`}
+                                className={`w-2 h-2 rounded-full ${i <= currentStep ? 'bg-[#FF4B82]' : 'bg-gray-200'}`}
                             />
                         ))}
                     </div>

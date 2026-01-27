@@ -38,7 +38,7 @@ export default function ReviewsList({ reviews, averageRating }: ReviewsListProps
 
             {/* Reviews List */}
             <div className="space-y-3">
-                {reviews.map((review) => (
+                {reviews.map(review => (
                     <div key={review.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
                         <div className="flex items-start justify-between mb-2">
                             <div>
@@ -55,9 +55,7 @@ export default function ReviewsList({ reviews, averageRating }: ReviewsListProps
                         </div>
 
                         {review.comment && (
-                            <p className="text-sm text-gray-600 mt-2 leading-relaxed">
-                                {review.comment}
-                            </p>
+                            <p className="text-sm text-gray-600 mt-2 leading-relaxed">{review.comment}</p>
                         )}
                     </div>
                 ))}

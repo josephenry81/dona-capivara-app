@@ -34,15 +34,11 @@ export default function FavoritesView({
                 <div className="text-center py-20 px-6">
                     <div className="text-6xl mb-4">💔</div>
                     <h3 className="text-xl font-bold text-gray-700 mb-2">Nenhum favorito ainda</h3>
-                    <p className="text-gray-500">
-                        Toque no ♥ nos produtos para adicioná-los aos favoritos!
-                    </p>
+                    <p className="text-gray-500">Toque no ♥ nos produtos para adicioná-los aos favoritos!</p>
                 </div>
             ) : (
                 <div className="mt-6 px-6 pb-24">
-                    <div className="text-lg font-bold text-gray-800 mb-4">
-                        Seus Geladinhos Favoritos
-                    </div>
+                    <div className="text-lg font-bold text-gray-800 mb-4">Seus Geladinhos Favoritos</div>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         {favoriteProducts.map(product => (
                             <ProductCard

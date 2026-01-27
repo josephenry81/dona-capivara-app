@@ -13,7 +13,8 @@ const slides: OnboardingSlide[] = [
     {
         icon: '🎉',
         title: 'Bem-vindo à Dona Capivara!',
-        description: 'Descubra os melhores geladinhos gourmet da região. Feitos com muito amor e ingredientes selecionados!',
+        description:
+            'Descubra os melhores geladinhos gourmet da região. Feitos com muito amor e ingredientes selecionados!',
         color: 'from-pink-500 to-rose-500'
     },
     {
@@ -31,7 +32,8 @@ const slides: OnboardingSlide[] = [
     {
         icon: '🎟️',
         title: 'Use Seus Cupons',
-        description: 'Tem cupom de desconto? Digite na área "Possui Cupom?" no carrinho e clique em "Aplicar" para ganhar desconto!',
+        description:
+            'Tem cupom de desconto? Digite na área "Possui Cupom?" no carrinho e clique em "Aplicar" para ganhar desconto!',
         color: 'from-blue-500 to-cyan-500'
     },
     {
@@ -97,7 +99,6 @@ export default function OnboardingModal({ onComplete, onStartTour }: OnboardingM
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
             <div className="relative w-[90%] max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-
                 {/* Skip Button - Mais visível */}
                 <button
                     onClick={handleSkip}
@@ -108,21 +109,14 @@ export default function OnboardingModal({ onComplete, onStartTour }: OnboardingM
 
                 {/* Header with Gradient */}
                 <div className={`bg-gradient-to-br ${slide.color} p-8 pb-16 text-center transition-all duration-500`}>
-                    <div className="text-6xl mb-4 animate-bounce">
-                        {slide.icon}
-                    </div>
-                    <h2 className="text-2xl font-bold text-white mb-2">
-                        {slide.title}
-                    </h2>
+                    <div className="text-6xl mb-4 animate-bounce">{slide.icon}</div>
+                    <h2 className="text-2xl font-bold text-white mb-2">{slide.title}</h2>
                 </div>
 
                 {/* Content Body */}
                 <div className="px-6 pt-8 pb-6 -mt-8 bg-white rounded-t-3xl relative">
-
                     {/* Description */}
-                    <p className="text-gray-600 text-center leading-relaxed mb-8">
-                        {slide.description}
-                    </p>
+                    <p className="text-gray-600 text-center leading-relaxed mb-8">{slide.description}</p>
 
                     {/* Dots Indicator */}
                     <div className="flex justify-center gap-2 mb-6">
@@ -130,10 +124,9 @@ export default function OnboardingModal({ onComplete, onStartTour }: OnboardingM
                             <button
                                 key={index}
                                 onClick={() => setCurrentSlide(index)}
-                                className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${index === currentSlide
-                                    ? 'bg-[#FF4B82] w-8'
-                                    : 'bg-gray-300 hover:bg-gray-400'
-                                    }`}
+                                className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                                    index === currentSlide ? 'bg-[#FF4B82] w-8' : 'bg-gray-300 hover:bg-gray-400'
+                                }`}
                             />
                         ))}
                     </div>
@@ -150,8 +143,9 @@ export default function OnboardingModal({ onComplete, onStartTour }: OnboardingM
                         )}
                         <button
                             onClick={handleNext}
-                            className={`flex-1 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] hover:opacity-90 transition active:scale-95 shadow-lg ${currentSlide === 0 ? 'w-full' : ''
-                                }`}
+                            className={`flex-1 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] hover:opacity-90 transition active:scale-95 shadow-lg ${
+                                currentSlide === 0 ? 'w-full' : ''
+                            }`}
                         >
                             {isLastSlide ? '🚀 Começar!' : 'Próximo →'}
                         </button>

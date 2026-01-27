@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 
 export default function LoadingCapybara() {
     return (
@@ -6,9 +7,11 @@ export default function LoadingCapybara() {
             <div className="relative">
                 {/* Animated Capybara */}
                 <div className="w-32 h-32 bg-white rounded-full p-2 shadow-xl animate-bounce z-10 relative">
-                    <img
+                    <Image
                         src="/loading-logo.jpg"
                         alt="Dona Capivara - Carregando..."
+                        width={128}
+                        height={128}
                         className="w-full h-full object-cover rounded-full border-2 border-[#FF9E3D]"
                     />
                 </div>

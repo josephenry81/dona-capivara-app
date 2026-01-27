@@ -6,7 +6,6 @@ import { SelectedAddition } from '@/types/additions';
 import FlavorSelector from './FlavorSelector';
 import AdditionGroup from './AdditionGroup';
 import MixPriceCalculator from './MixPriceCalculator';
-import Image from 'next/image';
 import { v4 as uuidv4 } from 'uuid';
 
 interface MixDetailViewProps {
@@ -187,7 +186,9 @@ export default function MixDetailView({ mix, onBack, onAddToCart }: MixDetailVie
                         <div className="flex items-baseline gap-2">
                             <span className="text-sm text-gray-600">Base:</span>
                             <span className="text-xl font-bold text-pink-600">R$ {mix.base_price.toFixed(2)}</span>
-                            <span className="text-sm text-gray-600">+ R$ {mix.price_per_flavor.toFixed(2)} por sabor</span>
+                            <span className="text-sm text-gray-600">
+                                + R$ {mix.price_per_flavor.toFixed(2)} por sabor
+                            </span>
                         </div>
                         <p className="text-gray-600">
                             Escolha até {mix.max_flavors} {mix.max_flavors === 1 ? 'sabor' : 'sabores diferentes'}
@@ -219,7 +220,7 @@ export default function MixDetailView({ mix, onBack, onAddToCart }: MixDetailVie
                                 key={group.id}
                                 group={group}
                                 selectedOptions={selectedOptionsByGroup[group.id] || []}
-                                onSelectionChange={(optionId) => handleAdditionSelection(group.id, optionId)}
+                                onSelectionChange={optionId => handleAdditionSelection(group.id, optionId)}
                             />
                         ))}
                     </div>
@@ -238,9 +239,7 @@ export default function MixDetailView({ mix, onBack, onAddToCart }: MixDetailVie
 
                 {/* Quantity Selector */}
                 <div className="bg-white rounded-2xl shadow-lg p-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                        Quantidade
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">Quantidade</label>
                     <div className="flex items-center gap-4">
                         <button
                             onClick={() => handleQuantityChange(-1)}
@@ -249,9 +248,7 @@ export default function MixDetailView({ mix, onBack, onAddToCart }: MixDetailVie
                         >
                             −
                         </button>
-                        <span className="text-2xl font-bold text-gray-800 w-12 text-center">
-                            {quantity}
-                        </span>
+                        <span className="text-2xl font-bold text-gray-800 w-12 text-center">{quantity}</span>
                         <button
                             onClick={() => handleQuantityChange(1)}
                             disabled={quantity >= 99}
@@ -276,7 +273,12 @@ export default function MixDetailView({ mix, onBack, onAddToCart }: MixDetailVie
                     className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold text-lg py-4 rounded-2xl shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
                 >
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                        />
                     </svg>
                     Adicionar ao Carrinho
                 </button>

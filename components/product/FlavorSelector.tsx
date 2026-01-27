@@ -43,16 +43,13 @@ export default function FlavorSelector({
         <div className="space-y-4">
             {/* Header with counter */}
             <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                    🍓 Sabores Disponíveis
-                </h3>
-                <div className={`
+                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">🍓 Sabores Disponíveis</h3>
+                <div
+                    className={`
                     px-3 py-1 rounded-full text-sm font-medium
-                    ${selectedFlavors.length === maxFlavors
-                        ? 'bg-pink-500 text-white'
-                        : 'bg-gray-200 text-gray-700'
-                    }
-                `}>
+                    ${selectedFlavors.length === maxFlavors ? 'bg-pink-500 text-white' : 'bg-gray-200 text-gray-700'}
+                `}
+                >
                     {selectedFlavors.length} / {maxFlavors}
                 </div>
             </div>
@@ -63,7 +60,7 @@ export default function FlavorSelector({
 
             {/* Flavor grid */}
             <div className="space-y-3">
-                {flavors.map((flavor) => (
+                {flavors.map(flavor => (
                     <FlavorOption
                         key={flavor.id}
                         flavor={flavor}
@@ -82,9 +79,7 @@ export default function FlavorSelector({
             )}
 
             {flavors.filter(f => f.stock_status === 'out_of_stock').length > 0 && (
-                <div className="text-xs text-gray-500 italic">
-                    * Alguns sabores estão temporariamente indisponíveis
-                </div>
+                <div className="text-xs text-gray-500 italic">* Alguns sabores estão temporariamente indisponíveis</div>
             )}
         </div>
     );

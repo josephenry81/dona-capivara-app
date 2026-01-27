@@ -14,12 +14,13 @@ dona-capivara-app/
 ## 1️⃣ Frontend: Interface do Usuário
 
 ### `components/views/CartView.tsx`
+
 - **O que faz:** Tela do carrinho onde o cliente digita o código do cupom
 - **Componentes:**
-  - Campo de input para digitar o cupom
-  - Botão de aplicar
-  - Mensagem de feedback (sucesso/erro)
-  - Exibição do desconto aplicado
+    - Campo de input para digitar o cupom
+    - Botão de aplicar
+    - Mensagem de feedback (sucesso/erro)
+    - Exibição do desconto aplicado
 
 ---
 
@@ -27,14 +28,15 @@ dona-capivara-app/
 
 ### `services/api.ts` (linhas ~310-440)
 
-| Função | Descrição |
-|--------|-----------|
-| `validateCoupon(code)` | Validação simples com cache (só verifica se existe) |
+| Função                                                    | Descrição                                                        |
+| --------------------------------------------------------- | ---------------------------------------------------------------- |
+| `validateCoupon(code)`                                    | Validação simples com cache (só verifica se existe)              |
 | `validateCouponWithContext({code, customerId, subtotal})` | Validação completa (verifica uso único + cliente + valor mínimo) |
-| `prefetchCoupon(code)` | Pré-carrega validação em background |
-| `clearCouponCache(code?)` | Limpa cache de cupons |
+| `prefetchCoupon(code)`                                    | Pré-carrega validação em background                              |
+| `clearCouponCache(code?)`                                 | Limpa cache de cupons                                            |
 
 **Cache:**
+
 - `_couponsCache` - Map para armazenar validações
 - `_couponCacheTTL` - TTL de 5 minutos
 
@@ -84,15 +86,15 @@ Frontend exibe resultado e aplica desconto
 
 ## 5️⃣ Tipos de Cupom
 
-| Tipo | Descrição | Exemplo |
-|------|-----------|---------|
-| `PORCENTAGEM` | Desconto em % | 10% off |
-| `VALOR_FIXO` | Desconto em R$ | R$ 5,00 off |
+| Tipo          | Descrição      | Exemplo     |
+| ------------- | -------------- | ----------- |
+| `PORCENTAGEM` | Desconto em %  | 10% off     |
+| `VALOR_FIXO`  | Desconto em R$ | R$ 5,00 off |
 
-| Tipo_Uso | Descrição |
-|----------|-----------|
-| `UNICO` | Pode ser usado apenas 1 vez por cliente |
-| `MULTIPLO` | Pode ser usado várias vezes |
+| Tipo_Uso   | Descrição                               |
+| ---------- | --------------------------------------- |
+| `UNICO`    | Pode ser usado apenas 1 vez por cliente |
+| `MULTIPLO` | Pode ser usado várias vezes             |
 
 ---
 

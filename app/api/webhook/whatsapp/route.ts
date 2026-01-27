@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
         console.log('📬 [Webhook n8n] Recebido:', body);
 
         // n8n envia { orderId: "...", sender: "..." }
-        const { orderId, sender } = body;
+        const { orderId, sender: _sender } = body;
 
         if (!orderId) {
             return NextResponse.json({ success: false, error: 'No orderId provided' }, { status: 400 });
@@ -31,7 +31,6 @@ export async function POST(req: NextRequest) {
         }
 
         return NextResponse.json({ success: true, orderId });
-
     } catch (error) {
         console.error('💥 [Webhook Error]:', error);
         return NextResponse.json({ success: false, error: 'Internal Error' }, { status: 500 });

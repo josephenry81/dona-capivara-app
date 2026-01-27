@@ -1,16 +1,16 @@
 /**
  * 📦 PRODUCT GROUPS CONFIGURATION
- * 
+ *
  * Define here which product IDs belong to the same product family.
  * Each group represents a product with multiple variations (sizes, weights, etc.)
- * 
+ *
  * Format:
  * {
  *   groupId: "unique-group-identifier",
  *   name: "Display name for the group",
  *   productIds: ["ID-1", "ID-2", "ID-3"] // IDs from GELADINHOS sheet
  * }
- * 
+ *
  * Example:
  * {
  *   groupId: "cuscuz-family",
@@ -29,10 +29,10 @@ export interface ProductGroup {
 export const PRODUCT_GROUPS: ProductGroup[] = [
     // 🧪 TESTE: Grupo de variações de exemplo
     {
-        groupId: "teste-variacao",
-        name: "Produto Teste Variação",
-        productIds: ["TESTE-P", "TESTE-M", "TESTE-G"]
-    },
+        groupId: 'teste-variacao',
+        name: 'Produto Teste Variação',
+        productIds: ['TESTE-P', 'TESTE-M', 'TESTE-G']
+    }
 ];
 
 /**
@@ -41,9 +41,7 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
  * @returns The ProductGroup if found, or null
  */
 export function findProductGroup(productId: string): ProductGroup | null {
-    return PRODUCT_GROUPS.find(group =>
-        group.productIds.includes(productId)
-    ) || null;
+    return PRODUCT_GROUPS.find(group => group.productIds.includes(productId)) || null;
 }
 
 /**

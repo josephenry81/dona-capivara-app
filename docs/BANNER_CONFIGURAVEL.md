@@ -9,6 +9,7 @@ Este documento explica como trocar o banner padrão do aplicativo através do ba
 **Localização do código**: `components/views/HomeView.tsx` (linhas 88-107)
 
 O sistema usa uma lógica simples:
+
 ```typescript
 banners={banners && banners.length > 0 ? banners : [banner_padrão]}
 ```
@@ -22,11 +23,12 @@ banners={banners && banners.length > 0 ? banners : [banner_padrão]}
 
 Na sua planilha **BANNERS**, adicione uma nova linha:
 
-| ID | Titulo | Subtitulo | Imagem | CTA_Texto | Ordem | Ativo | Tipo |
-|----|--------|-----------|--------|-----------|-------|-------|------|
-| banner-padrao | Ganhe Pontos Toda Vez Que Comprar! | Cada R$1 vira ponto. Troque por descontos e brindes. | https://drive.google.com/... | Ver Cardápio | 999 | TRUE | PADRAO |
+| ID            | Titulo                             | Subtitulo                                            | Imagem                       | CTA_Texto    | Ordem | Ativo | Tipo   |
+| ------------- | ---------------------------------- | ---------------------------------------------------- | ---------------------------- | ------------ | ----- | ----- | ------ |
+| banner-padrao | Ganhe Pontos Toda Vez Que Comprar! | Cada R$1 vira ponto. Troque por descontos e brindes. | https://drive.google.com/... | Ver Cardápio | 999   | TRUE  | PADRAO |
 
-**Importante**: 
+**Importante**:
+
 - Use `Ordem: 999` para garantir que apareça por último
 - Marque `Ativo: TRUE`
 - Use `Tipo: PADRAO` para identificar facilmente
@@ -51,51 +53,56 @@ Se você quiser ter um controle mais específico, pode criar um endpoint separad
 
 Crie uma aba chamada **CONFIG_BANNER_PADRAO** com as colunas:
 
-| Chave | Valor |
-|-------|-------|
-| imagem | https://drive.google.com/... |
-| titulo | Ganhe Pontos Toda Vez Que Comprar! |
-| subtitulo | Cada R$1 vira ponto... |
-| cta_texto | Ver Cardápio |
-| ativo | TRUE |
+| Chave     | Valor                              |
+| --------- | ---------------------------------- |
+| imagem    | https://drive.google.com/...       |
+| titulo    | Ganhe Pontos Toda Vez Que Comprar! |
+| subtitulo | Cada R$1 vira ponto...             |
+| cta_texto | Ver Cardápio                       |
+| ativo     | TRUE                               |
 
 ### Passo 2: Adicionar função no Google Apps Script
 
 ```javascript
 function getBannerPadrao() {
-  try {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CONFIG_BANNER_PADRAO');
-    const data = sheet.getDataRange().getValues();
-    
-    const config = {};
-    for (let i = 1; i < data.length; i++) {
-      config[data[i][0]] = data[i][1];
+    try {
+        const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CONFIG_BANNER_PADRAO');
+        const data = sheet.getDataRange().getValues();
+
+        const config = {};
+        for (let i = 1; i < data.length; i++) {
+            config[data[i][0]] = data[i][1];
+        }
+
+        if (config.ativo !== 'TRUE') {
+            return ContentService.createTextOutput(
+                JSON.stringify({
+                    success: false,
+                    message: 'Banner padrão desativado'
+                })
+            ).setMimeType(ContentService.MimeType.JSON);
+        }
+
+        return ContentService.createTextOutput(
+            JSON.stringify({
+                success: true,
+                banner: {
+                    id: 'default-clube-capivara',
+                    image: config.imagem,
+                    title: config.titulo,
+                    subtitle: config.subtitulo,
+                    ctaText: config.cta_texto
+                }
+            })
+        ).setMimeType(ContentService.MimeType.JSON);
+    } catch (error) {
+        return ContentService.createTextOutput(
+            JSON.stringify({
+                success: false,
+                error: error.toString()
+            })
+        ).setMimeType(ContentService.MimeType.JSON);
     }
-    
-    if (config.ativo !== 'TRUE') {
-      return ContentService.createTextOutput(JSON.stringify({
-        success: false,
-        message: 'Banner padrão desativado'
-      })).setMimeType(ContentService.MimeType.JSON);
-    }
-    
-    return ContentService.createTextOutput(JSON.stringify({
-      success: true,
-      banner: {
-        id: 'default-clube-capivara',
-        image: config.imagem,
-        title: config.titulo,
-        subtitle: config.subtitulo,
-        ctaText: config.cta_texto
-      }
-    })).setMimeType(ContentService.MimeType.JSON);
-    
-  } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({
-      success: false,
-      error: error.toString()
-    })).setMimeType(ContentService.MimeType.JSON);
-  }
 }
 ```
 
@@ -103,15 +110,15 @@ function getBannerPadrao() {
 
 ```javascript
 function doGet(e) {
-  const action = e.parameter.action;
-  
-  // ... suas rotas existentes ...
-  
-  if (action === 'getBannerPadrao') {
-    return getBannerPadrao();
-  }
-  
-  // ... resto do código ...
+    const action = e.parameter.action;
+
+    // ... suas rotas existentes ...
+
+    if (action === 'getBannerPadrao') {
+        return getBannerPadrao();
+    }
+
+    // ... resto do código ...
 }
 ```
 
@@ -134,7 +141,7 @@ useEffect(() => {
       console.error('Erro ao carregar banner padrão:', error);
     }
   };
-  
+
   loadDefaultBanner();
 }, []);
 
@@ -159,16 +166,19 @@ useEffect(() => {
 As seguintes configurações já estão otimizadas e **não precisam ser alteradas**:
 
 ### Mobile
+
 - **Aspect Ratio**: 16:9
 - **Object Fit**: `cover` (preenche sem bordas)
 - **Background**: Amarelo (#FBBF24) para harmonizar
 
 ### Desktop
+
 - **Aspect Ratio**: 16:9
 - **Object Fit**: `cover`
 - **Qualidade**: 90%
 
 ### Comportamento do Texto Overlay
+
 - **Banners locais** (começam com `/`): Texto oculto (imagem já tem texto integrado)
 - **Banners do backend** (URLs completas): Texto exibido normalmente
 
@@ -188,6 +198,7 @@ Para melhor resultado visual:
 ## ✅ Checklist de Implementação
 
 ### Opção 1 (Mais Simples - Recomendada)
+
 - [ ] Adicionar linha na planilha BANNERS
 - [ ] Fazer upload da imagem no Google Drive
 - [ ] Configurar compartilhamento público
@@ -195,6 +206,7 @@ Para melhor resultado visual:
 - [ ] Testar no aplicativo
 
 ### Opção 2 (Mais Controle)
+
 - [ ] Criar aba CONFIG_BANNER_PADRAO
 - [ ] Adicionar função getBannerPadrao no Apps Script
 - [ ] Adicionar rota no doGet
@@ -207,15 +219,18 @@ Para melhor resultado visual:
 ## 🆘 Troubleshooting
 
 ### Banner não aparece
+
 1. Verifique se a coluna `Ativo` está como `TRUE`
 2. Confirme que o link da imagem está público
 3. Teste o link da imagem diretamente no navegador
 
 ### Imagem com bordas brancas no mobile
+
 - Certifique-se de que a imagem tem proporção 16:9
 - Use dimensões como 1920x1080, 1280x720, etc.
 
 ### Texto sobreposto na imagem
+
 - Se a imagem já tem texto integrado, use uma URL local (começando com `/`)
 - Ou deixe os campos `title`, `subtitle` e `ctaText` vazios no banco
 
@@ -224,6 +239,7 @@ Para melhor resultado visual:
 ## 📞 Suporte
 
 Se precisar de ajuda, consulte:
+
 - `components/common/BannerCarousel.tsx` - Componente do banner
 - `components/views/HomeView.tsx` - Lógica de carregamento
 - Este documento para instruções detalhadas

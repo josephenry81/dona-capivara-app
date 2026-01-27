@@ -11,22 +11,24 @@
 ## 🔍 ANÁLISE DA CAUSA RAIZ
 
 ### Backend (Code.gs)
+
 O backend tinha **DUAS funções** de validação de cupom:
 
 1. **`validateCoupon(code)`** - Linha 334-339
-   - ❌ Validação simples
-   - ❌ **NÃO verifica histórico**
-   - ❌ **NÃO verifica Tipo_Uso**
-   - ✅ Apenas verifica se cupom existe e está ativo
+    - ❌ Validação simples
+    - ❌ **NÃO verifica histórico**
+    - ❌ **NÃO verifica Tipo_Uso**
+    - ✅ Apenas verifica se cupom existe e está ativo
 
 2. **`validateCouponWithContext(data)`** - Linha 341-410
-   - ✅ Validação completa
-   - ✅ **Verifica histórico de uso** (linha 382-390)
-   - ✅ **Verifica Tipo_Uso = "UNICO"**
-   - ✅ Verifica valor mínimo
-   - ✅ Verifica uso máximo
+    - ✅ Validação completa
+    - ✅ **Verifica histórico de uso** (linha 382-390)
+    - ✅ **Verifica Tipo_Uso = "UNICO"**
+    - ✅ Verifica valor mínimo
+    - ✅ Verifica uso máximo
 
 ### Frontend (CartView.tsx)
+
 O problema estava na **linha 168**:
 
 ```typescript
@@ -51,7 +53,7 @@ async validateCouponWithContext(data: {
     subtotal: number;
 }) {
     const normalizedCode = data.code.trim().toUpperCase();
-    
+
     console.log(`🔍 [Validação Contextual] Cupom: ${normalizedCode}, Cliente: ${data.customerId}, Subtotal: R$ ${data.subtotal}`);
 
     const response = await fetch(API_URL, {
@@ -67,7 +69,7 @@ async validateCouponWithContext(data: {
     });
 
     const result = await response.json();
-    
+
     if (result.success) {
         console.log(`✅ [Cupom Válido] Tipo: ${result.type}, Valor: ${result.value}, Tipo Uso: ${result.tipoUso}`);
     } else {
@@ -98,51 +100,54 @@ const res = await API.validateCouponWithContext({
 ### Quando o cliente aplica um cupom:
 
 1. **Frontend** coleta:
-   - Código do cupom
-   - ID do cliente
-   - Subtotal do carrinho
+    - Código do cupom
+    - ID do cliente
+    - Subtotal do carrinho
 
 2. **Frontend** envia para backend via POST:
-   ```json
-   {
-     "action": "validateCoupon",
-     "code": "BEMVINDO",
-     "customerId": "CLI-12345",
-     "subtotal": 50.00
-   }
-   ```
+
+    ```json
+    {
+        "action": "validateCoupon",
+        "code": "BEMVINDO",
+        "customerId": "CLI-12345",
+        "subtotal": 50.0
+    }
+    ```
 
 3. **Backend** recebe e processa:
-   - Detecta que tem `customerId` e `subtotal` no POST
-   - Chama `validateCouponWithContext(data)` (linha 341)
-   - Verifica se cupom existe e está ativo
-   - Verifica data de validade
-   - Verifica valor mínimo
-   - **🔥 VERIFICA HISTÓRICO** (linha 382-390):
-     ```javascript
-     if (String(coupon.Tipo_Uso).toUpperCase() === 'UNICO' && customerId && customerId !== 'GUEST') {
-         const jaUsou = historico.some(h =>
-             String(h.Codigo_Cupom).trim().toUpperCase() === code &&
-             String(h.ID_Cliente).trim() === customerId
-         );
+    - Detecta que tem `customerId` e `subtotal` no POST
+    - Chama `validateCouponWithContext(data)` (linha 341)
+    - Verifica se cupom existe e está ativo
+    - Verifica data de validade
+    - Verifica valor mínimo
+    - **🔥 VERIFICA HISTÓRICO** (linha 382-390):
 
-         if (jaUsou) {
-             return { success: false, message: 'Cupom já utilizado por você' };
-         }
-     }
-     ```
-   - Verifica uso máximo global
+        ```javascript
+        if (String(coupon.Tipo_Uso).toUpperCase() === 'UNICO' && customerId && customerId !== 'GUEST') {
+            const jaUsou = historico.some(
+                h => String(h.Codigo_Cupom).trim().toUpperCase() === code && String(h.ID_Cliente).trim() === customerId
+            );
+
+            if (jaUsou) {
+                return { success: false, message: 'Cupom já utilizado por você' };
+            }
+        }
+        ```
+
+    - Verifica uso máximo global
 
 4. **Backend** retorna:
-   ```json
-   {
-     "success": true/false,
-     "message": "Cupom já utilizado por você",
-     "type": "PORCENTAGEM",
-     "value": 10,
-     "tipoUso": "UNICO"
-   }
-   ```
+
+    ```json
+    {
+      "success": true/false,
+      "message": "Cupom já utilizado por você",
+      "type": "PORCENTAGEM",
+      "value": 10,
+      "tipoUso": "UNICO"
+    }
+    ```
 
 5. **Frontend** exibe mensagem apropriada
 
@@ -153,15 +158,14 @@ const res = await API.validateCouponWithContext({
 O backend verifica a aba `CUPONS_HISTORICO` com a seguinte estrutura:
 
 | ID_Historico | Codigo_Cupom | ID_Cliente | ID_Venda | Data_Uso | Valor_Desconto |
-|--------------|--------------|------------|----------|----------|----------------|
+| ------------ | ------------ | ---------- | -------- | -------- | -------------- |
 | UUID-123     | BEMVINDO     | CLI-12345  | VENDA-1  | 26/12/25 | 5.00           |
 
 ### Lógica de Verificação:
 
 ```javascript
-const jaUsou = historico.some(h =>
-    String(h.Codigo_Cupom).trim().toUpperCase() === code &&
-    String(h.ID_Cliente).trim() === customerId
+const jaUsou = historico.some(
+    h => String(h.Codigo_Cupom).trim().toUpperCase() === code && String(h.ID_Cliente).trim() === customerId
 );
 ```
 
@@ -172,6 +176,7 @@ Se encontrar **qualquer registro** com o mesmo cupom + cliente, retorna erro.
 ## 🧪 COMO TESTAR
 
 ### Teste 1: Cupom Único - Primeira Vez
+
 ```
 1. Cliente: CLI-12345
 2. Cupom: BEMVINDO (Tipo_Uso: UNICO)
@@ -180,6 +185,7 @@ Se encontrar **qualquer registro** com o mesmo cupom + cliente, retorna erro.
 ```
 
 ### Teste 2: Cupom Único - Segunda Vez
+
 ```
 1. Cliente: CLI-12345 (mesmo cliente)
 2. Cupom: BEMVINDO (mesmo cupom)
@@ -188,6 +194,7 @@ Se encontrar **qualquer registro** com o mesmo cupom + cliente, retorna erro.
 ```
 
 ### Teste 3: Cupom Múltiplo
+
 ```
 1. Cliente: CLI-12345
 2. Cupom: FIDELIDADE (Tipo_Uso: MULTIPLO)
@@ -196,6 +203,7 @@ Se encontrar **qualquer registro** com o mesmo cupom + cliente, retorna erro.
 ```
 
 ### Teste 4: Usuário Guest
+
 ```
 1. Cliente: GUEST
 2. Cupom: BEMVINDO (Tipo_Uso: UNICO)
@@ -208,6 +216,7 @@ Se encontrar **qualquer registro** com o mesmo cupom + cliente, retorna erro.
 ## 📝 LOGS PARA MONITORAR
 
 ### Frontend (Console do Navegador)
+
 ```
 🔍 [Validação Contextual] Cupom: BEMVINDO, Cliente: CLI-12345, Subtotal: R$ 50
 ✅ [Cupom Válido] Tipo: PORCENTAGEM, Valor: 10, Tipo Uso: UNICO
@@ -221,6 +230,7 @@ ou
 ```
 
 ### Backend (Google Apps Script Logs)
+
 ```
 Validando cupom com contexto: BEMVINDO para cliente CLI-12345
 Verificando histórico...
@@ -241,11 +251,11 @@ if (H && d.couponCode && d.customer?.id && String(d.customer.id) !== 'GUEST') {
         const idHistorico = Utilities.getUuid();
         H.appendRow([
             idHistorico,
-            d.couponCode,        // Código do cupom
-            d.customer.id,       // ID do cliente
-            id,                  // ID da venda
-            new Date(),          // Data de uso
-            disc                 // Valor do desconto
+            d.couponCode, // Código do cupom
+            d.customer.id, // ID do cliente
+            id, // ID da venda
+            new Date(), // Data de uso
+            disc // Valor do desconto
         ]);
     } catch (e) {
         Logger.log('Erro ao registrar histórico de cupom: ' + e);
@@ -254,6 +264,7 @@ if (H && d.couponCode && d.customer?.id && String(d.customer.id) !== 'GUEST') {
 ```
 
 ### Fluxo Completo:
+
 1. Cliente aplica cupom → Validação OK
 2. Cliente finaliza pedido → Histórico registrado
 3. Cliente tenta usar mesmo cupom → Validação FALHA (histórico encontrado)
@@ -263,11 +274,13 @@ if (H && d.couponCode && d.customer?.id && String(d.customer.id) !== 'GUEST') {
 ## 🎯 RESULTADO FINAL
 
 ### Antes da Correção
+
 - ❌ Cupons únicos podiam ser usados múltiplas vezes
 - ❌ Validação não verificava histórico
 - ❌ Perda de receita por descontos indevidos
 
 ### Depois da Correção
+
 - ✅ Cupons únicos funcionam corretamente
 - ✅ Validação completa com histórico
 - ✅ Mensagem clara: "Cupom já utilizado por você"
@@ -278,18 +291,19 @@ if (H && d.couponCode && d.customer?.id && String(d.customer.id) !== 'GUEST') {
 ## 📁 ARQUIVOS MODIFICADOS
 
 1. **`services/api.ts`**
-   - Adicionada função `validateCouponWithContext`
-   - Logs detalhados para debugging
+    - Adicionada função `validateCouponWithContext`
+    - Logs detalhados para debugging
 
 2. **`components/views/CartView.tsx`**
-   - Atualizado `handleApplyCoupon` para usar nova função
-   - Envia `customerId` e `subtotal`
+    - Atualizado `handleApplyCoupon` para usar nova função
+    - Envia `customerId` e `subtotal`
 
 ---
 
 ## 🚀 DEPLOY
 
 ### Passos:
+
 1. ✅ Código frontend atualizado
 2. ⏳ Testar localmente com `npm run dev`
 3. ⏳ Verificar logs no console
@@ -297,6 +311,7 @@ if (H && d.couponCode && d.customer?.id && String(d.customer.id) !== 'GUEST') {
 5. ⏳ Deploy em produção
 
 ### Não é necessário atualizar o backend!
+
 O backend (Code.gs) já tinha a lógica correta, apenas não estava sendo chamada.
 
 ---

@@ -17,9 +17,7 @@ export default function MixPriceCalculator({
 
     return (
         <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-2xl p-6 border-2 border-pink-200 shadow-lg">
-            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                💰 Resumo do Pedido
-            </h3>
+            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">💰 Resumo do Pedido</h3>
 
             <div className="space-y-3">
                 {/* Base Price */}
@@ -87,9 +85,7 @@ export default function MixPriceCalculator({
                 <div className="bg-white rounded-xl p-3 shadow-md">
                     <div className="flex justify-between items-center">
                         <span className="text-lg font-bold text-gray-800">Total:</span>
-                        <span className="text-2xl font-bold text-pink-600">
-                            R$ {totalPrice.toFixed(2)}
-                        </span>
+                        <span className="text-2xl font-bold text-pink-600">R$ {totalPrice.toFixed(2)}</span>
                     </div>
                 </div>
             </div>

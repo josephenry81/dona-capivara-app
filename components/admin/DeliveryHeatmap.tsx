@@ -12,21 +12,16 @@ export default function DeliveryHeatmap({ data }: DeliveryHeatmapProps) {
 
             <div className="w-full h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                        layout="vertical"
-                        data={data}
-                        margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
-                    >
+                    <BarChart layout="vertical" data={data} margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
                         <XAxis type="number" hide />
-                        <YAxis
-                            dataKey="name"
-                            type="category"
-                            tick={{ fontSize: 12, fill: '#9CA3AF' }}
-                            width={100}
-                        />
+                        <YAxis dataKey="name" type="category" tick={{ fontSize: 12, fill: '#9CA3AF' }} width={100} />
                         <Tooltip
                             cursor={{ fill: 'transparent' }}
-                            contentStyle={{ borderRadius: '15px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                            contentStyle={{
+                                borderRadius: '15px',
+                                border: 'none',
+                                boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'
+                            }}
                         />
                         <Bar dataKey="value" radius={[0, 10, 10, 0]} barSize={20}>
                             {data.map((entry, index) => (

@@ -47,7 +47,7 @@
     max-height: 85vh;
     max-height: 85dvh;
     /* Dynamic viewport height */
-    background: #FFFFFF;
+    background: #ffffff;
     border-radius: 16px;
     /* Todos os cantos arredondados */
     overflow: hidden;
@@ -68,7 +68,7 @@
    HEADER - Fixed at top
    ========================================== */
 .header {
-    background: linear-gradient(135deg, #FF6B35, #F7931E);
+    background: linear-gradient(135deg, #ff6b35, #f7931e);
     padding: 12px 16px;
     display: flex;
     justify-content: space-between;
@@ -92,7 +92,7 @@
     font-family: 'Montserrat', sans-serif;
     font-weight: 700;
     font-size: 15px;
-    color: #FFFFFF;
+    color: #ffffff;
     margin: 0;
     white-space: nowrap;
 }
@@ -113,7 +113,7 @@
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.2);
     border: none;
-    color: #FFFFFF;
+    color: #ffffff;
     font-size: 14px;
     cursor: pointer;
     display: flex;
@@ -136,7 +136,7 @@
     align-items: center;
     justify-content: center;
     padding: 10px 16px;
-    background: #F5F5F5;
+    background: #f5f5f5;
     gap: 6px;
     flex-shrink: 0;
 }
@@ -157,8 +157,8 @@
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: #7F8C8D;
-    color: #FFFFFF;
+    background: #7f8c8d;
+    color: #ffffff;
     font-size: 10px;
     font-weight: 700;
     display: flex;
@@ -168,23 +168,23 @@
 }
 
 .progressStep.active .stepNumber {
-    background: #FF6B35;
+    background: #ff6b35;
 }
 
 .stepLabel {
     font-size: 10px;
     font-weight: 600;
-    color: #7F8C8D;
+    color: #7f8c8d;
 }
 
 .progressStep.active .stepLabel {
-    color: #2C3E50;
+    color: #2c3e50;
 }
 
 .progressLine {
     width: 14px;
     height: 2px;
-    background: #DDD;
+    background: #ddd;
     border-radius: 1px;
 }
 
@@ -216,7 +216,7 @@
     font-family: 'Inter', sans-serif;
     font-size: 13px;
     font-weight: 600;
-    color: #2C3E50;
+    color: #2c3e50;
     margin-bottom: 8px;
 }
 
@@ -233,28 +233,28 @@
     font-weight: 600;
     letter-spacing: 0.5px;
     text-transform: uppercase;
-    border: 2px solid #E0E0E0;
+    border: 2px solid #e0e0e0;
     border-radius: 8px;
-    background: #FFFFFF;
-    color: #2C3E50;
+    background: #ffffff;
+    color: #2c3e50;
     transition: 0.2s ease;
     outline: none;
 }
 
 .input::placeholder {
-    color: #BDBDBD;
+    color: #bdbdbd;
     font-weight: 400;
     letter-spacing: 0;
     font-size: 14px;
 }
 
 .input:focus {
-    border-color: #FF6B35;
+    border-color: #ff6b35;
     box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.15);
 }
 
 .inputSuccess {
-    border-color: #4CAF50;
+    border-color: #4caf50;
 }
 
 .inputSuccess:focus {
@@ -262,7 +262,7 @@
 }
 
 .inputError {
-    border-color: #F44336;
+    border-color: #f44336;
 }
 
 .inputError:focus {
@@ -279,7 +279,7 @@
 .spinner {
     width: 18px;
     height: 18px;
-    border: 2px solid #FF6B35;
+    border: 2px solid #ff6b35;
     border-top-color: transparent;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
@@ -291,11 +291,11 @@
     top: 50%;
     transform: translateY(-50%);
     font-size: 16px;
-    color: #4CAF50;
+    color: #4caf50;
 }
 
 .iconError {
-    color: #F44336;
+    color: #f44336;
 }
 
 /* ==========================================
@@ -312,19 +312,19 @@
 
 .feedbackSuccess {
     background: rgba(76, 175, 80, 0.1);
-    color: #4CAF50;
+    color: #4caf50;
     border: 1px solid rgba(76, 175, 80, 0.2);
 }
 
 .feedbackError {
     background: rgba(244, 67, 54, 0.1);
-    color: #F44336;
+    color: #f44336;
     border: 1px solid rgba(244, 67, 54, 0.2);
 }
 
 .feedbackWarning {
     background: rgba(255, 152, 0, 0.1);
-    color: #FF9800;
+    color: #ff9800;
     border: 1px solid rgba(255, 152, 0, 0.2);
 }
 
@@ -337,15 +337,15 @@
     align-items: center;
     margin-top: 12px;
     padding: 10px 12px;
-    background: #F5F5F5;
+    background: #f5f5f5;
     border-radius: 8px;
     font-size: 12px;
-    color: #7F8C8D;
+    color: #7f8c8d;
 }
 
 .subtotalValue {
     font-weight: 700;
-    color: #2C3E50;
+    color: #2c3e50;
 }
 
 /* ==========================================
@@ -353,9 +353,9 @@
    ========================================== */
 .buttonsFooter {
     flex-shrink: 0;
-    background: #FFFFFF;
+    background: #ffffff;
     padding: 12px 16px;
-    border-top: 1px solid #EEEEEE;
+    border-top: 1px solid #eeeeee;
     /* Safe area para notch/home indicator */
     padding-bottom: calc(12px + env(safe-area-inset-bottom, 0));
 }
@@ -383,13 +383,13 @@
 }
 
 .btnPrimary {
-    background: #FF6B35;
-    color: #FFFFFF;
+    background: #ff6b35;
+    color: #ffffff;
 }
 
 .btnPrimary:hover:not(:disabled),
 .btnPrimary:active:not(:disabled) {
-    background: #F7931E;
+    background: #f7931e;
 }
 
 .btnPrimary:disabled {
@@ -398,14 +398,14 @@
 }
 
 .btnSecondary {
-    background: #F5F5F5;
-    color: #7F8C8D;
-    border: 1px solid #E0E0E0;
+    background: #f5f5f5;
+    color: #7f8c8d;
+    border: 1px solid #e0e0e0;
 }
 
 .btnSecondary:hover:not(:disabled),
 .btnSecondary:active:not(:disabled) {
-    background: #E8E8E8;
+    background: #e8e8e8;
 }
 
 .btnSecondary:disabled {
@@ -417,8 +417,8 @@
    COUPON CARD (Step 2)
    ========================================== */
 .couponCard {
-    background: linear-gradient(135deg, #FFF5F0, #FFF0E6);
-    border: 2px dashed #FF6B35;
+    background: linear-gradient(135deg, #fff5f0, #fff0e6);
+    border: 2px dashed #ff6b35;
     border-radius: 12px;
     overflow: hidden;
 }
@@ -439,7 +439,7 @@
     font-family: 'Courier New', monospace;
     font-size: 14px;
     font-weight: 700;
-    color: #FF6B35;
+    color: #ff6b35;
     letter-spacing: 0.5px;
 }
 
@@ -453,7 +453,7 @@
     align-items: center;
     padding: 5px 0;
     font-size: 11px;
-    color: #7F8C8D;
+    color: #7f8c8d;
 }
 
 .couponDetailRow:not(:last-child) {
@@ -462,12 +462,12 @@
 
 .couponDetailValue {
     font-weight: 600;
-    color: #2C3E50;
+    color: #2c3e50;
 }
 
 .couponDetailHighlight {
     font-weight: 700;
-    color: #FF6B35;
+    color: #ff6b35;
     font-size: 13px;
 }
 
@@ -478,7 +478,7 @@
     border-radius: 4px;
     font-size: 10px;
     font-weight: 600;
-    color: #FF9800;
+    color: #ff9800;
 }
 
 .couponCardFooter {
@@ -486,8 +486,8 @@
     justify-content: space-between;
     align-items: center;
     padding: 10px 12px;
-    background: #FF6B35;
-    color: #FFFFFF;
+    background: #ff6b35;
+    color: #ffffff;
     font-size: 12px;
 }
 
@@ -502,7 +502,7 @@
 .summary {
     margin-top: 12px;
     padding: 10px 12px;
-    background: #F5F5F5;
+    background: #f5f5f5;
     border-radius: 8px;
 }
 
@@ -511,21 +511,21 @@
     justify-content: space-between;
     padding: 3px 0;
     font-size: 11px;
-    color: #7F8C8D;
+    color: #7f8c8d;
 }
 
 .summaryDiscount {
-    color: #4CAF50;
+    color: #4caf50;
     font-weight: 600;
 }
 
 .summaryTotal {
     margin-top: 6px;
     padding-top: 6px;
-    border-top: 1px dashed #DDD;
+    border-top: 1px dashed #ddd;
     font-size: 13px;
     font-weight: 700;
-    color: #2C3E50;
+    color: #2c3e50;
 }
 
 /* ==========================================
@@ -543,7 +543,7 @@
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #4CAF50, #66BB6A);
+    background: linear-gradient(135deg, #4caf50, #66bb6a);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -553,20 +553,20 @@
 
 .successIcon span {
     font-size: 28px;
-    color: #FFFFFF;
+    color: #ffffff;
 }
 
 .successTitle {
     font-family: 'Montserrat', sans-serif;
     font-size: 16px;
     font-weight: 700;
-    color: #4CAF50;
+    color: #4caf50;
     margin: 0 0 6px 0;
 }
 
 .successMessage {
     font-size: 12px;
-    color: #7F8C8D;
+    color: #7f8c8d;
     margin: 0;
 }
 
@@ -576,13 +576,13 @@
     align-items: center;
     margin-top: 12px;
     padding: 10px 20px;
-    background: #F5F5F5;
+    background: #f5f5f5;
     border-radius: 8px;
 }
 
 .successTotal span:first-child {
     font-size: 10px;
-    color: #7F8C8D;
+    color: #7f8c8d;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -590,7 +590,7 @@
 .successTotalValue {
     font-size: 20px;
     font-weight: 700;
-    color: #FF6B35;
+    color: #ff6b35;
     margin-top: 4px;
 }
 

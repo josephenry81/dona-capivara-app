@@ -29,8 +29,15 @@ export default function OrderHistoryView({ user, onBack }: OrderHistoryProps) {
     const formatDate = (dateString: string) => {
         try {
             const date = new Date(dateString);
-            return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-        } catch { return dateString; }
+            return date.toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch {
+            return dateString;
+        }
     };
 
     const getStatusColor = (status: string) => {
@@ -45,14 +52,19 @@ export default function OrderHistoryView({ user, onBack }: OrderHistoryProps) {
             {/* Header */}
             <div className="bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white p-6 pt-12 pb-12 rounded-b-[30px] shadow-lg sticky top-0 z-10">
                 <div className="flex items-center gap-4">
-
                     {/* --- NEW STYLED BACK BUTTON --- */}
                     <button
                         onClick={onBack}
                         className="bg-white/20 backdrop-blur-md p-2 rounded-full hover:bg-white/40 transition active:scale-95 flex items-center justify-center"
                         aria-label="Voltar"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-6 w-6 text-white"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                         </svg>
                     </button>
@@ -70,11 +82,16 @@ export default function OrderHistoryView({ user, onBack }: OrderHistoryProps) {
                 ) : orders.length === 0 ? (
                     <div className="text-center text-gray-400 mt-10">Nenhum pedido encontrado. 📦</div>
                 ) : (
-                    orders.map((order) => (
-                        <div key={order.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 animate-in slide-in-from-bottom-4 duration-500">
+                    orders.map(order => (
+                        <div
+                            key={order.id}
+                            className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 animate-in slide-in-from-bottom-4 duration-500"
+                        >
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-xs font-bold text-gray-400">#{order.id.slice(0, 8)}</span>
-                                <span className={`text-xs font-bold px-2 py-1 rounded-full ${getStatusColor(order.status)}`}>
+                                <span
+                                    className={`text-xs font-bold px-2 py-1 rounded-full ${getStatusColor(order.status)}`}
+                                >
                                     {order.status}
                                 </span>
                             </div>

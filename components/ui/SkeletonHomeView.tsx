@@ -2,7 +2,9 @@ import React from 'react';
 
 // 🎨 Componente Shimmer - efeito de brilho deslizante
 const Shimmer = ({ className }: { className?: string }) => (
-    <div className={`bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer ${className || ''}`}></div>
+    <div
+        className={`bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer ${className || ''}`}
+    ></div>
 );
 
 export default function SkeletonHomeView() {
@@ -56,8 +58,12 @@ export default function SkeletonHomeView() {
             {/* CSS para animação shimmer */}
             <style jsx>{`
                 @keyframes shimmer {
-                    0% { background-position: 200% 0; }
-                    100% { background-position: -200% 0; }
+                    0% {
+                        background-position: 200% 0;
+                    }
+                    100% {
+                        background-position: -200% 0;
+                    }
                 }
                 :global(.animate-shimmer) {
                     animation: shimmer 1.5s ease-in-out infinite;

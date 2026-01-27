@@ -1,0 +1,58 @@
+
+> dona-capivara@0.1.0 lint
+> eslint . --ext .js,.ts,.tsx
+
+
+C:\Users\HENRI\Desktop\dona-capivara-app-main\dona-capivara-app\__tests__\checkout.test.ts
+  5:32  warning  'jest' is defined but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+  5:38  warning  'beforeEach' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\HENRI\Desktop\dona-capivara-app-main\dona-capivara-app\backend\Code.js
+  27:27  error  Empty block statement  no-empty
+
+C:\Users\HENRI\Desktop\dona-capivara-app-main\dona-capivara-app\e2e\cart-checkout.spec.ts
+  35:19  warning  'cartBadge' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\HENRI\Desktop\dona-capivara-app-main\dona-capivara-app\e2e\home.spec.ts
+  29:15  warning  'productCards' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  63:15  warning  'cartButton' is assigned a value but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+
+C:\Users\HENRI\Desktop\dona-capivara-app-main\dona-capivara-app\hooks\useCatalog.ts
+  1:20  warning  'useMutation' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\HENRI\Desktop\dona-capivara-app-main\dona-capivara-app\services\api.bak.ts
+  250:18  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+  329:18  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u      @typescript-eslint/no-unused-vars
+  507:18  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u      @typescript-eslint/no-unused-vars
+  507:21  error    Empty block statement                                                             no-empty
+  568:18  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+  578:18  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u      @typescript-eslint/no-unused-vars
+  589:18  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u      @typescript-eslint/no-unused-vars
+  599:18  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u      @typescript-eslint/no-unused-vars
+  620:18  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u      @typescript-eslint/no-unused-vars
+
+C:\Users\HENRI\Desktop\dona-capivara-app-main\dona-capivara-app\services\api.ts
+  252:18  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+  331:18  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u      @typescript-eslint/no-unused-vars
+  509:18  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u      @typescript-eslint/no-unused-vars
+  509:21  error    Empty block statement                                                             no-empty
+  570:18  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+  580:18  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u      @typescript-eslint/no-unused-vars
+  591:18  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u      @typescript-eslint/no-unused-vars
+  601:18  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u      @typescript-eslint/no-unused-vars
+  622:18  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u      @typescript-eslint/no-unused-vars
+
+C:\Users\HENRI\Desktop\dona-capivara-app-main\dona-capivara-app\services\reviews.ts
+  1:10  warning  'API' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\HENRI\Desktop\dona-capivara-app-main\dona-capivara-app\test-gas-endpoint.js
+  1:15  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\HENRI\Desktop\dona-capivara-app-main\dona-capivara-app\test-geoapify.js
+  1:15  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\HENRI\Desktop\dona-capivara-app-main\dona-capivara-app\verify-admin-pro.js
+  1:15  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+Ô£û 29 problems (6 errors, 23 warnings)
+

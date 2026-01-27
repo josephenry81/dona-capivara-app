@@ -13,7 +13,7 @@ export default function GoalTracker({ title, current, target, unit = 'R$', color
     const percent = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
     const data = [
         { name: 'Progress', value: percent },
-        { name: 'Remaining', value: 100 - percent },
+        { name: 'Remaining', value: 100 - percent }
     ];
 
     return (
@@ -45,8 +45,18 @@ export default function GoalTracker({ title, current, target, unit = 'R$', color
             </div>
 
             <div className="mt-2 text-center">
-                <p className="text-gray-400 text-xs">Atual: <span className="text-gray-800 font-bold">{unit} {current.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></p>
-                <p className="text-gray-400 text-xs">Meta: <span className="text-gray-600 font-medium">{unit} {target.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></p>
+                <p className="text-gray-400 text-xs">
+                    Atual:{' '}
+                    <span className="text-gray-800 font-bold">
+                        {unit} {current.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                </p>
+                <p className="text-gray-400 text-xs">
+                    Meta:{' '}
+                    <span className="text-gray-600 font-medium">
+                        {unit} {target.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                </p>
             </div>
         </div>
     );

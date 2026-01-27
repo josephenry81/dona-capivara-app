@@ -35,11 +35,18 @@ interface CartViewProps {
     onSubmitOrder: (orderData: any) => void;
 }
 
-export default function CartView({ cart, user, addToCart, decreaseQuantity, removeFromCart, onSubmitOrder }: CartViewProps) {
+export default function CartView({
+    cart,
+    user,
+    addToCart,
+    decreaseQuantity,
+    removeFromCart: _removeFromCart,
+    onSubmitOrder
+}: CartViewProps) {
     const [referralCode, setReferralCode] = useState('');
     const [couponCode, setCouponCode] = useState('');
     const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
-    const [couponLoading, setCouponLoading] = useState(false);
+    const [_couponLoading, setCouponLoading] = useState(false);
     const [couponFeedback, setCouponFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
     const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
     const [bonusPoints, setBonusPoints] = useState(0);
@@ -49,7 +56,18 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
     const [isScheduled, setIsScheduled] = useState(false);
     const [scheduleDate, setScheduleDate] = useState('');
     const [scheduleTime, setScheduleTime] = useState('');
-    const [addressData, setAddressData] = useState({ nome: '', telefone: '', torre: '', apto: '', rua: '', numero: '', bairro: '', complemento: '', cep: '', observacoes: '' });
+    const [addressData, setAddressData] = useState({
+        nome: '',
+        telefone: '',
+        torre: '',
+        apto: '',
+        rua: '',
+        numero: '',
+        bairro: '',
+        complemento: '',
+        cep: '',
+        observacoes: ''
+    });
     const [phoneError, setPhoneError] = useState('');
     const [cepLoading, setCepLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,7 +79,7 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
     // 🚚 FRETE AUTOMÁTICO
     const [deliveryFee, setDeliveryFee] = useState(0);
     const [deliveryDistance, setDeliveryDistance] = useState(0);
-    const [isCalculatingFee, setIsCalculatingFee] = useState(false);
+    const [_isCalculatingFee, setIsCalculatingFee] = useState(false);
 
     useEffect(() => {
         const calculateFee = async () => {
@@ -71,7 +89,12 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
             }
 
             // Exige endereço mínimo para calcular
-            const hasAddress = addressData.rua && addressData.numero && addressData.bairro && addressData.cep && addressData.cep.length === 8;
+            const hasAddress =
+                addressData.rua &&
+                addressData.numero &&
+                addressData.bairro &&
+                addressData.cep &&
+                addressData.cep.length === 8;
 
             if (!hasAddress) {
                 // Feedback visual provisório enquanto digita
@@ -104,13 +127,20 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
         // Debounce de 1.5s para evitar chamadas excessivas enquanto digita
         const timer = setTimeout(calculateFee, 1500);
         return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [deliveryType, addressData.rua, addressData.numero, addressData.bairro, addressData.cep]);
 
     useEffect(() => {
         if (user && !user.isGuest) {
             const startName = user.name || '';
             const saved = user.savedAddress || {};
-            setAddressData(prev => ({ ...prev, nome: startName, torre: saved.torre || '', apto: saved.apto || '', rua: saved.fullAddress?.split(',')[0] || '' }));
+            setAddressData(prev => ({
+                ...prev,
+                nome: startName,
+                torre: saved.torre || '',
+                apto: saved.apto || '',
+                rua: saved.fullAddress?.split(',')[0] || ''
+            }));
             if (saved.torre) setDeliveryType('CONDO');
         }
         const savedRef = localStorage.getItem('donaCapivaraRef');
@@ -118,11 +148,15 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
             setReferralCode(savedRef);
             localStorage.removeItem('donaCapivaraRef');
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
 
     // 🔒 VALIDAÇÃO DE CÓDIGO DE INDICAÇÃO VIA BACKEND
-    const [referralLoading, setReferralLoading] = useState(false);
-    const [referralFeedback, setReferralFeedback] = useState<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
+    const [_referralLoading, setReferralLoading] = useState(false);
+    const [_referralFeedback, setReferralFeedback] = useState<{
+        type: 'success' | 'error' | 'warning';
+        message: string;
+    } | null>(null);
     const referralTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
@@ -233,19 +267,16 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
     const subtotal = useMemo(() => {
         return cart.reduce((acc, item) => {
             const itemPrice = item.unit_price || item.price; // Use unit_price if has additions
-            return acc + (itemPrice * item.quantity);
+            return acc + itemPrice * item.quantity;
         }, 0);
     }, [cart]);
-
 
     const userPoints = user?.points || 0;
     const isGoldPlus = userPoints >= 500;
 
     const couponDiscount = useMemo(() => {
         if (!appliedCoupon) return 0;
-        return appliedCoupon.type === 'PORCENTAGEM'
-            ? subtotal * (appliedCoupon.value / 100)
-            : appliedCoupon.value;
+        return appliedCoupon.type === 'PORCENTAGEM' ? subtotal * (appliedCoupon.value / 100) : appliedCoupon.value;
     }, [appliedCoupon, subtotal]);
 
     const { discountValue, pointsRedeemed } = useMemo(() => {
@@ -262,12 +293,15 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
 
     const totalDiscount = useMemo(() => couponDiscount + discountValue, [couponDiscount, discountValue]);
 
-    const total = useMemo(() => Math.max(0, subtotal + deliveryFee - totalDiscount), [subtotal, deliveryFee, totalDiscount]);
+    const total = useMemo(
+        () => Math.max(0, subtotal + deliveryFee - totalDiscount),
+        [subtotal, deliveryFee, totalDiscount]
+    );
 
     const totalPointsEarned = useMemo(() => Math.floor(total) + bonusPoints, [total, bonusPoints]);
 
     // ⚡ MEMOIZED: Coupon validation with context
-    const handleApplyCoupon = useCallback(async () => {
+    const _handleApplyCoupon = useCallback(async () => {
         if (!couponCode.trim()) {
             setCouponFeedback({ type: 'error', message: 'Digite um código de cupom' });
             setTimeout(() => setCouponFeedback(null), 3000);
@@ -305,7 +339,7 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                 // Clear error message after 4 seconds
                 setTimeout(() => setCouponFeedback(null), 4000);
             }
-        } catch (error) {
+        } catch (_error) {
             setAppliedCoupon(null);
             setCouponFeedback({
                 type: 'error',
@@ -425,7 +459,13 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
             }
 
             await onSubmitOrder({
-                cart, total, referralCode, bonusPoints, paymentMethod, deliveryFee, scheduling: schedulingInfo,
+                cart,
+                total,
+                referralCode,
+                bonusPoints,
+                paymentMethod,
+                deliveryFee,
+                scheduling: schedulingInfo,
                 pointsRedeemed,
                 discountValue: totalDiscount, // Valor total para o banco (compatibilidade)
                 pointsDiscount: discountValue, // Detalhe para WhatsApp
@@ -461,7 +501,9 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
             <CustomModal />
             <div className="bg-white p-6 shadow-sm sticky top-0 z-10">
                 <h2 className="text-2xl font-bold text-[#2D3436]">Meu Carrinho</h2>
-                <p className="text-sm text-gray-500 mt-1">{cart.length} {cart.length === 1 ? 'item' : 'itens'}</p>
+                <p className="text-sm text-gray-500 mt-1">
+                    {cart.length} {cart.length === 1 ? 'item' : 'itens'}
+                </p>
             </div>
 
             <div className="p-6 space-y-6">
@@ -511,7 +553,9 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                                     <span className="text-sm font-bold min-w-[20px] text-center">{item.quantity}</span>
                                     {/* QI 145: Aviso de limite de estoque atingido */}
                                     {item.quantity >= (item.estoque || 0) && (
-                                        <span className="text-[10px] text-orange-500 font-bold leading-none mt-0.5">Limite</span>
+                                        <span className="text-[10px] text-orange-500 font-bold leading-none mt-0.5">
+                                            Limite
+                                        </span>
                                     )}
                                 </div>
                                 <button
@@ -519,14 +563,19 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                                         if (item.quantity < (item.estoque || 999)) {
                                             addToCart(item);
                                         } else {
-                                            alert?.('⚠️ Limite Atingido', `Ops! Temos apenas ${item.estoque} unidades deste produto em estoque.`, 'warning');
+                                            alert?.(
+                                                '⚠️ Limite Atingido',
+                                                `Ops! Temos apenas ${item.estoque} unidades deste produto em estoque.`,
+                                                'warning'
+                                            );
                                         }
                                     }}
                                     disabled={item.quantity >= (item.estoque || 999)}
-                                    className={`font-bold w-8 h-8 flex items-center justify-center rounded transition ${item.quantity >= (item.estoque || 0)
-                                        ? 'text-gray-300 cursor-not-allowed'
-                                        : 'text-[#FF4B82] hover:bg-pink-50'
-                                        }`}
+                                    className={`font-bold w-8 h-8 flex items-center justify-center rounded transition ${
+                                        item.quantity >= (item.estoque || 0)
+                                            ? 'text-gray-300 cursor-not-allowed'
+                                            : 'text-[#FF4B82] hover:bg-pink-50'
+                                    }`}
                                 >
                                     +
                                 </button>
@@ -537,7 +586,9 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
 
                 {/* Loyalty Points */}
                 {!user.isGuest && (
-                    <div className={`p-4 rounded-2xl border transition-all ${usePoints ? 'bg-yellow-50 border-yellow-400' : 'bg-white border-gray-200'}`}>
+                    <div
+                        className={`p-4 rounded-2xl border transition-all ${usePoints ? 'bg-yellow-50 border-yellow-400' : 'bg-white border-gray-200'}`}
+                    >
                         <div className="flex justify-between items-center mb-2">
                             <div className="flex items-center gap-2">
                                 <span className="text-xl">👑</span>
@@ -552,22 +603,29 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                                     onClick={() => setUsePoints(!usePoints)}
                                     className={`w-12 h-6 rounded-full p-1 transition-colors ${usePoints ? 'bg-green-500' : 'bg-gray-300'}`}
                                 >
-                                    <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${usePoints ? 'translate-x-6' : ''}`} />
+                                    <div
+                                        className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${usePoints ? 'translate-x-6' : ''}`}
+                                    />
                                 </button>
                             ) : (
-                                <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">Mín. 500 pts</span>
+                                <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">
+                                    Mín. 500 pts
+                                </span>
                             )}
                         </div>
                         {usePoints && (
                             <div className="text-sm text-gray-600 mt-2 border-t border-yellow-200 pt-2 animate-in fade-in slide-in-from-top-1">
-                                <p>Usando <span className="font-bold text-red-500">{pointsRedeemed} pts</span></p>
-                                <p>Desconto: <span className="font-bold text-green-600">{formatCurrency(discountValue)}</span></p>
+                                <p>
+                                    Usando <span className="font-bold text-red-500">{pointsRedeemed} pts</span>
+                                </p>
+                                <p>
+                                    Desconto:{' '}
+                                    <span className="font-bold text-green-600">{formatCurrency(discountValue)}</span>
+                                </p>
                             </div>
                         )}
                     </div>
                 )}
-
-
 
                 {/* Coupon Modal */}
                 <CouponModal
@@ -603,14 +661,14 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                                 type="date"
                                 className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition"
                                 value={scheduleDate}
-                                onChange={(e) => setScheduleDate(e.target.value)}
+                                onChange={e => setScheduleDate(e.target.value)}
                                 min={new Date().toISOString().split('T')[0]}
                             />
                             <input
                                 type="time"
                                 className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#FF4B82] transition"
                                 value={scheduleTime}
-                                onChange={(e) => setScheduleTime(e.target.value)}
+                                onChange={e => setScheduleTime(e.target.value)}
                             />
                         </div>
                     )}
@@ -624,7 +682,7 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                             { id: 'CONDO', icon: '🏢', label: 'Condomínio', sub: 'Grátis' },
                             { id: 'NEIGHBOR', icon: '🏡', label: 'Vizinhança', sub: 'Até 3km' },
                             { id: 'FAR', icon: '🛵', label: 'Outros', sub: 'Sob consulta' }
-                        ].map((zone) => (
+                        ].map(zone => (
                             <button
                                 key={zone.id}
                                 type="button"
@@ -646,7 +704,9 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                     <div className="bg-white p-4 rounded-2xl shadow-sm space-y-4 w-full">
                         <h3 className="font-bold text-gray-700">📋 Dados de Entrega</h3>
                         <div>
-                            <label className="text-xs font-bold text-gray-400 ml-1 uppercase block mb-2">Como gostaria de ser chamado?</label>
+                            <label className="text-xs font-bold text-gray-400 ml-1 uppercase block mb-2">
+                                Como gostaria de ser chamado?
+                            </label>
                             <div className={user?.isGuest ? 'grid grid-cols-2 gap-3' : ''}>
                                 <input
                                     required
@@ -664,8 +724,11 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                                             type="tel"
                                             value={addressData.telefone}
                                             onChange={handleInputChange}
-                                            className={`w-full p-3 bg-gray-50 border rounded-xl text-sm outline-none transition ${phoneError ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-[#FF4B82]'
-                                                }`}
+                                            className={`w-full p-3 bg-gray-50 border rounded-xl text-sm outline-none transition ${
+                                                phoneError
+                                                    ? 'border-red-400 focus:border-red-500'
+                                                    : 'border-gray-200 focus:border-[#FF4B82]'
+                                            }`}
                                             placeholder="Número de contato (00) 00000-0000"
                                         />
                                         {addressData.telefone && !phoneError && isValidPhone(addressData.telefone) && (
@@ -795,7 +858,9 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
 
                         {/* Observações do Pedido */}
                         <div className="mt-4">
-                            <label className="text-xs font-bold text-gray-400 ml-1 uppercase block mb-2">📝 Observações (Opcional)</label>
+                            <label className="text-xs font-bold text-gray-400 ml-1 uppercase block mb-2">
+                                📝 Observações (Opcional)
+                            </label>
                             <textarea
                                 name="observacoes"
                                 value={addressData.observacoes}
@@ -817,7 +882,11 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                         <div className="flex justify-between text-gray-500">
                             <span>
                                 Entrega
-                                {deliveryDistance > 0 && <span className="text-xs font-normal text-gray-400 ml-1">({deliveryDistance} km)</span>}
+                                {deliveryDistance > 0 && (
+                                    <span className="text-xs font-normal text-gray-400 ml-1">
+                                        ({deliveryDistance} km)
+                                    </span>
+                                )}
                             </span>
                             <span className={deliveryFee === 0 ? 'text-[#28a745] font-bold' : 'text-red-500'}>
                                 {deliveryFee === 0 ? 'Grátis ✓' : formatCurrency(deliveryFee)}
@@ -854,7 +923,13 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                                         <div>
                                             <p className="font-bold text-sm text-green-600">Cupom aplicado!</p>
                                             <p className="text-xs text-gray-500">
-                                                {couponCode} • {appliedCoupon.type === 'PORCENTAGEM' ? `${appliedCoupon.value}%` : formatCurrency(appliedCoupon.value || appliedCoupon.discount)} OFF
+                                                {couponCode} •{' '}
+                                                {appliedCoupon.type === 'PORCENTAGEM'
+                                                    ? `${appliedCoupon.value}%`
+                                                    : formatCurrency(
+                                                          appliedCoupon.value || appliedCoupon.discount
+                                                      )}{' '}
+                                                OFF
                                             </p>
                                         </div>
                                     </div>
@@ -884,14 +959,13 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
                         {/* Feedback quando cupom é aplicado via modal */}
                         {couponFeedback && (
                             <div
-                                className={`mt-3 p-2 rounded-lg text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1 ${couponFeedback.type === 'success'
-                                    ? 'bg-green-50 text-green-700 border border-green-200'
-                                    : 'bg-red-50 text-red-700 border border-red-200'
-                                    }`}
+                                className={`mt-3 p-2 rounded-lg text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1 ${
+                                    couponFeedback.type === 'success'
+                                        ? 'bg-green-50 text-green-700 border border-green-200'
+                                        : 'bg-red-50 text-red-700 border border-red-200'
+                                }`}
                             >
-                                <span className="text-base">
-                                    {couponFeedback.type === 'success' ? '✓' : '⚠️'}
-                                </span>
+                                <span className="text-base">{couponFeedback.type === 'success' ? '✓' : '⚠️'}</span>
                                 <span>{couponFeedback.message}</span>
                             </div>
                         )}
@@ -899,15 +973,16 @@ export default function CartView({ cart, user, addToCart, decreaseQuantity, remo
 
                     {/* Payment Method */}
                     <div className="grid grid-cols-3 gap-2">
-                        {['PIX', 'Cartão', 'Dinheiro'].map((method) => (
+                        {['PIX', 'Cartão', 'Dinheiro'].map(method => (
                             <button
                                 key={method}
                                 type="button"
                                 onClick={() => setPaymentMethod(method)}
-                                className={`py-3 rounded-xl text-sm font-bold border transition-all ${paymentMethod === method
-                                    ? 'bg-[#FF4B82] text-white border-[#FF4B82] shadow-lg scale-105'
-                                    : 'bg-white text-gray-500 border-gray-200 hover:border-[#FF4B82]'
-                                    }`}
+                                className={`py-3 rounded-xl text-sm font-bold border transition-all ${
+                                    paymentMethod === method
+                                        ? 'bg-[#FF4B82] text-white border-[#FF4B82] shadow-lg scale-105'
+                                        : 'bg-white text-gray-500 border-gray-200 hover:border-[#FF4B82]'
+                                }`}
                             >
                                 {method}
                             </button>

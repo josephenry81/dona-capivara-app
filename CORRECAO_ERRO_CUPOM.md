@@ -5,6 +5,7 @@
 **Erro exibido:** "⚠️ Erro ao validar cupom. Verifique sua conexão."
 
 ### Causa Raiz
+
 O Google Apps Script tem uma forma específica de receber dados via POST que é diferente de APIs REST convencionais.
 
 ---
@@ -18,12 +19,12 @@ const response = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-        action: 'validateCoupon',  // ❌ Action no body
+        action: 'validateCoupon', // ❌ Action no body
         code: normalizedCode,
         customerId: data.customerId,
         subtotal: data.subtotal
     }),
-    signal: AbortSignal.timeout(10000)  // ❌ Timeout muito curto
+    signal: AbortSignal.timeout(10000) // ❌ Timeout muito curto
 });
 ```
 
@@ -69,6 +70,7 @@ const response = await fetch(`${API_URL}?action=validateCoupon`, {
 ### Fluxo de Requisição:
 
 1. **Frontend envia:**
+
 ```http
 POST https://script.google.com/...?action=validateCoupon
 Content-Type: text/plain
@@ -81,11 +83,12 @@ Content-Type: text/plain
 ```
 
 2. **Backend (Code.gs) recebe:**
+
 ```javascript
 function doPost(e) {
-    const action = e.parameter.action;  // "validateCoupon" da URL
-    const data = JSON.parse(e.postData.contents);  // Dados do body
-    
+    const action = e.parameter.action; // "validateCoupon" da URL
+    const data = JSON.parse(e.postData.contents); // Dados do body
+
     // data.code = "BEMVINDO"
     // data.customerId = "CLI-12345"
     // data.subtotal = 50.00
@@ -93,6 +96,7 @@ function doPost(e) {
 ```
 
 3. **Backend processa:**
+
 - Verifica se cupom existe
 - Verifica validade
 - Verifica valor mínimo
@@ -103,12 +107,12 @@ function doPost(e) {
 
 ## 📊 COMPARAÇÃO
 
-| Aspecto | Antes | Depois |
-|---------|-------|--------|
-| **Action** | No body ❌ | Na URL ✅ |
-| **Content-Type** | application/json | text/plain ✅ |
-| **Timeout** | 10 segundos | 15 segundos ✅ |
-| **Compatibilidade** | Baixa ❌ | Alta ✅ |
+| Aspecto             | Antes            | Depois         |
+| ------------------- | ---------------- | -------------- |
+| **Action**          | No body ❌       | Na URL ✅      |
+| **Content-Type**    | application/json | text/plain ✅  |
+| **Timeout**         | 10 segundos      | 15 segundos ✅ |
+| **Compatibilidade** | Baixa ❌         | Alta ✅        |
 
 ---
 
@@ -125,16 +129,19 @@ function doPost(e) {
 ### Resultados Esperados:
 
 #### Se cupom nunca foi usado:
+
 ```
 ✅ Cupom aplicado! Desconto de 10%
 ```
 
 #### Se cupom já foi usado:
+
 ```
 ❌ Cupom já utilizado por você
 ```
 
 #### Se houver timeout (após 15s):
+
 ```
 ⚠️ Timeout ao validar cupom. Tente novamente.
 ```
@@ -166,6 +173,7 @@ function doPost(e) {
 ### Por que `text/plain`?
 
 Google Apps Script tem melhor compatibilidade com `text/plain` porque:
+
 1. Evita problemas de CORS
 2. Não requer preflight OPTIONS request
 3. É mais simples de processar no backend
@@ -180,13 +188,13 @@ Google Apps Script tem melhor compatibilidade com `text/plain` porque:
 
 ```javascript
 function handleRequest(e) {
-    const action = e.parameter.action;  // Da URL
+    const action = e.parameter.action; // Da URL
     let data = {};
-    
+
     if (e.postData && e.postData.contents) {
-        data = JSON.parse(e.postData.contents);  // Do body
+        data = JSON.parse(e.postData.contents); // Do body
     }
-    
+
     if (action === 'validateCoupon') {
         return validateCouponWithContext(data);
     }
@@ -198,11 +206,13 @@ function handleRequest(e) {
 ## 🎯 RESULTADO FINAL
 
 ### Antes da Correção:
+
 - ❌ Erro: "Verifique sua conexão"
 - ❌ Timeout frequente
 - ❌ Cupons únicos não funcionavam
 
 ### Depois da Correção:
+
 - ✅ Validação funciona corretamente
 - ✅ Timeout reduzido (15s é suficiente)
 - ✅ Cupons únicos bloqueados após primeiro uso
@@ -214,7 +224,8 @@ function handleRequest(e) {
 
 **Arquivo:** `services/api.ts`  
 **Linhas:** 277-290  
-**Mudanças:** 
+**Mudanças:**
+
 - Action movido para URL
 - Content-Type: text/plain
 - Timeout: 15s

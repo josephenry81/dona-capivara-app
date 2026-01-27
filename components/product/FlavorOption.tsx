@@ -3,12 +3,7 @@
 import { FlavorOptionProps } from '@/types/mix';
 import Image from 'next/image';
 
-export default function FlavorOption({
-    flavor,
-    isSelected,
-    isDisabled,
-    onToggle
-}: FlavorOptionProps) {
+export default function FlavorOption({ flavor, isSelected, isDisabled, onToggle }: FlavorOptionProps) {
     const handleClick = () => {
         if (!isDisabled) {
             onToggle();
@@ -20,14 +15,8 @@ export default function FlavorOption({
             className={`
                 flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer
                 transition-all duration-200
-                ${isSelected
-                    ? 'border-pink-500 bg-pink-50'
-                    : 'border-gray-200 bg-white'
-                }
-                ${isDisabled
-                    ? 'opacity-50 cursor-not-allowed bg-gray-100'
-                    : 'hover:border-pink-300 hover:shadow-md'
-                }
+                ${isSelected ? 'border-pink-500 bg-pink-50' : 'border-gray-200 bg-white'}
+                ${isDisabled ? 'opacity-50 cursor-not-allowed bg-gray-100' : 'hover:border-pink-300 hover:shadow-md'}
             `}
         >
             <input
@@ -64,9 +53,7 @@ export default function FlavorOption({
             </div>
 
             {!isDisabled && (
-                <span className="text-pink-600 font-bold flex-shrink-0">
-                    +R$ {flavor.price.toFixed(2)}
-                </span>
+                <span className="text-pink-600 font-bold flex-shrink-0">+R$ {flavor.price.toFixed(2)}</span>
             )}
         </label>
     );

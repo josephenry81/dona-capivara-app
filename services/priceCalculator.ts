@@ -17,10 +17,7 @@ export function calculateItemPrice(
     unit_price: number;
     total_price: number;
 } {
-    const additionsSubtotal = selectedAdditions.reduce(
-        (sum, addition) => sum + addition.option_price,
-        0
-    );
+    const additionsSubtotal = selectedAdditions.reduce((sum, addition) => sum + addition.option_price, 0);
 
     const unitPrice = basePrice + additionsSubtotal;
     const totalPrice = unitPrice * quantity;
