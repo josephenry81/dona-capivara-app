@@ -1489,7 +1489,9 @@ function calculateDeliveryFee(data) {
     const { deliveryType, addressData } = data;
     if (deliveryType === 'CONDO') return { success: true, fee: 0, message: 'Grátis' };
 
-    const fullAddr = `${addressData.rua}, ${addressData.numero}, ${addressData.bairro}, Curitiba, PR, Brazil`;
+    // Formatar CEP para melhor precisão (80610270 -> 80610-270)
+    const cepFormatado = addressData.cep ? addressData.cep.replace(/(\d{5})(\d{3})/, '$1-$2') : '';
+    const fullAddr = `${addressData.rua}, ${addressData.numero}, ${addressData.bairro}, ${cepFormatado}, Curitiba, PR, Brazil`;
     const coords = getGeoapifyCoordinates(fullAddr);
     if (!coords) return { success: true, fee: 5, message: 'Taxa Fixa' };
 
@@ -1503,34 +1505,38 @@ function calculateDeliveryFee(data) {
 }
 
 function getGeoapifyCoordinates(addr) {
+    // Usando Google Maps nativo do Apps Script (gratuito e mais preciso para Brasil)
     try {
-        const res = UrlFetchApp.fetch(
-            `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(addr)}&apiKey=${GEOAPIFY_API_KEY}&limit=1`,
-            { muteHttpExceptions: true }
-        );
-        const json = JSON.parse(res.getContentText());
-        if (json.features && json.features.length > 0) {
-            const [lon, lat] = json.features[0].geometry.coordinates;
-            return { lat, lon };
+        const response = Maps.newGeocoder().setLanguage('pt-BR').setRegion('br').geocode(addr);
+
+        if (response.status === 'OK' && response.results && response.results.length > 0) {
+            const location = response.results[0].geometry.location;
+            return { lat: location.lat, lon: location.lng };
         }
-    } catch (e) {}
+    } catch (e) {
+        Logger.log('Erro geocoding: ' + e);
+    }
     return null;
 }
 
 function getGeoapifyDistanceKm(origin, dest) {
+    // Usando Google Maps Distance Matrix (nativo Apps Script)
     try {
-        const res = UrlFetchApp.fetch(`https://api.geoapify.com/v1/routematrix?apiKey=${GEOAPIFY_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            payload: JSON.stringify({
-                mode: 'drive',
-                sources: [{ location: [origin.lon, origin.lat] }],
-                targets: [{ location: [dest.lon, dest.lat] }]
-            }),
-            muteHttpExceptions: true
-        });
-        return JSON.parse(res.getContentText()).sources_to_targets[0][0].distance / 1000;
-    } catch (e) {}
+        const directions = Maps.newDirectionFinder()
+            .setOrigin(origin.lat, origin.lon)
+            .setDestination(dest.lat, dest.lon)
+            .setMode(Maps.DirectionFinder.Mode.DRIVING)
+            .getDirections();
+
+        if (directions.status === 'OK' && directions.routes && directions.routes.length > 0) {
+            const route = directions.routes[0];
+            if (route.legs && route.legs.length > 0) {
+                return route.legs[0].distance.value / 1000; // metros para km
+            }
+        }
+    } catch (e) {
+        Logger.log('Erro distância: ' + e);
+    }
     return null;
 }
 

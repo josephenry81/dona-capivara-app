@@ -3,7 +3,7 @@ import { isSupabaseConfigured, fetchCatalogFromSupabase, supabase } from './supa
 
 const API_URL =
     process.env.NEXT_PUBLIC_GOOGLE_SHEET_API_URL ||
-    'https://script.google.com/macros/s/AKfycbxmXq0PmQOItVAWXqSrfgeqFZdf7FDkWo-c2BwrBY6mVtX2VGlSuL6oK9Z7iyrHxHq6Vw/exec';
+    'https://script.google.com/macros/s/AKfycbwNhfinjEKn9Kj0x7RO5gagPm6EgpXESX8o7RNxxs58P80k6JlvyeDVrXqcAN5TwoBYCA/exec';
 
 // 🧠 CACHE VERSION - Incrementar quando houver mudanças importantes no backend
 // Isso força todos os clientes a recarregar dados quando necessário
@@ -486,7 +486,7 @@ export const API = {
         }
     },
 
-    async calculateDelivery(data: { deliveryType: string; addressData: any }) {
+    async calculateDelivery(data: { deliveryType: string; addressData: any; subtotal?: number }) {
         try {
             const response = await fetch(`${API_URL}?action=calculateDelivery`, {
                 method: 'POST',

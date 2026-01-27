@@ -71,6 +71,7 @@ export default function CartView({
     const [phoneError, setPhoneError] = useState('');
     const [cepLoading, setCepLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitStatus, setSubmitStatus] = useState(''); // Mensagens progressivas durante checkout
     const { confirm, alert, Modal: CustomModal } = useModal();
 
     // Debounce timer ref
@@ -79,7 +80,9 @@ export default function CartView({
     // 🚚 FRETE AUTOMÁTICO
     const [deliveryFee, setDeliveryFee] = useState(0);
     const [deliveryDistance, setDeliveryDistance] = useState(0);
-    const [_isCalculatingFee, setIsCalculatingFee] = useState(false);
+    const [isCalculatingFee, setIsCalculatingFee] = useState(false);
+    const [deliveryMessage, setDeliveryMessage] = useState('');
+    const [deliveryError, setDeliveryError] = useState(false);
 
     useEffect(() => {
         const calculateFee = async () => {
@@ -103,22 +106,30 @@ export default function CartView({
             }
 
             setIsCalculatingFee(true);
+            setDeliveryMessage('');
+            setDeliveryError(false);
             try {
-                // Chama backend (Code.gs -> Geoapify)
-                const res = await API.calculateDelivery({ deliveryType, addressData });
+                // Chama backend (Code.gs -> Google Maps) com subtotal para regra de frete grátis
+                const res = await API.calculateDelivery({ deliveryType, addressData, subtotal });
 
                 if (res.success) {
                     setDeliveryFee(res.fee);
                     setDeliveryDistance(res.distanceKm || 0);
+                    setDeliveryMessage(res.message || '');
+                    setDeliveryError(false);
                 } else {
-                    // Fallback seguro em caso de erro
-                    setDeliveryFee(deliveryType === 'NEIGHBOR' ? 0 : 5);
+                    // Região fora da área de entrega - bloquear checkout
+                    setDeliveryFee(0);
                     setDeliveryDistance(0);
+                    setDeliveryMessage(res.message || 'Fora da área de entrega');
+                    setDeliveryError(true);
                 }
             } catch (error) {
                 console.error('Erro ao calcular frete:', error);
                 setDeliveryFee(deliveryType === 'NEIGHBOR' ? 0 : 5);
                 setDeliveryDistance(0);
+                setDeliveryMessage('');
+                setDeliveryError(false);
             } finally {
                 setIsCalculatingFee(false);
             }
@@ -434,17 +445,38 @@ export default function CartView({
         if (!confirmed) return;
 
         setIsSubmitting(true);
+        setSubmitStatus('Validando carrinho...');
+
+        // 🚀 Mensagens progressivas para engajamento
+        const statusMessages = ['Reservando estoque...', 'Confirmando pedido...', 'Finalizando...'];
+        let messageIndex = 0;
+        const messageInterval = setInterval(() => {
+            if (messageIndex < statusMessages.length) {
+                setSubmitStatus(statusMessages[messageIndex]);
+                messageIndex++;
+            }
+        }, 1500);
+
+        // ⏱️ Timeout de segurança (15s)
+        let timedOut = false;
+        const timeoutId = setTimeout(() => {
+            timedOut = true;
+            setSubmitStatus('O sistema está demorando um pouco mais...');
+        }, 15000);
 
         try {
             let schedulingInfo = 'Imediata';
             if (isScheduled) {
                 if (!scheduleDate || !scheduleTime) {
+                    clearInterval(messageInterval);
+                    clearTimeout(timeoutId);
                     alert(
                         '📅 Agendamento Incompleto',
                         'Por favor, preencha a data e o horário desejados para a entrega.',
                         'warning'
                     );
                     setIsSubmitting(false);
+                    setSubmitStatus('');
                     return;
                 }
                 const d = scheduleDate.split('-');
@@ -474,7 +506,20 @@ export default function CartView({
                 observacoes: addressData.observacoes || '',
                 customer: { name: addressData.nome, fullAddress: finalAddress, details: addressData }
             });
+
+            // ✅ Sucesso - transição suave
+            setSubmitStatus('Pronto! ✓');
+        } catch (error) {
+            // Se deu timeout, mostrar mensagem amigável
+            if (timedOut) {
+                setSubmitStatus('Aguarde a confirmação no WhatsApp');
+            } else {
+                setSubmitStatus('');
+            }
+            throw error;
         } finally {
+            clearInterval(messageInterval);
+            clearTimeout(timeoutId);
             setIsSubmitting(false);
         }
     };
@@ -888,10 +933,35 @@ export default function CartView({
                                     </span>
                                 )}
                             </span>
-                            <span className={deliveryFee === 0 ? 'text-[#28a745] font-bold' : 'text-red-500'}>
-                                {deliveryFee === 0 ? 'Grátis ✓' : formatCurrency(deliveryFee)}
+                            <span
+                                className={
+                                    deliveryError
+                                        ? 'text-red-500 font-bold'
+                                        : deliveryFee === 0
+                                          ? 'text-[#28a745] font-bold'
+                                          : 'text-red-500'
+                                }
+                            >
+                                {isCalculatingFee ? (
+                                    <span className="flex items-center gap-1">
+                                        <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                                        Calculando...
+                                    </span>
+                                ) : deliveryError ? (
+                                    '❌ Indisponível'
+                                ) : deliveryFee === 0 ? (
+                                    'Grátis ✓'
+                                ) : (
+                                    formatCurrency(deliveryFee)
+                                )}
                             </span>
                         </div>
+                        {/* Mensagem de frete (ex: "Faltam R$ 5 para frete grátis") */}
+                        {deliveryMessage && (
+                            <p className={`text-xs ${deliveryError ? 'text-red-500 font-semibold' : 'text-gray-500'}`}>
+                                {deliveryMessage}
+                            </p>
+                        )}
                         {couponDiscount > 0 && (
                             <div className="flex justify-between text-purple-600 font-bold">
                                 <span>Cupom 🎟️</span>
@@ -992,13 +1062,13 @@ export default function CartView({
                     {/* Submit Button */}
                     <button
                         type="submit"
-                        disabled={!paymentMethod || isSubmitting}
-                        className="w-full bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white font-bold py-4 rounded-2xl mt-6 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                        disabled={!paymentMethod || isSubmitting || isCalculatingFee || deliveryError}
+                        className={`w-full bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D] text-white font-bold py-4 rounded-2xl mt-6 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] ${isSubmitting ? 'cursor-wait' : ''}`}
                     >
                         {isSubmitting ? (
                             <span className="flex items-center justify-center gap-2">
                                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                Processando...
+                                {submitStatus || 'Processando...'}
                             </span>
                         ) : (
                             '🎉 Finalizar Pedido'
