@@ -16,7 +16,12 @@ export default function AuthView({ onLogin, onGuest }: AuthViewProps) {
     const [toast, setToast] = useState({ visible: false, message: '', type: 'error' as any });
 
     // Máscara de telefone: (XX) XXXXX-XXXX
+    // Permite texto livre se começar com letra (para login admin)
     const formatPhone = (value: string) => {
+        // Se começa com letra, permite texto livre (admin login)
+        if (/^[a-zA-Z]/.test(value)) {
+            return value;
+        }
         const digits = value.replace(/\D/g, '').slice(0, 11);
         if (digits.length <= 2) return digits.length ? `(${digits}` : '';
         if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
