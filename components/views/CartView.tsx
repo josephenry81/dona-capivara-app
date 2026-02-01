@@ -1018,6 +1018,7 @@ export default function CartView({
                             </>
                         ) : (
                             <button
+                                type="button"
                                 onClick={() => setIsCouponModalOpen(true)}
                                 className="w-full py-3 px-4 bg-gradient-to-r from-[#FF6B35] to-[#F7931E] text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98]"
                             >

@@ -80,7 +80,7 @@ export default function ProductCard({
         <div
             onClick={() => onProductClick?.(product)}
             data-tour="product-card"
-            className="group flex flex-col bg-white rounded-[32px] overflow-hidden relative h-full transition-all duration-500 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.12)] border border-gray-100/60 cursor-pointer active:scale-[0.98]"
+            className="group flex flex-col bg-white rounded-[20px] overflow-hidden relative h-full transition-all duration-500 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.12)] border border-gray-100/60 cursor-pointer active:scale-[0.98]"
         >
             <CustomModal />
 

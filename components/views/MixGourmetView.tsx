@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { API } from '../../services/api';
 import { useModal } from '../ui/Modal';
@@ -55,7 +55,7 @@ export default function MixGourmetView({
     const [quantity, _setQuantity] = useState(1);
     const { alert, Modal: CustomModal } = useModal();
 
-    async function loadMixData() {
+    const loadMixData = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
@@ -66,17 +66,17 @@ export default function MixGourmetView({
                 setError(data?.error || 'Não foi possível carregar as informações do Mix.');
                 setMix(null);
             }
-        } catch (error) {
-            console.error('Error loading mix:', error);
+        } catch (err) {
+            console.error('Error loading mix:', err);
             setError('Ocorreu um erro inesperado ao carregar o Mix.');
         } finally {
             setLoading(false);
         }
-    }
+    }, [mixId]);
 
     useEffect(() => {
         loadMixData();
-    }, [mixId, loadMixData]);
+    }, [loadMixData]);
 
     // Handle flavor selection (max 2)
     const toggleFlavor = (flavorId: string) => {

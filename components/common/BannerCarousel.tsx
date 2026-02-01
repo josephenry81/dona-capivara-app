@@ -198,13 +198,6 @@ export default function BannerCarousel({
                     ))}
                 </div>
             )}
-
-            {/* Banner Counter (Top Right) */}
-            {banners.length > 1 && (
-                <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-full z-20">
-                    {currentIndex + 1} / {banners.length}
-                </div>
-            )}
         </div>
     );
 }

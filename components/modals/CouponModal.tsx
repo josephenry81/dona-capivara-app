@@ -209,10 +209,16 @@ export default function CouponModal({ isOpen, onClose, onApplyCoupon, cartTotal,
             return (
                 <div className={styles.buttonsFooter}>
                     <div className={styles.buttons}>
-                        <button onClick={handleClear} className={styles.btnSecondary} disabled={!couponCode}>
+                        <button
+                            type="button"
+                            onClick={handleClear}
+                            className={styles.btnSecondary}
+                            disabled={!couponCode}
+                        >
                             Limpar
                         </button>
                         <button
+                            type="button"
                             onClick={handleContinue}
                             className={styles.btnPrimary}
                             disabled={!validatedCoupon || isValidating}
@@ -228,10 +234,10 @@ export default function CouponModal({ isOpen, onClose, onApplyCoupon, cartTotal,
             return (
                 <div className={styles.buttonsFooter}>
                     <div className={styles.buttons}>
-                        <button onClick={() => setStep(1)} className={styles.btnSecondary}>
+                        <button type="button" onClick={() => setStep(1)} className={styles.btnSecondary}>
                             Voltar
                         </button>
-                        <button onClick={handleApply} className={styles.btnPrimary}>
+                        <button type="button" onClick={handleApply} className={styles.btnPrimary}>
                             <span>🎟️</span> Aplicar Cupom
                         </button>
                     </div>
@@ -262,7 +268,7 @@ export default function CouponModal({ isOpen, onClose, onApplyCoupon, cartTotal,
                                 <p className={styles.headerSubtitle}>Aplique seu cupom e economize</p>
                             </div>
                         </div>
-                        <button onClick={onClose} className={styles.closeButton} aria-label="Fechar">
+                        <button type="button" onClick={onClose} className={styles.closeButton} aria-label="Fechar">
                             ✕
                         </button>
                     </div>
