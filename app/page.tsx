@@ -14,6 +14,7 @@ import { useModal } from '@/components/ui/Modal';
 import { ReviewService } from '@/services/reviews';
 import { OnboardingModal, GuidedTour, HelpButton } from '@/components/onboarding';
 import { getHiddenProductIds } from '@/config/productGroups';
+import PixPaymentModal from '@/components/modals/PixPaymentModal';
 
 // ⚡ DYNAMIC IMPORTS - Lazy load heavy components
 const CartView = dynamic(() => import('@/components/views/CartView'), {
@@ -78,6 +79,10 @@ export default function Page() {
     const [showOnboarding, setShowOnboarding] = useState(false);
     const [showTour, setShowTour] = useState(false);
     const [onboardingComplete, setOnboardingComplete] = useState(true); // Assume complete until checked
+
+    // 💳 PIX PAYMENT MODAL STATES
+    const [isPixModalOpen, setIsPixModalOpen] = useState(false);
+    const [pixOrderData, setPixOrderData] = useState<{ amount: number; orderId: string } | null>(null);
 
     const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
         setToast({ visible: true, message, type, ts: Date.now() });
@@ -536,6 +541,40 @@ export default function Page() {
                 const encodedMsg = encodeURIComponent(msgLines.join('\n'));
                 const _customerPhone = orderData.customer.details?.telefone?.replace(/\D/g, '');
 
+                // 💳 PIX: Mostrar modal com QR Code antes de enviar WhatsApp
+                if (orderData.paymentMethod === 'PIX') {
+                    setPixOrderData({
+                        amount: orderData.total,
+                        orderId: shortId
+                    });
+                    setIsPixModalOpen(true);
+
+                    // Limpar carrinho e atualizar catálogo
+                    setCart([]);
+                    API.invalidateCatalogCache();
+                    API.fetchCatalogData(false).then(data => {
+                        if (data?.products) setProducts(data.products);
+                    });
+
+                    // Atualizar pontos do usuário
+                    if (userId !== 'GUEST') {
+                        const redeemed = Number(orderData.pointsRedeemed || 0);
+                        const currentPts = Number(user.points || 0);
+                        const updatedUser = {
+                            ...user,
+                            points: Math.max(0, currentPts + earned - redeemed),
+                            savedAddress: orderData.customer.details
+                        };
+                        setUser(updatedUser);
+                        localStorage.setItem('donaCapivaraUser', JSON.stringify(updatedUser));
+                    }
+
+                    // Armazenar mensagem para enviar depois
+                    localStorage.setItem('dcap_pending_whatsapp_msg', encodedMsg);
+
+                    return; // Não redireciona para WhatsApp ainda
+                }
+
                 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
                 try {
                     if (isMobile) {
@@ -638,6 +677,34 @@ export default function Page() {
                 onClose={() => setToast({ ...toast, visible: false })}
             />
             <InstallPrompt />
+
+            {/* 💳 PIX PAYMENT MODAL */}
+            {pixOrderData && (
+                <PixPaymentModal
+                    isOpen={isPixModalOpen}
+                    onClose={() => {
+                        setIsPixModalOpen(false);
+
+                        // Enviar WhatsApp após fechar o modal
+                        const pendingMsg = localStorage.getItem('dcap_pending_whatsapp_msg');
+                        if (pendingMsg) {
+                            localStorage.removeItem('dcap_pending_whatsapp_msg');
+                            const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+                            if (isMobile) {
+                                window.location.href = `whatsapp://send?phone=${WHATSAPP_PHONE}&text=${pendingMsg}`;
+                            } else {
+                                window.open(`https://wa.me/${WHATSAPP_PHONE}?text=${pendingMsg}`, '_blank');
+                            }
+                        }
+
+                        setActiveTab('home');
+                        setPixOrderData(null);
+                        showToast('Pedido enviado! Aguardando confirmação de pagamento.', 'success');
+                    }}
+                    amount={pixOrderData.amount}
+                    orderId={pixOrderData.orderId}
+                />
+            )}
 
             {activeMixId ? (
                 <MixGourmetView
