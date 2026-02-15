@@ -18,16 +18,19 @@ export default function Banner({
     subtitle,
     ctaText,
     onCtaClick,
-    priority = false,
+    priority = false
 }: BannerProps) {
+    // Normalize image URL - ensure it has a protocol
+    const normalizedImageUrl =
+        imageUrl.startsWith('http://') || imageUrl.startsWith('https://') ? imageUrl : `https://${imageUrl}`;
+
     return (
         <div className="w-full relative overflow-hidden rounded-2xl shadow-lg my-6">
-            {/* Responsive Aspect Ratio Container: 4:5 on Mobile, 16:9 on Desktop */}
-            <div className="relative w-full aspect-video md:aspect-[3/1] bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D]">
-
+            {/* Fixed Height Container: 700-900px range */}
+            <div className="relative w-full h-[800px] min-h-[700px] max-h-[900px] bg-gradient-to-r from-[#FF4B82] to-[#FF9E3D]">
                 {/* Optimized Image */}
                 <Image
-                    src={imageUrl}
+                    src={normalizedImageUrl}
                     alt={altText}
                     fill
                     priority={priority}

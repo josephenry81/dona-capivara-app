@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { Geladinho, OrderPayload } from '../types/googleSheetTypes';
 
 interface CartItem extends Geladinho {
@@ -48,7 +49,10 @@ export default function CartModal({
             itens: cartItems.map(i => ({
                 id: i.ID_Geladinho,
                 nome: i.Nome_Geladinho,
-                price: typeof i.Preco_Venda === 'string' ? parseFloat((i.Preco_Venda as string).replace(',', '.')) : i.Preco_Venda,
+                price:
+                    typeof i.Preco_Venda === 'string'
+                        ? parseFloat((i.Preco_Venda as string).replace(',', '.'))
+                        : i.Preco_Venda,
                 quantity: i.quantity
             })),
             total: total,
@@ -69,7 +73,9 @@ export default function CartModal({
         <div className="modal-overlay">
             <div className="modal-content">
                 <div className="cart-header">
-                    <span className="back-btn" onClick={onClose}>←</span>
+                    <span className="back-btn" onClick={onClose}>
+                        ←
+                    </span>
                     <h2>Carrinho</h2>
                 </div>
 
@@ -82,21 +88,36 @@ export default function CartModal({
                     ) : (
                         cartItems.map(item => (
                             <div key={item.ID_Geladinho} className="cart-item-card">
-                                <img
-                                    src={item.Imagem_URL || item.URL_IMAGEM_CACHE || 'https://via.placeholder.com/60'}
-                                    className="cart-img"
-                                    alt={item.Nome_Geladinho}
-                                />
+                                <div className="relative w-[60px] h-[60px] flex-shrink-0 overflow-hidden rounded-lg">
+                                    <Image
+                                        src={
+                                            item.Imagem_URL || item.URL_IMAGEM_CACHE || 'https://via.placeholder.com/60'
+                                        }
+                                        alt={item.Nome_Geladinho}
+                                        fill
+                                        sizes="60px"
+                                        className="object-cover"
+                                        quality={75}
+                                    />
+                                </div>
                                 <div className="cart-info">
                                     <h4 style={{ fontSize: '0.9rem', marginBottom: '5px' }}>{item.Nome_Geladinho}</h4>
                                     <div style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>
-                                        {typeof item.Preco_Venda === 'number' ? formatPrice(item.Preco_Venda) : item.Preco_Venda}
+                                        {typeof item.Preco_Venda === 'number'
+                                            ? formatPrice(item.Preco_Venda)
+                                            : item.Preco_Venda}
                                     </div>
                                 </div>
                                 <div className="cart-controls">
-                                    <button className="qty-btn" onClick={() => onUpdateQuantity(item.ID_Geladinho, -1)}>-</button>
-                                    <span style={{ fontWeight: 'bold', width: '20px', textAlign: 'center' }}>{item.quantity}</span>
-                                    <button className="qty-btn" onClick={() => onUpdateQuantity(item.ID_Geladinho, 1)}>+</button>
+                                    <button className="qty-btn" onClick={() => onUpdateQuantity(item.ID_Geladinho, -1)}>
+                                        -
+                                    </button>
+                                    <span style={{ fontWeight: 'bold', width: '20px', textAlign: 'center' }}>
+                                        {item.quantity}
+                                    </span>
+                                    <button className="qty-btn" onClick={() => onUpdateQuantity(item.ID_Geladinho, 1)}>
+                                        +
+                                    </button>
                                 </div>
                             </div>
                         ))
@@ -148,13 +169,10 @@ export default function CartModal({
                                     onChange={handleInputChange}
                                 />
                             </div>
-                            <select
-                                id="pagamento"
-                                required
-                                value={formData.pagamento}
-                                onChange={handleInputChange}
-                            >
-                                <option value="" disabled>Forma de Pagamento *</option>
+                            <select id="pagamento" required value={formData.pagamento} onChange={handleInputChange}>
+                                <option value="" disabled>
+                                    Forma de Pagamento *
+                                </option>
                                 <option value="PIX">PIX</option>
                                 <option value="Dinheiro">Dinheiro</option>
                                 <option value="Cartão">Cartão</option>

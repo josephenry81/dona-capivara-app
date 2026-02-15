@@ -1,0 +1,730 @@
+/* ===========================================
+   COUPON MODAL - DONA CAPIVARA DESIGN SYSTEM
+   Mobile-First | Keyboard-Aware Bottom Sheet
+   =========================================== */
+
+/* ==========================================
+   OVERLAY - Full screen backdrop
+   ========================================== */
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 999;
+    animation: fadeIn 0.2s ease;
+    touch-action: none;
+}
+
+/* ==========================================
+   MODAL WRAPPER - Flex container for positioning
+   Usa dvh para adaptar quando teclado abre
+   ========================================== */
+.modalWrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    align-items: center;
+    /* Centralizado verticalmente */
+    justify-content: center;
+    z-index: 1000;
+    pointer-events: none;
+    padding-bottom: 80px;
+    /* Sobe um pouco do centro */
+}
+
+/* ==========================================
+   MODAL - Bottom sheet container
+   ========================================== */
+.modal {
+    width: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    max-height: 85dvh;
+    /* Dynamic viewport height */
+    background: #ffffff;
+    border-radius: 16px;
+    /* Todos os cantos arredondados */
+    overflow: hidden;
+    animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: flex;
+    flex-direction: column;
+    pointer-events: auto;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+}
+
+@media (min-width: 481px) {
+    .modal {
+        margin: 0 auto;
+    }
+}
+
+/* ==========================================
+   HEADER - Fixed at top
+   ========================================== */
+.header {
+    background: linear-gradient(135deg, #ff6b35, #f7931e);
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.headerContent {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.headerIcon {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.headerTitle {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: #ffffff;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.headerSubtitle {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.85);
+    margin: 2px 0 0 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.closeButton {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: #ffffff;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s ease;
+    flex-shrink: 0;
+}
+
+.closeButton:hover,
+.closeButton:active {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* ==========================================
+   PROGRESS STEPS - Fixed below header
+   ========================================== */
+.progress {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    background: #f5f5f5;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.progressStep {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    opacity: 0.4;
+    transition: 0.2s ease;
+}
+
+.progressStep.active {
+    opacity: 1;
+}
+
+.stepNumber {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #7f8c8d;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.progressStep.active .stepNumber {
+    background: #ff6b35;
+}
+
+.stepLabel {
+    font-size: 10px;
+    font-weight: 600;
+    color: #7f8c8d;
+}
+
+.progressStep.active .stepLabel {
+    color: #2c3e50;
+}
+
+.progressLine {
+    width: 14px;
+    height: 2px;
+    background: #ddd;
+    border-radius: 1px;
+}
+
+/* ==========================================
+   CONTENT - Scrollable main area
+   CRÍTICO: flex: 1 + min-height: 0 + overflow-y: auto
+   ========================================== */
+.content {
+    flex: 1;
+    min-height: 0;
+    /* IMPORTANTE: permite flex shrink */
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px;
+    padding-bottom: 8px;
+    /* Menos padding embaixo pois footer tem */
+}
+
+.stepContent {
+    animation: fadeIn 0.3s ease;
+}
+
+/* ==========================================
+   INPUT SECTION
+   ========================================== */
+.inputLabel {
+    display: block;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 8px;
+}
+
+.inputWrapper {
+    position: relative;
+}
+
+.input {
+    width: 100%;
+    padding: 12px 44px 12px 14px;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    /* >= 16px previne zoom no iOS */
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #2c3e50;
+    transition: 0.2s ease;
+    outline: none;
+}
+
+.input::placeholder {
+    color: #bdbdbd;
+    font-weight: 400;
+    letter-spacing: 0;
+    font-size: 14px;
+}
+
+.input:focus {
+    border-color: #ff6b35;
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.15);
+}
+
+.inputSuccess {
+    border-color: #4caf50;
+}
+
+.inputSuccess:focus {
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.15);
+}
+
+.inputError {
+    border-color: #f44336;
+}
+
+.inputError:focus {
+    box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.15);
+}
+
+.inputSpinner {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #ff6b35;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.inputIcon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: #4caf50;
+}
+
+.iconError {
+    color: #f44336;
+}
+
+/* ==========================================
+   FEEDBACK MESSAGES
+   ========================================== */
+.feedback {
+    margin-top: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    animation: slideInLeft 0.3s ease;
+}
+
+.feedbackSuccess {
+    background: rgba(76, 175, 80, 0.1);
+    color: #4caf50;
+    border: 1px solid rgba(76, 175, 80, 0.2);
+}
+
+.feedbackError {
+    background: rgba(244, 67, 54, 0.1);
+    color: #f44336;
+    border: 1px solid rgba(244, 67, 54, 0.2);
+}
+
+.feedbackWarning {
+    background: rgba(255, 152, 0, 0.1);
+    color: #ff9800;
+    border: 1px solid rgba(255, 152, 0, 0.2);
+}
+
+/* ==========================================
+   SUBTOTAL INFO
+   ========================================== */
+.subtotalInfo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: #f5f5f5;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #7f8c8d;
+}
+
+.subtotalValue {
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+/* ==========================================
+   BUTTONS FOOTER - STICKY sempre visível
+   ========================================== */
+.buttonsFooter {
+    flex-shrink: 0;
+    background: #ffffff;
+    padding: 12px 16px;
+    border-top: 1px solid #eeeeee;
+    /* Safe area para notch/home indicator */
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0));
+}
+
+.buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.btnPrimary,
+.btnSecondary {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s ease;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.btnPrimary {
+    background: #ff6b35;
+    color: #ffffff;
+}
+
+.btnPrimary:hover:not(:disabled),
+.btnPrimary:active:not(:disabled) {
+    background: #f7931e;
+}
+
+.btnPrimary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btnSecondary {
+    background: #f5f5f5;
+    color: #7f8c8d;
+    border: 1px solid #e0e0e0;
+}
+
+.btnSecondary:hover:not(:disabled),
+.btnSecondary:active:not(:disabled) {
+    background: #e8e8e8;
+}
+
+.btnSecondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ==========================================
+   COUPON CARD (Step 2)
+   ========================================== */
+.couponCard {
+    background: linear-gradient(135deg, #fff5f0, #fff0e6);
+    border: 2px dashed #ff6b35;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.couponCardHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(255, 107, 53, 0.1);
+}
+
+.couponCardIcon {
+    font-size: 18px;
+}
+
+.couponCardCode {
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: #ff6b35;
+    letter-spacing: 0.5px;
+}
+
+.couponCardBody {
+    padding: 10px 12px;
+}
+
+.couponDetailRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    font-size: 11px;
+    color: #7f8c8d;
+}
+
+.couponDetailRow:not(:last-child) {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.couponDetailValue {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.couponDetailHighlight {
+    font-weight: 700;
+    color: #ff6b35;
+    font-size: 13px;
+}
+
+.couponWarning {
+    margin-top: 6px;
+    padding: 6px 10px;
+    background: rgba(255, 152, 0, 0.1);
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #ff9800;
+}
+
+.couponCardFooter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: #ff6b35;
+    color: #ffffff;
+    font-size: 12px;
+}
+
+.discountAmount {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+/* ==========================================
+   SUMMARY (Step 2)
+   ========================================== */
+.summary {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: #f5f5f5;
+    border-radius: 8px;
+}
+
+.summaryRow {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    font-size: 11px;
+    color: #7f8c8d;
+}
+
+.summaryDiscount {
+    color: #4caf50;
+    font-weight: 600;
+}
+
+.summaryTotal {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed #ddd;
+    font-size: 13px;
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+/* ==========================================
+   SUCCESS STEP (Step 3)
+   ========================================== */
+.successStep {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 20px 16px;
+}
+
+.successIcon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4caf50, #66bb6a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.successIcon span {
+    font-size: 28px;
+    color: #ffffff;
+}
+
+.successTitle {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #4caf50;
+    margin: 0 0 6px 0;
+}
+
+.successMessage {
+    font-size: 12px;
+    color: #7f8c8d;
+    margin: 0;
+}
+
+.successTotal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 12px;
+    padding: 10px 20px;
+    background: #f5f5f5;
+    border-radius: 8px;
+}
+
+.successTotal span:first-child {
+    font-size: 10px;
+    color: #7f8c8d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.successTotalValue {
+    font-size: 20px;
+    font-weight: 700;
+    color: #ff6b35;
+    margin-top: 4px;
+}
+
+/* ==========================================
+   MOBILE BREAKPOINTS (< 420px)
+   ========================================== */
+@media (max-width: 420px) {
+    .modal {
+        max-height: 88dvh;
+        /* Mais espaço em telas menores */
+    }
+
+    .header {
+        padding: 10px 14px;
+    }
+
+    .headerIcon {
+        font-size: 22px;
+    }
+
+    .headerTitle {
+        font-size: 14px;
+    }
+
+    .headerSubtitle {
+        display: none;
+        /* Esconde subtítulo em telas pequenas */
+    }
+
+    .progress {
+        padding: 8px 12px;
+    }
+
+    .stepNumber {
+        width: 16px;
+        height: 16px;
+        font-size: 9px;
+    }
+
+    .stepLabel {
+        font-size: 9px;
+    }
+
+    .progressLine {
+        width: 10px;
+    }
+
+    .content {
+        padding: 12px;
+    }
+
+    .buttonsFooter {
+        padding: 10px 12px;
+        padding-bottom: calc(10px + env(safe-area-inset-bottom, 0));
+    }
+
+    .btnPrimary,
+    .btnSecondary {
+        padding: 10px 12px;
+        font-size: 12px;
+    }
+}
+
+/* ==========================================
+   VERY SMALL SCREENS (< 360px)
+   ========================================== */
+@media (max-width: 360px) {
+    .stepLabel {
+        display: none;
+        /* Só mostra números */
+    }
+
+    .content {
+        padding: 10px;
+    }
+
+    .btnPrimary,
+    .btnSecondary {
+        padding: 10px 8px;
+        font-size: 11px;
+    }
+}
+
+/* ==========================================
+   ANIMATIONS
+   ========================================== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        transform: translateX(-10px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

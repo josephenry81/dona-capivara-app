@@ -1,0 +1,4138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dona Capivara - Wireframe Redesign</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', cursive;
+            background: #fff;
+            color: #000;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            border: 3px solid #333;
+            background: #f5f5f5;
+            padding: 0;
+        }
+        
+        /* Header */
+        .header {
+            background: #ccc;
+            padding: 16px;
+            border-bottom: 3px solid #333;
+            position: relative;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .header-subtitle {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .notification-icon {
+            width: 32px;
+            height: 32px;
+            border: 2px solid #333;
+            border-radius: 50%;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        
+        /* Search & Filter */
+        .search-section {
+            padding: 16px;
+            background: #f5f5f5;
+            border-bottom: 2px dashed #999;
+        }
+        
+        .search-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #333;
+            background: #fff;
+            font-family: inherit;
+        }
+        
+        .filter-btn {
+            width: 48px;
+            height: 48px;
+            border: 3px solid #333;
+            background: #999;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+            position: relative;
+        }
+        
+        .filter-btn.active {
+            background: #666;
+            color: #fff;
+        }
+        
+        .filter-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #333;
+            color: #fff;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            border: 2px solid #fff;
+        }
+        
+        /* Active Filters */
+        .active-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 2px dashed #999;
+        }
+        
+        .filter-chip {
+            padding: 4px 8px;
+            border: 2px solid #333;
+            background: #e6e6e6;
+            font-size: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .filter-chip-remove {
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        /* Categories */
+        .categories {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+        
+        .category-chip {
+            padding: 8px 16px;
+            border: 2px solid #333;
+            background: #fff;
+            white-space: nowrap;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .category-chip.active {
+            background: #999;
+            color: #fff;
+        }
+        
+        /* Compact Banner */
+        .banner-compact {
+            margin: 16px;
+            height: 120px;
+            border: 3px solid #333;
+            background: #e6e6e6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .banner-text {
+            text-align: center;
+            padding: 16px;
+        }
+        
+        .banner-title {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        
+        .banner-subtitle {
+            font-size: 11px;
+            color: #666;
+        }
+        
+        .banner-dots {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 4px;
+        }
+        
+        .banner-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #666;
+            border: 1px solid #333;
+        }
+        
+        .banner-dot.active {
+            background: #333;
+            width: 16px;
+            border-radius: 3px;
+        }
+        
+        /* Quick Stats (Points Banner) */
+        .quick-stats {
+            margin: 16px;
+            padding: 12px;
+            border: 2px solid #333;
+            border-left: 6px solid #666;
+            background: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .stat-value {
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        /* Product Grid */
+        .products-grid {
+            padding: 0 16px 100px 16px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .product-card {
+            border: 2px solid #333;
+            background: #fff;
+            padding: 8px;
+            position: relative;
+        }
+        
+        .product-image {
+            width: 100%;
+            height: 120px;
+            border: 2px solid #999;
+            background: #e6e6e6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .product-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #666;
+            color: #fff;
+            padding: 2px 6px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        
+        .product-name {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .product-price {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .product-stock {
+            font-size: 10px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .product-rating {
+            font-size: 11px;
+            margin-bottom: 8px;
+        }
+        
+        .product-actions {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .quantity-selector {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        
+        .qty-btn {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #333;
+            background: #fff;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .qty-value {
+            min-width: 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .add-to-cart-btn {
+            flex: 1;
+            padding: 8px;
+            border: 2px solid #333;
+            background: #999;
+            color: #fff;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 11px;
+        }
+        
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 40px);
+            max-width: 380px;
+            background: #fff;
+            border: 3px solid #333;
+            border-radius: 24px;
+            padding: 12px 8px;
+            display: flex;
+            justify-content: space-around;
+            box-shadow: 0 4px 0 #333;
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .nav-icon {
+            width: 32px;
+            height: 32px;
+            border: 2px solid #333;
+            border-radius: 50%;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        
+        .nav-item.active .nav-icon {
+            background: #999;
+            color: #fff;
+        }
+        
+        .nav-label {
+            font-size: 9px;
+            font-weight: bold;
+        }
+        
+        .nav-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #333;
+            color: #fff;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: bold;
+            border: 2px solid #fff;
+        }
+        
+        /* Component Tags */
+        .component-tag {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: #4CAF50;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            z-index: 10;
+            border: 1px solid #333;
+        }
+        
+        .component-tag.new {
+            background: #FF9800;
+        }
+        
+        .section-title {
+            text-align: center;
+            padding: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            background: #e6e6e6;
+            border-bottom: 3px solid #333;
+        }
+        
+        .wireframe-note {
+            background: #ffffcc;
+            border: 2px solid #333;
+            padding: 12px;
+            margin: 16px;
+            font-size: 12px;
+        }
+        
+        .wireframe-note strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .wireframe-note ul {
+            margin-left: 20px;
+            margin-top: 8px;
+        }
+        
+        .wireframe-note li {
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="section-title">Dona Capivara - Redesign Otimizado</div>
+    
+    <div class="wireframe-note">
+        <strong>📋 Melhorias principais:</strong>
+        <ul>
+            <li>✅ Banner compacto (120px vs 800px) - melhor UX mobile</li>
+            <li>✅ Avaliações visíveis nos cards</li>
+            <li>✅ Filtros destacados com badge (Zero Lactose, Vegano, etc.)</li>
+            <li>✅ Filtros ativos sempre visíveis</li>
+            <li>✅ Quick stats para engajamento</li>
+            <li>✅ Bottom nav redesenhado (mais acessível)</li>
+            <li>✅ Componentes existentes reutilizados</li>
+        </ul>
+    </div>
+    
+    <div class="container">
+        <!-- REUSABLE: Header from app/page.tsx (HomeView) -->
+        <div class="header" style="position: relative;">
+            <span class="component-tag" title="components/views/HomeView.tsx">[REUSE] Header</span>
+            <div class="header-content">
+                <div>
+                    <div class="header-subtitle">Bem-vindo(a)!</div>
+                    <div class="header-title">Dona Capivara</div>
+                </div>
+                <div class="notification-icon">🔔</div>
+            </div>
+        </div>
+        
+        <!-- REUSABLE: Search Bar from HomeView -->
+        <div class="search-section" style="position: relative;">
+            <span class="component-tag" title="components/views/HomeView.tsx">[REUSE] SearchBar</span>
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="🔍 Buscar geladinho...">
+                <button class="filter-btn active">
+                    ≡
+                    <span class="filter-badge">2</span>
+                </button>
+            </div>
+            
+            <!-- NEW: Active Filters Display -->
+            <div class="active-filters">
+                <div class="filter-chip">
+                    🥛 Zero Lactose
+                    <span class="filter-chip-remove">✕</span>
+                </div>
+                <div class="filter-chip">
+                    🌱 Vegano
+                    <span class="filter-chip-remove">✕</span>
+                </div>
+            </div>
+            
+            <!-- REUSABLE: Categories from HomeView -->
+            <div class="categories">
+                <div class="category-chip active">Todos</div>
+                <div class="category-chip">Geladinho</div>
+                <div class="category-chip">Cuscuz</div>
+            </div>
+        </div>
+        
+        <!-- NEW COMPONENT: CompactBanner (replacing 800px banner) -->
+        <div class="banner-compact" style="position: relative;">
+            <span class="component-tag new" title="To be created at components/common/CompactBanner.tsx">[NEW] CompactBanner</span>
+            <div class="banner-text">
+                <div class="banner-title">🎁 Ganhe Pontos!</div>
+                <div class="banner-subtitle">R$1 = 1 ponto. Troque por descontos!</div>
+            </div>
+            <div class="banner-dots">
+                <div class="banner-dot active"></div>
+                <div class="banner-dot"></div>
+                <div class="banner-dot"></div>
+            </div>
+        </div>
+        
+        <!-- NEW COMPONENT: QuickStats (enhanced points display) -->
+        <div class="quick-stats" style="position: relative;">
+            <span class="component-tag new" title="To be created at components/common/QuickStats.tsx">[NEW] QuickStats</span>
+            <div>
+                <div class="stat-label">Clube Capivara 👑</div>
+                <div class="stat-value">450 pontos</div>
+            </div>
+            <div style="text-align: right; font-size: 11px;">
+                <div>Faltam 50 pts</div>
+                <div>para Gold+ 🏆</div>
+            </div>
+        </div>
+        
+        <!-- REUSABLE: Product Grid from HomeView -->
+        <div class="products-grid" style="position: relative;">
+            <span class="component-tag" title="components/views/HomeView.tsx" style="top: -12px; right: 28px;">[REUSE] ProductGrid</span>
+            
+            <!-- REUSABLE: ProductCard with NEW enhancements -->
+            <div class="product-card" style="position: relative;">
+                <span class="component-tag new" title="Enhanced ProductCard with ratings">[ENHANCED] ProductCard</span>
+                <div class="product-badge">NOVO</div>
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Maracujá e Geleia</div>
+                <div class="product-price">R$ 6,00</div>
+                <div class="product-stock">Estoque: 4</div>
+                <div class="product-rating">⭐⭐⭐⭐⭐ (4.8)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Milho Verde Com Amendoim</div>
+                <div class="product-price">R$ 6,00</div>
+                <div class="product-stock">Estoque: 15</div>
+                <div class="product-rating">⭐⭐⭐⭐☆ (4.5)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Morango & Geleia</div>
+                <div class="product-price">R$ 7,00</div>
+                <div class="product-stock">Estoque: 8</div>
+                <div class="product-rating">⭐⭐⭐⭐⭐ (5.0)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Mousse de Chocolate</div>
+                <div class="product-price">R$ 8,00</div>
+                <div class="product-stock">Estoque: 6</div>
+                <div class="product-rating">⭐⭐⭐⭐⭐ (4.9)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- REUSABLE: BottomNav (redesigned for better accessibility) -->
+        <div class="bottom-nav" style="position: relative;">
+            <span class="component-tag" title="components/navigation/BottomNav.tsx" style="top: -12px; right: 50%;">[ENHANCED] BottomNav</span>
+            
+            <div class="nav-item active">
+                <div class="nav-icon">🏠</div>
+                <div class="nav-label">Início</div>
+            </div>
+            
+            <div class="nav-item">
+                <div class="nav-icon">❤️</div>
+                <div class="nav-label">Favoritos</div>
+            </div>
+            
+            <div class="nav-item">
+                <div class="nav-icon">🛒</div>
+                <div class="nav-label">Carrinho</div>
+                <div class="nav-badge">3</div>
+            </div>
+            
+            <div class="nav-item">
+                <div class="nav-icon">👤</div>
+                <div class="nav-label">Perfil</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="wireframe-note" style="margin-top: 120px;">
+        <strong>🎨 Componentes Reutilizáveis:</strong>
+        <ul>
+            <li><strong>[REUSE]</strong> Header, SearchBar, Categories, ProductGrid, BottomNav</li>
+            <li><strong>[NEW]</strong> CompactBanner (120px altura), QuickStats</li>
+            <li><strong>[ENHANCED]</strong> ProductCard (+ ratings), FilterButton (+ badge), BottomNav (+ acessibilidade)</li>
+        </ul>
+        
+        <strong style="margin-top: 12px;">🚀 Benefícios da Mudança:</strong>
+        <ul>
+            <li>Banner 6.6x menor (800px → 120px)</li>
+            <li>Avaliações visíveis aumentam confiança</li>
+            <li><strong>Filtros destacados com badge de contagem</strong></li>
+            <li><strong>Filtros ativos sempre visíveis (Zero Lactose, Vegano, De frutas)</strong></li>
+            <li>Quick stats melhoram engajamento com pontos</li>
+            <li>Bottom nav com labels sempre visíveis</li>
+            <li>Melhor uso do espaço vertical</li>
+        </ul>
+        
+        <strong style="margin-top: 12px;">🔍 Sobre os Filtros:</strong>
+        <ul>
+            <li>Botão de filtro com badge mostrando quantidade de filtros ativos</li>
+            <li>Filtros aplicados ficam visíveis abaixo da barra de busca</li>
+            <li>Clientes podem filtrar por: Zero Lactose, Vegano, De frutas, Sem glúten, etc.</li>
+            <li>Fácil remoção individual de filtros com botão ✕</li>
+            <li>Essencial para clientes com restrições alimentares</li>
+        </ul>
+    </div>
+</body>
+</html>
+
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dona Capivara - Wireframe Redesign</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', cursive;
+            background: #fff;
+            color: #000;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            border: 3px solid #333;
+            background: #f5f5f5;
+            padding: 0;
+        }
+        
+        /* Header */
+        .header {
+            background: #ccc;
+            padding: 16px;
+            border-bottom: 3px solid #333;
+            position: relative;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .header-subtitle {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .notification-icon {
+            width: 32px;
+            height: 32px;
+            border: 2px solid #333;
+            border-radius: 50%;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        /* Search & Filter */
+        .search-section {
+            padding: 16px;
+            background: #f5f5f5;
+            border-bottom: 2px dashed #999;
+        }
+        
+        .search-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #333;
+            background: #fff;
+            font-family: inherit;
+        }
+        
+        .filter-btn {
+            width: 48px;
+            height: 48px;
+            border: 3px solid #333;
+            background: #999;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+            position: relative;
+        }
+        
+        .filter-btn.active {
+            background: #666;
+            color: #fff;
+        }
+        
+        .filter-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #333;
+            color: #fff;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            border: 2px solid #fff;
+        }
+        
+        /* Active Filters */
+        .active-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 2px dashed #999;
+        }
+        
+        .filter-chip {
+            padding: 4px 8px;
+            border: 2px solid #333;
+            background: #e6e6e6;
+            font-size: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .filter-chip-remove {
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        /* Categories */
+        .categories {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+        
+        .category-chip {
+            padding: 8px 16px;
+            border: 2px solid #333;
+            background: #fff;
+            white-space: nowrap;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .category-chip.active {
+            background: #999;
+            color: #fff;
+        }
+        
+        /* Compact Banner */
+        .banner-compact {
+            margin: 16px;
+            height: 120px;
+            border: 3px solid #333;
+            background: #e6e6e6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .banner-text {
+            text-align: center;
+            padding: 16px;
+        }
+        
+        .banner-title {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        
+        .banner-subtitle {
+            font-size: 11px;
+            color: #666;
+        }
+        
+        .banner-dots {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 4px;
+        }
+        
+        .banner-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #666;
+            border: 1px solid #333;
+        }
+        
+        .banner-dot.active {
+            background: #333;
+            width: 16px;
+            border-radius: 3px;
+        }
+        
+        /* Quick Stats (Points Banner) */
+        .quick-stats {
+            margin: 16px;
+            padding: 12px;
+            border: 2px solid #333;
+            border-left: 6px solid #666;
+            background: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .stat-value {
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        /* Product Grid */
+        .products-grid {
+            padding: 0 16px 100px 16px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .product-card {
+            border: 2px solid #333;
+            background: #fff;
+            padding: 8px;
+            position: relative;
+        }
+        
+        .product-image {
+            width: 100%;
+            height: 120px;
+            border: 2px solid #999;
+            background: #e6e6e6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .product-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #666;
+            color: #fff;
+            padding: 2px 6px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        
+        .product-name {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .product-price {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .product-stock {
+            font-size: 10px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .product-rating {
+            font-size: 11px;
+            margin-bottom: 8px;
+        }
+        
+        .product-actions {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .quantity-selector {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        
+        .qty-btn {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #333;
+            background: #fff;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .qty-value {
+            min-width: 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .add-to-cart-btn {
+            flex: 1;
+            padding: 8px;
+            border: 2px solid #333;
+            background: #999;
+            color: #fff;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 11px;
+        }
+        
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 40px);
+            max-width: 380px;
+            background: #fff;
+            border: 3px solid #333;
+            border-radius: 24px;
+            padding: 12px 8px;
+            display: flex;
+            justify-content: space-around;
+            box-shadow: 0 4px 0 #333;
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .nav-icon {
+            width: 32px;
+            height: 32px;
+            border: 2px solid #333;
+            border-radius: 50%;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        
+        .nav-item.active .nav-icon {
+            background: #999;
+            color: #fff;
+        }
+        
+        .nav-label {
+            font-size: 9px;
+            font-weight: bold;
+        }
+        
+        .nav-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #333;
+            color: #fff;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: bold;
+            border: 2px solid #fff;
+        }
+        
+        /* Component Tags */
+        .component-tag {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: #4CAF50;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            z-index: 10;
+            border: 1px solid #333;
+        }
+        
+        .component-tag.new {
+            background: #FF9800;
+        }
+        
+        .section-title {
+            text-align: center;
+            padding: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            background: #e6e6e6;
+            border-bottom: 3px solid #333;
+        }
+        
+        .wireframe-note {
+            background: #ffffcc;
+            border: 2px solid #333;
+            padding: 12px;
+            margin: 16px;
+            font-size: 12px;
+        }
+        
+        .wireframe-note strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .wireframe-note ul {
+            margin-left: 20px;
+            margin-top: 8px;
+        }
+        
+        .wireframe-note li {
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="section-title">Dona Capivara - Redesign Otimizado</div>
+    
+    <div class="wireframe-note">
+        <strong>📋 Melhorias principais:</strong>
+        <ul>
+            <li>✅ Banner compacto (120px vs 800px) - melhor UX mobile</li>
+            <li>✅ Avaliações visíveis nos cards</li>
+            <li>✅ Filtros destacados com badge (Zero Lactose, Vegano, etc.)</li>
+            <li>✅ Filtros ativos sempre visíveis</li>
+            <li>✅ Quick stats para engajamento</li>
+            <li>✅ Bottom nav redesenhado (mais acessível)</li>
+            <li>✅ Componentes existentes reutilizados</li>
+        </ul>
+    </div>
+    
+    <div class="container">
+        <!-- REUSABLE: Header from app/page.tsx (HomeView) -->
+        <div class="header" style="position: relative;">
+            <span class="component-tag" title="components/views/HomeView.tsx">[REUSE] Header</span>
+            <div class="header-content">
+                <div>
+                    <div class="header-subtitle">Bem-vindo(a)!</div>
+                    <div class="header-title">Dona Capivara</div>
+                </div>
+                <div class="notification-icon">🔔</div>
+            </div>
+        </div>
+        
+        <!-- REUSABLE: Search Bar from HomeView -->
+        <div class="search-section" style="position: relative;">
+            <span class="component-tag" title="components/views/HomeView.tsx">[REUSE] SearchBar</span>
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="🔍 Buscar geladinho...">
+                <button class="filter-btn active">
+                    ≡
+                    <span class="filter-badge">2</span>
+                </button>
+            </div>
+            
+            <!-- NEW: Active Filters Display -->
+            <div class="active-filters">
+                <div class="filter-chip">
+                    🥛 Zero Lactose
+                    <span class="filter-chip-remove">✕</span>
+                </div>
+                <div class="filter-chip">
+                    🌱 Vegano
+                    <span class="filter-chip-remove">✕</span>
+                </div>
+            </div>
+            
+            <!-- REUSABLE: Categories from HomeView -->
+            <div class="categories">
+                <div class="category-chip active">Todos</div>
+                <div class="category-chip">Geladinho</div>
+                <div class="category-chip">Cuscuz</div>
+            </div>
+        </div>
+        
+        <!-- NEW COMPONENT: CompactBanner (replacing 800px banner) -->
+        <div class="banner-compact" style="position: relative;">
+            <span class="component-tag new" title="To be created at components/common/CompactBanner.tsx">[NEW] CompactBanner</span>
+            <div class="banner-text">
+                <div class="banner-title">🎁 Ganhe Pontos!</div>
+                <div class="banner-subtitle">R$1 = 1 ponto. Troque por descontos!</div>
+            </div>
+            <div class="banner-dots">
+                <div class="banner-dot active"></div>
+                <div class="banner-dot"></div>
+                <div class="banner-dot"></div>
+            </div>
+        </div>
+        
+        <!-- NEW COMPONENT: QuickStats (enhanced points display) -->
+        <div class="quick-stats" style="position: relative;">
+            <span class="component-tag new" title="To be created at components/common/QuickStats.tsx">[NEW] QuickStats</span>
+            <div>
+                <div class="stat-label">Clube Capivara 👑</div>
+                <div class="stat-value">450 pontos</div>
+            </div>
+            <div style="text-align: right; font-size: 11px;">
+                <div>Faltam 50 pts</div>
+                <div>para Gold+ 🏆</div>
+            </div>
+        </div>
+        
+        <!-- REUSABLE: Product Grid from HomeView -->
+        <div class="products-grid" style="position: relative;">
+            <span class="component-tag" title="components/views/HomeView.tsx" style="top: -12px; right: 28px;">[REUSE] ProductGrid</span>
+            
+            <!-- REUSABLE: ProductCard with NEW enhancements -->
+            <div class="product-card" style="position: relative;">
+                <span class="component-tag new" title="Enhanced ProductCard with ratings">[ENHANCED] ProductCard</span>
+                <div class="product-badge">NOVO</div>
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Maracujá e Geleia</div>
+                <div class="product-price">R$ 6,00</div>
+                <div class="product-stock">Estoque: 4</div>
+                <div class="product-rating">⭐⭐⭐⭐⭐ (4.8)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Milho Verde Com Amendoim</div>
+                <div class="product-price">R$ 6,00</div>
+                <div class="product-stock">Estoque: 15</div>
+                <div class="product-rating">⭐⭐⭐⭐☆ (4.5)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Morango & Geleia</div>
+                <div class="product-price">R$ 7,00</div>
+                <div class="product-stock">Estoque: 8</div>
+                <div class="product-rating">⭐⭐⭐⭐⭐ (5.0)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Mousse de Chocolate</div>
+                <div class="product-price">R$ 8,00</div>
+                <div class="product-stock">Estoque: 6</div>
+                <div class="product-rating">⭐⭐⭐⭐⭐ (4.9)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- REUSABLE: BottomNav (redesigned for better accessibility) -->
+        <div class="bottom-nav" style="position: relative;">
+            <span class="component-tag" title="components/navigation/BottomNav.tsx" style="top: -12px; right: 50%;">[ENHANCED] BottomNav</span>
+            
+            <div class="nav-item active">
+                <div class="nav-icon">🏠</div>
+                <div class="nav-label">Início</div>
+            </div>
+            
+            <div class="nav-item">
+                <div class="nav-icon">❤️</div>
+                <div class="nav-label">Favoritos</div>
+            </div>
+            
+            <div class="nav-item">
+                <div class="nav-icon">🛒</div>
+                <div class="nav-label">Carrinho</div>
+                <div class="nav-badge">3</div>
+            </div>
+            
+            <div class="nav-item">
+                <div class="nav-icon">👤</div>
+                <div class="nav-label">Perfil</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="wireframe-note" style="margin-top: 120px;">
+        <strong>🎨 Componentes Reutilizáveis:</strong>
+        <ul>
+            <li><strong>[REUSE]</strong> Header, SearchBar, Categories, ProductGrid, BottomNav</li>
+            <li><strong>[NEW]</strong> CompactBanner (120px altura), QuickStats</li>
+            <li><strong>[ENHANCED]</strong> ProductCard (+ ratings), FilterButton (+ badge), BottomNav (+ acessibilidade)</li>
+        </ul>
+        
+        <strong style="margin-top: 12px;">🚀 Benefícios da Mudança:</strong>
+        <ul>
+            <li>Banner 6.6x menor (800px → 120px)</li>
+            <li>Avaliações visíveis aumentam confiança</li>
+            <li><strong>Filtros destacados com badge de contagem</strong></li>
+            <li><strong>Filtros ativos sempre visíveis (Zero Lactose, Vegano, De frutas)</strong></li>
+            <li>Quick stats melhoram engajamento com pontos</li>
+            <li>Bottom nav com labels sempre visíveis</li>
+            <li>Melhor uso do espaço vertical</li>
+        </ul>
+        
+        <strong style="margin-top: 12px;">🔍 Sobre os Filtros:</strong>
+        <ul>
+            <li>Botão de filtro com badge mostrando quantidade de filtros ativos</li>
+            <li>Filtros aplicados ficam visíveis abaixo da barra de busca</li>
+            <li>Clientes podem filtrar por: Zero Lactose, Vegano, De frutas, Sem glúten, etc.</li>
+            <li>Fácil remoção individual de filtros com botão ✕</li>
+            <li>Essencial para clientes com restrições alimentares</li>
+        </ul>
+    </div>
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dona Capivara - Wireframe Redesign</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', cursive;
+            background: #fff;
+            color: #000;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            border: 3px solid #333;
+            background: #f5f5f5;
+            padding: 0;
+        }
+        
+        /* Header */
+        .header {
+            background: #ccc;
+            padding: 16px;
+            border-bottom: 3px solid #333;
+            position: relative;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .header-subtitle {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .notification-icon {
+            width: 32px;
+            height: 32px;
+            border: 2px solid #333;
+            border-radius: 50%;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        /* Search & Filter */
+        .search-section {
+            padding: 16px;
+            background: #f5f5f5;
+            border-bottom: 2px dashed #999;
+        }
+        
+        .search-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #333;
+            background: #fff;
+            font-family: inherit;
+        }
+        
+        .filter-btn {
+            width: 48px;
+            height: 48px;
+            border: 3px solid #333;
+            background: #999;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+            position: relative;
+        }
+        
+        .filter-btn.active {
+            background: #666;
+            color: #fff;
+        }
+        
+        .filter-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #333;
+            color: #fff;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            border: 2px solid #fff;
+        }
+        
+        /* Active Filters */
+        .active-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 2px dashed #999;
+        }
+        
+        .filter-chip {
+            padding: 4px 8px;
+            border: 2px solid #333;
+            background: #e6e6e6;
+            font-size: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .filter-chip-remove {
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        /* Categories */
+        .categories {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+        
+        .category-chip {
+            padding: 8px 16px;
+            border: 2px solid #333;
+            background: #fff;
+            white-space: nowrap;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .category-chip.active {
+            background: #999;
+            color: #fff;
+        }
+        
+        /* Compact Banner */
+        .banner-compact {
+            margin: 16px;
+            height: 120px;
+            border: 3px solid #333;
+            background: #e6e6e6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .banner-text {
+            text-align: center;
+            padding: 16px;
+        }
+        
+        .banner-title {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        
+        .banner-subtitle {
+            font-size: 11px;
+            color: #666;
+        }
+        
+        .banner-dots {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 4px;
+        }
+        
+        .banner-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #666;
+            border: 1px solid #333;
+        }
+        
+        .banner-dot.active {
+            background: #333;
+            width: 16px;
+            border-radius: 3px;
+        }
+        
+        /* Quick Stats (Points Banner) */
+        .quick-stats {
+            margin: 16px;
+            padding: 12px;
+            border: 2px solid #333;
+            border-left: 6px solid #666;
+            background: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .stat-value {
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        /* Product Grid */
+        .products-grid {
+            padding: 0 16px 100px 16px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .product-card {
+            border: 2px solid #333;
+            background: #fff;
+            padding: 8px;
+            position: relative;
+        }
+        
+        .product-image {
+            width: 100%;
+            height: 120px;
+            border: 2px solid #999;
+            background: #e6e6e6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .product-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #666;
+            color: #fff;
+            padding: 2px 6px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        
+        .product-name {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .product-price {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .product-stock {
+            font-size: 10px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .product-rating {
+            font-size: 11px;
+            margin-bottom: 8px;
+        }
+        
+        .product-actions {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .quantity-selector {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        
+        .qty-btn {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #333;
+            background: #fff;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .qty-value {
+            min-width: 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .add-to-cart-btn {
+            flex: 1;
+            padding: 8px;
+            border: 2px solid #333;
+            background: #999;
+            color: #fff;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 11px;
+        }
+        
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 40px);
+            max-width: 380px;
+            background: #fff;
+            border: 3px solid #333;
+            border-radius: 24px;
+            padding: 12px 8px;
+            display: flex;
+            justify-content: space-around;
+            box-shadow: 0 4px 0 #333;
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .nav-icon {
+            width: 32px;
+            height: 32px;
+            border: 2px solid #333;
+            border-radius: 50%;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        
+        .nav-item.active .nav-icon {
+            background: #999;
+            color: #fff;
+        }
+        
+        .nav-label {
+            font-size: 9px;
+            font-weight: bold;
+        }
+        
+        .nav-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #333;
+            color: #fff;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: bold;
+            border: 2px solid #fff;
+        }
+        
+        /* Component Tags */
+        .component-tag {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: #4CAF50;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            z-index: 10;
+            border: 1px solid #333;
+        }
+        
+        .component-tag.new {
+            background: #FF9800;
+        }
+        
+        .section-title {
+            text-align: center;
+            padding: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            background: #e6e6e6;
+            border-bottom: 3px solid #333;
+        }
+        
+        .wireframe-note {
+            background: #ffffcc;
+            border: 2px solid #333;
+            padding: 12px;
+            margin: 16px;
+            font-size: 12px;
+        }
+        
+        .wireframe-note strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .wireframe-note ul {
+            margin-left: 20px;
+            margin-top: 8px;
+        }
+        
+        .wireframe-note li {
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="section-title">Dona Capivara - Redesign Otimizado</div>
+    
+    <div class="wireframe-note">
+        <strong>📋 Melhorias principais:</strong>
+        <ul>
+            <li>✅ Banner compacto (120px vs 800px) - melhor UX mobile</li>
+            <li>✅ Avaliações visíveis nos cards</li>
+            <li>✅ Filtros destacados com badge (Zero Lactose, Vegano, etc.)</li>
+            <li>✅ Filtros ativos sempre visíveis</li>
+            <li>✅ Quick stats para engajamento</li>
+            <li>✅ Bottom nav redesenhado (mais acessível)</li>
+            <li>✅ Componentes existentes reutilizados</li>
+        </ul>
+    </div>
+    
+    <div class="container">
+        <!-- REUSABLE: Header from app/page.tsx (HomeView) -->
+        <div class="header" style="position: relative;">
+            <span class="component-tag" title="components/views/HomeView.tsx">[REUSE] Header</span>
+            <div class="header-content">
+                <div>
+                    <div class="header-subtitle">Bem-vindo(a)!</div>
+                    <div class="header-title">Dona Capivara</div>
+                </div>
+                <div class="header-actions">
+                    <div class="notification-icon">🔔</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- REUSABLE: Search Bar from HomeView -->
+        <div class="search-section" style="position: relative;">
+            <span class="component-tag" title="components/views/HomeView.tsx">[REUSE] SearchBar</span>
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="🔍 Buscar geladinho...">
+                <button class="filter-btn active">
+                    ≡
+                    <span class="filter-badge">2</span>
+                </button>
+            </div>
+            
+            <!-- NEW: Active Filters Display -->
+            <div class="active-filters">
+                <div class="filter-chip">
+                    🥛 Zero Lactose
+                    <span class="filter-chip-remove">✕</span>
+                </div>
+                <div class="filter-chip">
+                    🌱 Vegano
+                    <span class="filter-chip-remove">✕</span>
+                </div>
+            </div>
+            
+            <!-- REUSABLE: Categories from HomeView -->
+            <div class="categories">
+                <div class="category-chip active">Todos</div>
+                <div class="category-chip">Geladinho</div>
+                <div class="category-chip">Cuscuz</div>
+            </div>
+        </div>
+        
+        <!-- NEW COMPONENT: CompactBanner (replacing 800px banner) -->
+        <div class="banner-compact" style="position: relative;">
+            <span class="component-tag new" title="To be created at components/common/CompactBanner.tsx">[NEW] CompactBanner</span>
+            <div class="banner-text">
+                <div class="banner-title">🎁 Ganhe Pontos!</div>
+                <div class="banner-subtitle">R$1 = 1 ponto. Troque por descontos!</div>
+            </div>
+            <div class="banner-dots">
+                <div class="banner-dot active"></div>
+                <div class="banner-dot"></div>
+                <div class="banner-dot"></div>
+            </div>
+        </div>
+        
+        <!-- NEW COMPONENT: QuickStats (enhanced points display) -->
+        <div class="quick-stats" style="position: relative;">
+            <span class="component-tag new" title="To be created at components/common/QuickStats.tsx">[NEW] QuickStats</span>
+            <div>
+                <div class="stat-label">Clube Capivara 👑</div>
+                <div class="stat-value">450 pontos</div>
+            </div>
+            <div style="text-align: right; font-size: 11px;">
+                <div>Faltam 50 pts</div>
+                <div>para Gold+ 🏆</div>
+            </div>
+        </div>
+        
+        <!-- REUSABLE: Product Grid from HomeView -->
+        <div class="products-grid" style="position: relative;">
+            <span class="component-tag" title="components/views/HomeView.tsx" style="top: -12px; right: 28px;">[REUSE] ProductGrid</span>
+            
+            <!-- REUSABLE: ProductCard with NEW enhancements -->
+            <div class="product-card" style="position: relative;">
+                <span class="component-tag new" title="Enhanced ProductCard with ratings">[ENHANCED] ProductCard</span>
+                <div class="product-badge">NOVO</div>
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Maracujá e Geleia</div>
+                <div class="product-price">R$ 6,00</div>
+                <div class="product-stock">Estoque: 4</div>
+                <div class="product-rating">⭐⭐⭐⭐⭐ (4.8)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Milho Verde Com Amendoim</div>
+                <div class="product-price">R$ 6,00</div>
+                <div class="product-stock">Estoque: 15</div>
+                <div class="product-rating">⭐⭐⭐⭐☆ (4.5)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Morango & Geleia</div>
+                <div class="product-price">R$ 7,00</div>
+                <div class="product-stock">Estoque: 8</div>
+                <div class="product-rating">⭐⭐⭐⭐⭐ (5.0)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Mousse de Chocolate</div>
+                <div class="product-price">R$ 8,00</div>
+                <div class="product-stock">Estoque: 6</div>
+                <div class="product-rating">⭐⭐⭐⭐⭐ (4.9)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- REUSABLE: BottomNav (redesigned for better accessibility) -->
+        <div class="bottom-nav" style="position: relative;">
+            <span class="component-tag" title="components/navigation/BottomNav.tsx" style="top: -12px; right: 50%;">[ENHANCED] BottomNav</span>
+            
+            <div class="nav-item active">
+                <div class="nav-icon">🏠</div>
+                <div class="nav-label">Início</div>
+            </div>
+            
+            <div class="nav-item">
+                <div class="nav-icon">❤️</div>
+                <div class="nav-label">Favoritos</div>
+            </div>
+            
+            <div class="nav-item">
+                <div class="nav-icon">🛒</div>
+                <div class="nav-label">Carrinho</div>
+                <div class="nav-badge">3</div>
+            </div>
+            
+            <div class="nav-item">
+                <div class="nav-icon">👤</div>
+                <div class="nav-label">Perfil</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="wireframe-note" style="margin-top: 120px;">
+        <strong>🎨 Componentes Reutilizáveis:</strong>
+        <ul>
+            <li><strong>[REUSE]</strong> Header, SearchBar, Categories, ProductGrid, BottomNav</li>
+            <li><strong>[NEW]</strong> CompactBanner (120px altura), QuickStats</li>
+            <li><strong>[ENHANCED]</strong> ProductCard (+ ratings), FilterButton (+ badge), BottomNav (+ acessibilidade)</li>
+        </ul>
+        
+        <strong style="margin-top: 12px;">🚀 Benefícios da Mudança:</strong>
+        <ul>
+            <li>Banner 6.6x menor (800px → 120px)</li>
+            <li>Avaliações visíveis aumentam confiança</li>
+            <li><strong>Filtros destacados com badge de contagem</strong></li>
+            <li><strong>Filtros ativos sempre visíveis (Zero Lactose, Vegano, De frutas)</strong></li>
+            <li>Quick stats melhoram engajamento com pontos</li>
+            <li>Bottom nav com labels sempre visíveis</li>
+            <li>Melhor uso do espaço vertical</li>
+        </ul>
+        
+        <strong style="margin-top: 12px;">🔍 Sobre os Filtros:</strong>
+        <ul>
+            <li>Botão de filtro com badge mostrando quantidade de filtros ativos</li>
+            <li>Filtros aplicados ficam visíveis abaixo da barra de busca</li>
+            <li>Clientes podem filtrar por: Zero Lactose, Vegano, De frutas, Sem glúten, etc.</li>
+            <li>Fácil remoção individual de filtros com botão ✕</li>
+            <li>Essencial para clientes com restrições alimentares</li>
+        </ul>
+    </div>
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dona Capivara - Wireframe Redesign</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', cursive;
+            background: #fff;
+            color: #000;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            border: 3px solid #333;
+            background: #f5f5f5;
+            padding: 0;
+        }
+        
+        /* Header */
+        .header {
+            background: #ccc;
+            padding: 16px;
+            border-bottom: 3px solid #333;
+            position: relative;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .header-subtitle {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .notification-icon {
+            width: 32px;
+            height: 32px;
+            border: 2px solid #333;
+            border-radius: 50%;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        /* Search & Filter */
+        .search-section {
+            padding: 16px;
+            background: #f5f5f5;
+            border-bottom: 2px dashed #999;
+        }
+        
+        .search-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #333;
+            background: #fff;
+            font-family: inherit;
+        }
+        
+        .filter-btn {
+            width: 48px;
+            height: 48px;
+            border: 3px solid #333;
+            background: #999;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+            position: relative;
+        }
+        
+        .filter-btn.active {
+            background: #666;
+            color: #fff;
+        }
+        
+        .filter-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #333;
+            color: #fff;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            border: 2px solid #fff;
+        }
+        
+        /* Active Filters */
+        .active-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 2px dashed #999;
+        }
+        
+        .filter-chip {
+            padding: 4px 8px;
+            border: 2px solid #333;
+            background: #e6e6e6;
+            font-size: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .filter-chip-remove {
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        /* Categories */
+        .categories {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+        
+        .category-chip {
+            padding: 8px 16px;
+            border: 2px solid #333;
+            background: #fff;
+            white-space: nowrap;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .category-chip.active {
+            background: #999;
+            color: #fff;
+        }
+        
+        /* Compact Banner */
+        .banner-compact {
+            margin: 16px;
+            height: 120px;
+            border: 3px solid #333;
+            background: #e6e6e6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .banner-text {
+            text-align: center;
+            padding: 16px;
+        }
+        
+        .banner-title {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        
+        .banner-subtitle {
+            font-size: 11px;
+            color: #666;
+        }
+        
+        .banner-dots {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 4px;
+        }
+        
+        .banner-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #666;
+            border: 1px solid #333;
+        }
+        
+        .banner-dot.active {
+            background: #333;
+            width: 16px;
+            border-radius: 3px;
+        }
+        
+        /* Quick Stats (Points Banner) */
+        .quick-stats {
+            margin: 16px;
+            padding: 12px;
+            border: 2px solid #333;
+            border-left: 6px solid #666;
+            background: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .stat-value {
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        /* Product Grid */
+        .products-grid {
+            padding: 0 16px 100px 16px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .product-card {
+            border: 2px solid #333;
+            background: #fff;
+            padding: 8px;
+            position: relative;
+        }
+        
+        .product-image {
+            width: 100%;
+            height: 120px;
+            border: 2px solid #999;
+            background: #e6e6e6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .product-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #666;
+            color: #fff;
+            padding: 2px 6px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        
+        .product-name {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .product-price {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .product-stock {
+            font-size: 10px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .product-rating {
+            font-size: 11px;
+            margin-bottom: 8px;
+        }
+        
+        .product-actions {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .quantity-selector {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        
+        .qty-btn {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #333;
+            background: #fff;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .qty-value {
+            min-width: 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .add-to-cart-btn {
+            flex: 1;
+            padding: 8px;
+            border: 2px solid #333;
+            background: #999;
+            color: #fff;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 11px;
+        }
+        
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 40px);
+            max-width: 380px;
+            background: #fff;
+            border: 3px solid #333;
+            border-radius: 24px;
+            padding: 12px 8px;
+            display: flex;
+            justify-content: space-around;
+            box-shadow: 0 4px 0 #333;
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .nav-icon {
+            width: 32px;
+            height: 32px;
+            border: 2px solid #333;
+            border-radius: 50%;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        
+        .nav-item.active .nav-icon {
+            background: #999;
+            color: #fff;
+        }
+        
+        .nav-label {
+            font-size: 9px;
+            font-weight: bold;
+        }
+        
+        .nav-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #333;
+            color: #fff;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: bold;
+            border: 2px solid #fff;
+        }
+        
+        /* Component Tags */
+        .component-tag {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: #4CAF50;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            z-index: 10;
+            border: 1px solid #333;
+        }
+        
+        .component-tag.new {
+            background: #FF9800;
+        }
+        
+        .section-title {
+            text-align: center;
+            padding: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            background: #e6e6e6;
+            border-bottom: 3px solid #333;
+        }
+        
+        .wireframe-note {
+            background: #ffffcc;
+            border: 2px solid #333;
+            padding: 12px;
+            margin: 16px;
+            font-size: 12px;
+        }
+        
+        .wireframe-note strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .wireframe-note ul {
+            margin-left: 20px;
+            margin-top: 8px;
+        }
+        
+        .wireframe-note li {
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="section-title">Dona Capivara - Redesign Otimizado</div>
+    
+    <div class="wireframe-note">
+        <strong>📋 Melhorias principais:</strong>
+        <ul>
+            <li>✅ Banner compacto (120px vs 800px) - melhor UX mobile</li>
+            <li>✅ Avaliações visíveis nos cards</li>
+            <li>✅ Filtros destacados com badge (Zero Lactose, Vegano, etc.)</li>
+            <li>✅ Filtros ativos sempre visíveis</li>
+            <li>✅ Quick stats para engajamento</li>
+            <li>✅ Bottom nav redesenhado (mais acessível)</li>
+            <li>✅ Componentes existentes reutilizados</li>
+        </ul>
+    </div>
+    
+    <div class="container">
+        <!-- REUSABLE: Header from app/page.tsx (HomeView) -->
+        <div class="header" style="position: relative;">
+            <span class="component-tag" title="components/views/HomeView.tsx">[REUSE] Header</span>
+            <div class="header-content">
+                <div>
+                    <div class="header-subtitle">Bem-vindo(a)!</div>
+                    <div class="header-title">Dona Capivara</div>
+                </div>
+                <div class="header-actions">
+                    <div class="notification-icon">🔔</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- REUSABLE: Search Bar from HomeView -->
+        <div class="search-section" style="position: relative;">
+            <span class="component-tag" title="components/views/HomeView.tsx">[REUSE] SearchBar</span>
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="🔍 Buscar geladinho...">
+                <button class="filter-btn active">
+                    ≡
+                    <span class="filter-badge">2</span>
+                </button>
+            </div>
+            
+            <!-- NEW: Active Filters Display -->
+            <div class="active-filters">
+                <div class="filter-chip">
+                    🥛 Zero Lactose
+                    <span class="filter-chip-remove">✕</span>
+                </div>
+                <div class="filter-chip">
+                    🌱 Vegano
+                    <span class="filter-chip-remove">✕</span>
+                </div>
+            </div>
+            
+            <!-- REUSABLE: Categories from HomeView -->
+            <div class="categories">
+                <div class="category-chip active">Todos</div>
+                <div class="category-chip">Geladinho</div>
+                <div class="category-chip">Cuscuz</div>
+            </div>
+        </div>
+        
+        <!-- NEW COMPONENT: CompactBanner (replacing 800px banner) -->
+        <div class="banner-compact" style="position: relative;">
+            <span class="component-tag new" title="To be created at components/common/CompactBanner.tsx">[NEW] CompactBanner</span>
+            <div class="banner-text">
+                <div class="banner-title">🎁 Ganhe Pontos!</div>
+                <div class="banner-subtitle">R$1 = 1 ponto. Troque por descontos!</div>
+            </div>
+            <div class="banner-dots">
+                <div class="banner-dot active"></div>
+                <div class="banner-dot"></div>
+                <div class="banner-dot"></div>
+            </div>
+        </div>
+        
+        <!-- NEW COMPONENT: QuickStats (enhanced points display) -->
+        <div class="quick-stats" style="position: relative;">
+            <span class="component-tag new" title="To be created at components/common/QuickStats.tsx">[NEW] QuickStats</span>
+            <div>
+                <div class="stat-label">Clube Capivara 👑</div>
+                <div class="stat-value">450 pontos</div>
+            </div>
+            <div style="text-align: right; font-size: 11px;">
+                <div>Faltam 50 pts</div>
+                <div>para Gold+ 🏆</div>
+            </div>
+        </div>
+        
+        <!-- REUSABLE: Product Grid from HomeView -->
+        <div class="products-grid" style="position: relative;">
+            <span class="component-tag" title="components/views/HomeView.tsx" style="top: -12px; right: 28px;">[REUSE] ProductGrid</span>
+            
+            <!-- REUSABLE: ProductCard with NEW enhancements -->
+            <div class="product-card" style="position: relative;">
+                <span class="component-tag new" title="Enhanced ProductCard with ratings">[ENHANCED] ProductCard</span>
+                <div class="product-badge">NOVO</div>
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Maracujá e Geleia</div>
+                <div class="product-price">R$ 6,00</div>
+                <div class="product-stock">Estoque: 4</div>
+                <div class="product-rating">⭐⭐⭐⭐⭐ (4.8)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Milho Verde Com Amendoim</div>
+                <div class="product-price">R$ 6,00</div>
+                <div class="product-stock">Estoque: 15</div>
+                <div class="product-rating">⭐⭐⭐⭐☆ (4.5)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Morango & Geleia</div>
+                <div class="product-price">R$ 7,00</div>
+                <div class="product-stock">Estoque: 8</div>
+                <div class="product-rating">⭐⭐⭐⭐⭐ (5.0)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Mousse de Chocolate</div>
+                <div class="product-price">R$ 8,00</div>
+                <div class="product-stock">Estoque: 6</div>
+                <div class="product-rating">⭐⭐⭐⭐⭐ (4.9)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- REUSABLE: BottomNav (redesigned for better accessibility) -->
+        <div class="bottom-nav" style="position: relative;">
+            <span class="component-tag" title="components/navigation/BottomNav.tsx" style="top: -12px; right: 50%;">[ENHANCED] BottomNav</span>
+            
+            <div class="nav-item active">
+                <div class="nav-icon">🏠</div>
+                <div class="nav-label">Início</div>
+            </div>
+            
+            <div class="nav-item">
+                <div class="nav-icon">❤️</div>
+                <div class="nav-label">Favoritos</div>
+            </div>
+            
+            <div class="nav-item">
+                <div class="nav-icon">🛒</div>
+                <div class="nav-label">Carrinho</div>
+                <div class="nav-badge">3</div>
+            </div>
+            
+            <div class="nav-item">
+                <div class="nav-icon">👤</div>
+                <div class="nav-label">Perfil</div>
+            </div>
+        </div>
+        
+        <!-- Settings Button moved to Profile Page -->
+        <div style="margin: 16px; padding: 12px; border: 2px dashed #999; background: #ffffcc; font-size: 11px;">
+            <strong>💡 Nota:</strong> O botão de Configurações ⚙️ foi movido para dentro da página de <strong>Perfil</strong>, onde ficará junto com outras opções de conta (editar dados, histórico de pedidos, etc.).
+        </div>
+        </div>
+    </div>
+    
+    <div class="wireframe-note" style="margin-top: 120px;">
+        <strong>🎨 Componentes Reutilizáveis:</strong>
+        <ul>
+            <li><strong>[REUSE]</strong> Header, SearchBar, Categories, ProductGrid, BottomNav</li>
+            <li><strong>[NEW]</strong> CompactBanner (120px altura), QuickStats</li>
+            <li><strong>[ENHANCED]</strong> ProductCard (+ ratings), FilterButton (+ badge), BottomNav (+ acessibilidade)</li>
+        </ul>
+        
+        <strong style="margin-top: 12px;">🚀 Benefícios da Mudança:</strong>
+        <ul>
+            <li>Banner 6.6x menor (800px → 120px)</li>
+            <li>Avaliações visíveis aumentam confiança</li>
+            <li><strong>Filtros destacados com badge de contagem</strong></li>
+            <li><strong>Filtros ativos sempre visíveis (Zero Lactose, Vegano, De frutas)</strong></li>
+            <li>Quick stats melhoram engajamento com pontos</li>
+            <li>Bottom nav com labels sempre visíveis</li>
+            <li>Melhor uso do espaço vertical</li>
+        </ul>
+        
+        <strong style="margin-top: 12px;">🔍 Sobre os Filtros:</strong>
+        <ul>
+            <li>Botão de filtro com badge mostrando quantidade de filtros ativos</li>
+            <li>Filtros aplicados ficam visíveis abaixo da barra de busca</li>
+            <li>Clientes podem filtrar por: Zero Lactose, Vegano, De frutas, Sem glúten, etc.</li>
+            <li>Fácil remoção individual de filtros com botão ✕</li>
+            <li>Essencial para clientes com restrições alimentares</li>
+        </ul>
+    </div>
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dona Capivara - Wireframe Redesign</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', cursive;
+            background: #fff;
+            color: #000;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            border: 3px solid #333;
+            background: #f5f5f5;
+            padding: 0;
+        }
+        
+        /* Header */
+        .header {
+            background: #ccc;
+            padding: 16px;
+            border-bottom: 3px solid #333;
+            position: relative;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .header-subtitle {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .notification-icon {
+            width: 32px;
+            height: 32px;
+            border: 2px solid #333;
+            border-radius: 50%;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        /* Search & Filter */
+        .search-section {
+            padding: 16px;
+            background: #f5f5f5;
+            border-bottom: 2px dashed #999;
+        }
+        
+        .search-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #333;
+            background: #fff;
+            font-family: inherit;
+        }
+        
+        .filter-btn {
+            width: 48px;
+            height: 48px;
+            border: 3px solid #333;
+            background: #999;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+            position: relative;
+        }
+        
+        .filter-btn.active {
+            background: #666;
+            color: #fff;
+        }
+        
+        .filter-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #333;
+            color: #fff;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            border: 2px solid #fff;
+        }
+        
+        /* Active Filters */
+        .active-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 2px dashed #999;
+        }
+        
+        .filter-chip {
+            padding: 4px 8px;
+            border: 2px solid #333;
+            background: #e6e6e6;
+            font-size: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .filter-chip-remove {
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        /* Categories */
+        .categories {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+        
+        .category-chip {
+            padding: 8px 16px;
+            border: 2px solid #333;
+            background: #fff;
+            white-space: nowrap;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .category-chip.active {
+            background: #999;
+            color: #fff;
+        }
+        
+        /* Compact Banner */
+        .banner-compact {
+            margin: 16px;
+            height: 120px;
+            border: 3px solid #333;
+            background: #e6e6e6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .banner-text {
+            text-align: center;
+            padding: 16px;
+        }
+        
+        .banner-title {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        
+        .banner-subtitle {
+            font-size: 11px;
+            color: #666;
+        }
+        
+        .banner-dots {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 4px;
+        }
+        
+        .banner-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #666;
+            border: 1px solid #333;
+        }
+        
+        .banner-dot.active {
+            background: #333;
+            width: 16px;
+            border-radius: 3px;
+        }
+        
+        /* Quick Stats (Points Banner) */
+        .quick-stats {
+            margin: 16px;
+            padding: 12px;
+            border: 2px solid #333;
+            border-left: 6px solid #666;
+            background: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .stat-value {
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        /* Product Grid */
+        .products-grid {
+            padding: 0 16px 100px 16px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .product-card {
+            border: 2px solid #333;
+            background: #fff;
+            padding: 8px;
+            position: relative;
+        }
+        
+        .product-image {
+            width: 100%;
+            height: 120px;
+            border: 2px solid #999;
+            background: #e6e6e6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .product-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #666;
+            color: #fff;
+            padding: 2px 6px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        
+        .product-name {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .product-price {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .product-stock {
+            font-size: 10px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .product-rating {
+            font-size: 11px;
+            margin-bottom: 8px;
+        }
+        
+        .product-actions {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .quantity-selector {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        
+        .qty-btn {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #333;
+            background: #fff;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .qty-value {
+            min-width: 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .add-to-cart-btn {
+            flex: 1;
+            padding: 8px;
+            border: 2px solid #333;
+            background: #999;
+            color: #fff;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 11px;
+        }
+        
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 40px);
+            max-width: 380px;
+            background: #fff;
+            border: 3px solid #333;
+            border-radius: 24px;
+            padding: 12px 8px;
+            display: flex;
+            justify-content: space-around;
+            box-shadow: 0 4px 0 #333;
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .nav-icon {
+            width: 32px;
+            height: 32px;
+            border: 2px solid #333;
+            border-radius: 50%;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        
+        .nav-item.active .nav-icon {
+            background: #999;
+            color: #fff;
+        }
+        
+        .nav-label {
+            font-size: 9px;
+            font-weight: bold;
+        }
+        
+        .nav-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #333;
+            color: #fff;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: bold;
+            border: 2px solid #fff;
+        }
+        
+        /* Component Tags */
+        .component-tag {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: #4CAF50;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            z-index: 10;
+            border: 1px solid #333;
+        }
+        
+        .component-tag.new {
+            background: #FF9800;
+        }
+        
+        .section-title {
+            text-align: center;
+            padding: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            background: #e6e6e6;
+            border-bottom: 3px solid #333;
+        }
+        
+        .wireframe-note {
+            background: #ffffcc;
+            border: 2px solid #333;
+            padding: 12px;
+            margin: 16px;
+            font-size: 12px;
+        }
+        
+        .wireframe-note strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .wireframe-note ul {
+            margin-left: 20px;
+            margin-top: 8px;
+        }
+        
+        .wireframe-note li {
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="section-title">Dona Capivara - Redesign Otimizado</div>
+    
+    <div class="wireframe-note">
+        <strong>📋 Melhorias principais:</strong>
+        <ul>
+            <li>✅ Banner compacto (120px vs 800px) - melhor UX mobile</li>
+            <li>✅ Avaliações visíveis nos cards</li>
+            <li>✅ Filtros destacados com badge (Zero Lactose, Vegano, etc.)</li>
+            <li>✅ Filtros ativos sempre visíveis</li>
+            <li>✅ Quick stats para engajamento</li>
+            <li>✅ Bottom nav redesenhado (mais acessível)</li>
+            <li>✅ Componentes existentes reutilizados</li>
+        </ul>
+    </div>
+    
+    <div class="container">
+        <!-- REUSABLE: Header from app/page.tsx (HomeView) -->
+        <div class="header" style="position: relative;">
+            <span class="component-tag" title="components/views/HomeView.tsx">[REUSE] Header</span>
+            <div class="header-content">
+                <div>
+                    <div class="header-subtitle">Bem-vindo(a)!</div>
+                    <div class="header-title">Dona Capivara</div>
+                </div>
+                <div class="header-actions">
+                    <div class="notification-icon">🔔</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- REUSABLE: Search Bar from HomeView -->
+        <div class="search-section" style="position: relative;">
+            <span class="component-tag" title="components/views/HomeView.tsx">[REUSE] SearchBar</span>
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="🔍 Buscar geladinho...">
+                <button class="filter-btn active">
+                    ≡
+                    <span class="filter-badge">2</span>
+                </button>
+            </div>
+            
+            <!-- NEW: Active Filters Display -->
+            <div class="active-filters">
+                <div class="filter-chip">
+                    🥛 Zero Lactose
+                    <span class="filter-chip-remove">✕</span>
+                </div>
+                <div class="filter-chip">
+                    🌱 Vegano
+                    <span class="filter-chip-remove">✕</span>
+                </div>
+            </div>
+            
+            <!-- REUSABLE: Categories from HomeView -->
+            <div class="categories">
+                <div class="category-chip active">Todos</div>
+                <div class="category-chip">Geladinho</div>
+                <div class="category-chip">Cuscuz</div>
+            </div>
+        </div>
+        
+        <!-- NEW COMPONENT: CompactBanner (replacing 800px banner) -->
+        <div class="banner-compact" style="position: relative;">
+            <span class="component-tag new" title="To be created at components/common/CompactBanner.tsx">[NEW] CompactBanner</span>
+            <div class="banner-text">
+                <div class="banner-title">🎁 Ganhe Pontos!</div>
+                <div class="banner-subtitle">R$1 = 1 ponto. Troque por descontos!</div>
+            </div>
+            <div class="banner-dots">
+                <div class="banner-dot active"></div>
+                <div class="banner-dot"></div>
+                <div class="banner-dot"></div>
+            </div>
+        </div>
+        
+        <!-- NEW COMPONENT: QuickStats (enhanced points display) -->
+        <div class="quick-stats" style="position: relative;">
+            <span class="component-tag new" title="To be created at components/common/QuickStats.tsx">[NEW] QuickStats</span>
+            <div>
+                <div class="stat-label">Clube Capivara 👑</div>
+                <div class="stat-value">450 pontos</div>
+            </div>
+            <div style="text-align: right; font-size: 11px;">
+                <div>Faltam 50 pts</div>
+                <div>para Gold+ 🏆</div>
+            </div>
+        </div>
+        
+        <!-- REUSABLE: Product Grid from HomeView -->
+        <div class="products-grid" style="position: relative;">
+            <span class="component-tag" title="components/views/HomeView.tsx" style="top: -12px; right: 28px;">[REUSE] ProductGrid</span>
+            
+            <!-- REUSABLE: ProductCard with NEW enhancements -->
+            <div class="product-card" style="position: relative;">
+                <span class="component-tag new" title="Enhanced ProductCard with ratings">[ENHANCED] ProductCard</span>
+                <div class="product-badge">NOVO</div>
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Maracujá e Geleia</div>
+                <div class="product-price">R$ 6,00</div>
+                <div class="product-stock">Estoque: 4</div>
+                <div class="product-rating">⭐⭐⭐⭐⭐ (4.8)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Milho Verde Com Amendoim</div>
+                <div class="product-price">R$ 6,00</div>
+                <div class="product-stock">Estoque: 15</div>
+                <div class="product-rating">⭐⭐⭐⭐☆ (4.5)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Morango & Geleia</div>
+                <div class="product-price">R$ 7,00</div>
+                <div class="product-stock">Estoque: 8</div>
+                <div class="product-rating">⭐⭐⭐⭐⭐ (5.0)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Mousse de Chocolate</div>
+                <div class="product-price">R$ 8,00</div>
+                <div class="product-stock">Estoque: 6</div>
+                <div class="product-rating">⭐⭐⭐⭐⭐ (4.9)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- REUSABLE: BottomNav (redesigned for better accessibility) -->
+        <div class="bottom-nav" style="position: relative;">
+            <span class="component-tag" title="components/navigation/BottomNav.tsx" style="top: -12px; right: 50%;">[ENHANCED] BottomNav</span>
+            
+            <div class="nav-item active">
+                <div class="nav-icon">🏠</div>
+                <div class="nav-label">Início</div>
+            </div>
+            
+            <div class="nav-item">
+                <div class="nav-icon">❤️</div>
+                <div class="nav-label">Favoritos</div>
+            </div>
+            
+            <div class="nav-item">
+                <div class="nav-icon">🛒</div>
+                <div class="nav-label">Carrinho</div>
+                <div class="nav-badge">3</div>
+            </div>
+            
+            <div class="nav-item">
+                <div class="nav-icon">👤</div>
+                <div class="nav-label">Perfil</div>
+            </div>
+        </div>
+        
+        <!-- Settings Button moved to Profile Page -->
+        <div style="margin: 16px; padding: 12px; border: 2px dashed #999; background: #ffffcc; font-size: 11px;">
+            <strong>💡 Nota:</strong> O botão de Configurações ⚙️ foi movido para dentro da página de <strong>Perfil</strong>, onde ficará junto com outras opções de conta (editar dados, histórico de pedidos, etc.).
+        </div>
+        </div>
+    </div>
+    
+    <div class="wireframe-note" style="margin-top: 120px;">
+        <strong>🎨 Componentes Reutilizáveis:</strong>
+        <ul>
+            <li><strong>[REUSE]</strong> Header, SearchBar, Categories, ProductGrid, BottomNav</li>
+            <li><strong>[NEW]</strong> CompactBanner (120px altura), QuickStats</li>
+            <li><strong>[ENHANCED]</strong> ProductCard (+ ratings), FilterButton (+ badge), BottomNav (+ acessibilidade)</li>
+        </ul>
+        
+        <strong style="margin-top: 12px;">🚀 Benefícios da Mudança:</strong>
+        <ul>
+            <li>Banner 6.6x menor (800px → 120px)</li>
+            <li>Avaliações visíveis aumentam confiança</li>
+            <li><strong>Filtros destacados com badge de contagem</strong></li>
+            <li><strong>Filtros ativos sempre visíveis (Zero Lactose, Vegano, De frutas)</strong></li>
+            <li>Quick stats melhoram engajamento com pontos</li>
+            <li>Bottom nav com labels sempre visíveis</li>
+            <li>Melhor uso do espaço vertical</li>
+        </ul>
+        
+        <strong style="margin-top: 12px;">🔍 Sobre os Filtros:</strong>
+        <ul>
+            <li><strong>Botão de filtro (≡ sliders)</strong> com badge mostrando quantidade de filtros ativos</li>
+            <li>Filtros aplicados ficam visíveis abaixo da barra de busca</li>
+            <li>Clientes podem filtrar por: Zero Lactose, Vegano, De frutas, Sem glúten, etc.</li>
+            <li>Fácil remoção individual de filtros com botão ✕</li>
+            <li>Essencial para clientes com restrições alimentares</li>
+        </ul>
+        
+        <strong style="margin-top: 12px;">⚙️ Mudança de Configurações:</strong>
+        <ul>
+            <li>Botão de configurações ⚙️ foi movido para a página de <strong>Perfil</strong></li>
+            <li>Header mais limpo, focado em notificações</li>
+            <li>Melhor organização das opções de conta</li>
+        </ul>
+    </div>
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dona Capivara - Wireframe Redesign</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', cursive;
+            background: #fff;
+            color: #000;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            border: 3px solid #333;
+            background: #f5f5f5;
+            padding: 0;
+        }
+        
+        /* Header */
+        .header {
+            background: #ccc;
+            padding: 16px;
+            border-bottom: 3px solid #333;
+            position: relative;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .header-subtitle {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .notification-icon {
+            width: 32px;
+            height: 32px;
+            border: 2px solid #333;
+            border-radius: 50%;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        /* Search & Filter */
+        .search-section {
+            padding: 16px;
+            background: #f5f5f5;
+            border-bottom: 2px dashed #999;
+        }
+        
+        .search-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #333;
+            background: #fff;
+            font-family: inherit;
+        }
+        
+        .filter-btn {
+            width: 48px;
+            height: 48px;
+            border: 3px solid #333;
+            background: #999;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+            position: relative;
+        }
+        
+        .filter-btn.active {
+            background: #666;
+            color: #fff;
+        }
+        
+        .filter-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #333;
+            color: #fff;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            border: 2px solid #fff;
+        }
+        
+        /* Active Filters */
+        .active-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 2px dashed #999;
+        }
+        
+        .filter-chip {
+            padding: 4px 8px;
+            border: 2px solid #333;
+            background: #e6e6e6;
+            font-size: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .filter-chip-remove {
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        /* Categories */
+        .categories {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+        
+        .category-chip {
+            padding: 8px 16px;
+            border: 2px solid #333;
+            background: #fff;
+            white-space: nowrap;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .category-chip.active {
+            background: #999;
+            color: #fff;
+        }
+        
+        /* Compact Banner */
+        .banner-compact {
+            margin: 16px;
+            height: 193px;
+            border: 3px solid #333;
+            background: #e6e6e6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .banner-text {
+            text-align: center;
+            padding: 16px;
+        }
+        
+        .banner-title {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        
+        .banner-subtitle {
+            font-size: 11px;
+            color: #666;
+        }
+        
+        .banner-dots {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 4px;
+        }
+        
+        .banner-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #666;
+            border: 1px solid #333;
+        }
+        
+        .banner-dot.active {
+            background: #333;
+            width: 16px;
+            border-radius: 3px;
+        }
+        
+        /* Quick Stats (Points Banner) */
+        .quick-stats {
+            margin: 16px;
+            padding: 12px;
+            border: 2px solid #333;
+            border-left: 6px solid #666;
+            background: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .stat-value {
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        /* Product Grid */
+        .products-grid {
+            padding: 0 16px 100px 16px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .product-card {
+            border: 2px solid #333;
+            background: #fff;
+            padding: 8px;
+            position: relative;
+        }
+        
+        .product-image {
+            width: 100%;
+            height: 120px;
+            border: 2px solid #999;
+            background: #e6e6e6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .product-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #666;
+            color: #fff;
+            padding: 2px 6px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        
+        .product-name {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .product-price {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .product-stock {
+            font-size: 10px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .product-rating {
+            font-size: 11px;
+            margin-bottom: 8px;
+        }
+        
+        .product-actions {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .quantity-selector {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        
+        .qty-btn {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #333;
+            background: #fff;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .qty-value {
+            min-width: 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .add-to-cart-btn {
+            flex: 1;
+            padding: 8px;
+            border: 2px solid #333;
+            background: #999;
+            color: #fff;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 11px;
+        }
+        
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 40px);
+            max-width: 380px;
+            background: #fff;
+            border: 3px solid #333;
+            border-radius: 24px;
+            padding: 12px 8px;
+            display: flex;
+            justify-content: space-around;
+            box-shadow: 0 4px 0 #333;
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .nav-icon {
+            width: 32px;
+            height: 32px;
+            border: 2px solid #333;
+            border-radius: 50%;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        
+        .nav-item.active .nav-icon {
+            background: #999;
+            color: #fff;
+        }
+        
+        .nav-label {
+            font-size: 9px;
+            font-weight: bold;
+        }
+        
+        .nav-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #333;
+            color: #fff;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: bold;
+            border: 2px solid #fff;
+        }
+        
+        /* Component Tags */
+        .component-tag {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: #4CAF50;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            z-index: 10;
+            border: 1px solid #333;
+        }
+        
+        .component-tag.new {
+            background: #FF9800;
+        }
+        
+        .section-title {
+            text-align: center;
+            padding: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            background: #e6e6e6;
+            border-bottom: 3px solid #333;
+        }
+        
+        .wireframe-note {
+            background: #ffffcc;
+            border: 2px solid #333;
+            padding: 12px;
+            margin: 16px;
+            font-size: 12px;
+        }
+        
+        .wireframe-note strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .wireframe-note ul {
+            margin-left: 20px;
+            margin-top: 8px;
+        }
+        
+        .wireframe-note li {
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="section-title">Dona Capivara - Redesign Otimizado</div>
+    
+    <div class="wireframe-note">
+        <strong>📋 Melhorias principais:</strong>
+        <ul>
+            <li>✅ Banner compacto (120px vs 800px) - melhor UX mobile</li>
+            <li>✅ Avaliações visíveis nos cards</li>
+            <li>✅ Filtros destacados com badge (Zero Lactose, Vegano, etc.)</li>
+            <li>✅ Filtros ativos sempre visíveis</li>
+            <li>✅ Quick stats para engajamento</li>
+            <li>✅ Bottom nav redesenhado (mais acessível)</li>
+            <li>✅ Componentes existentes reutilizados</li>
+        </ul>
+    </div>
+    
+    <div class="container">
+        <!-- REUSABLE: Header from app/page.tsx (HomeView) -->
+        <div class="header" style="position: relative;">
+            <span class="component-tag" title="components/views/HomeView.tsx">[REUSE] Header</span>
+            <div class="header-content">
+                <div>
+                    <div class="header-subtitle">Bem-vindo(a)!</div>
+                    <div class="header-title">Dona Capivara</div>
+                </div>
+                <div class="header-actions">
+                    <div class="notification-icon">🔔</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- REUSABLE: Search Bar from HomeView -->
+        <div class="search-section" style="position: relative;">
+            <span class="component-tag" title="components/views/HomeView.tsx">[REUSE] SearchBar</span>
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="🔍 Buscar geladinho...">
+                <button class="filter-btn active">
+                    ≡
+                    <span class="filter-badge">2</span>
+                </button>
+            </div>
+            
+            <!-- NEW: Active Filters Display -->
+            <div class="active-filters">
+                <div class="filter-chip">
+                    🥛 Zero Lactose
+                    <span class="filter-chip-remove">✕</span>
+                </div>
+                <div class="filter-chip">
+                    🌱 Vegano
+                    <span class="filter-chip-remove">✕</span>
+                </div>
+            </div>
+            
+            <!-- REUSABLE: Categories from HomeView -->
+            <div class="categories">
+                <div class="category-chip active">Todos</div>
+                <div class="category-chip">Geladinho</div>
+                <div class="category-chip">Cuscuz</div>
+            </div>
+        </div>
+        
+        <!-- NEW COMPONENT: CompactBanner (replacing 800px banner) -->
+        <div class="banner-compact" style="position: relative;">
+            <span class="component-tag new" title="To be created at components/common/CompactBanner.tsx">[NEW] CompactBanner</span>
+            <div class="banner-text">
+                <div class="banner-title">🎁 Ganhe Pontos!</div>
+                <div class="banner-subtitle">R$1 = 1 ponto. Troque por descontos!</div>
+            </div>
+            <div class="banner-dots">
+                <div class="banner-dot active"></div>
+                <div class="banner-dot"></div>
+                <div class="banner-dot"></div>
+            </div>
+        </div>
+        
+        <!-- NEW COMPONENT: QuickStats (enhanced points display) -->
+        <div class="quick-stats" style="position: relative;">
+            <span class="component-tag new" title="To be created at components/common/QuickStats.tsx">[NEW] QuickStats</span>
+            <div>
+                <div class="stat-label">Clube Capivara 👑</div>
+                <div class="stat-value">450 pontos</div>
+            </div>
+            <div style="text-align: right; font-size: 11px;">
+                <div>Faltam 50 pts</div>
+                <div>para Gold+ 🏆</div>
+            </div>
+        </div>
+        
+        <!-- REUSABLE: Product Grid from HomeView -->
+        <div class="products-grid" style="position: relative;">
+            <span class="component-tag" title="components/views/HomeView.tsx" style="top: -12px; right: 28px;">[REUSE] ProductGrid</span>
+            
+            <!-- REUSABLE: ProductCard with NEW enhancements -->
+            <div class="product-card" style="position: relative;">
+                <span class="component-tag new" title="Enhanced ProductCard with ratings">[ENHANCED] ProductCard</span>
+                <div class="product-badge">NOVO</div>
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Maracujá e Geleia</div>
+                <div class="product-price">R$ 6,00</div>
+                <div class="product-stock">Estoque: 4</div>
+                <div class="product-rating">⭐⭐⭐⭐⭐ (4.8)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Milho Verde Com Amendoim</div>
+                <div class="product-price">R$ 6,00</div>
+                <div class="product-stock">Estoque: 15</div>
+                <div class="product-rating">⭐⭐⭐⭐☆ (4.5)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Morango & Geleia</div>
+                <div class="product-price">R$ 7,00</div>
+                <div class="product-stock">Estoque: 8</div>
+                <div class="product-rating">⭐⭐⭐⭐⭐ (5.0)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-image">[Imagem 150x120]</div>
+                <div class="product-name">Mousse de Chocolate</div>
+                <div class="product-price">R$ 8,00</div>
+                <div class="product-stock">Estoque: 6</div>
+                <div class="product-rating">⭐⭐⭐⭐⭐ (4.9)</div>
+                <div class="product-actions">
+                    <div class="quantity-selector">
+                        <button class="qty-btn">-</button>
+                        <span class="qty-value">0</span>
+                        <button class="qty-btn">+</button>
+                    </div>
+                    <button class="add-to-cart-btn">🛒 Add</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- REUSABLE: BottomNav (redesigned for better accessibility) -->
+        <div class="bottom-nav" style="position: relative;">
+            <span class="component-tag" title="components/navigation/BottomNav.tsx" style="top: -12px; right: 50%;">[ENHANCED] BottomNav</span>
+            
+            <div class="nav-item active">
+                <div class="nav-icon">🏠</div>
+                <div class="nav-label">Início</div>
+            </div>
+            
+            <div class="nav-item">
+                <div class="nav-icon">❤️</div>
+                <div class="nav-label">Favoritos</div>
+            </div>
+            
+            <div class="nav-item">
+                <div class="nav-icon">🛒</div>
+                <div class="nav-label">Carrinho</div>
+                <div class="nav-badge">3</div>
+            </div>
+            
+            <div class="nav-item">
+                <div class="nav-icon">👤</div>
+                <div class="nav-label">Perfil</div>
+            </div>
+        </div>
+        
+        <!-- Settings Button moved to Profile Page -->
+        <div style="margin: 16px; padding: 12px; border: 2px dashed #999; background: #ffffcc; font-size: 11px;">
+            <strong>💡 Nota:</strong> O botão de Configurações ⚙️ foi movido para dentro da página de <strong>Perfil</strong>, onde ficará junto com outras opções de conta (editar dados, histórico de pedidos, etc.).
+        </div>
+        </div>
+    </div>
+    
+    <div class="wireframe-note" style="margin-top: 120px;">
+        <strong>🎨 Componentes Reutilizáveis:</strong>
+        <ul>
+            <li><strong>[REUSE]</strong> Header, SearchBar, Categories, ProductGrid, BottomNav</li>
+            <li><strong>[NEW]</strong> CompactBanner (120px altura), QuickStats</li>
+            <li><strong>[ENHANCED]</strong> ProductCard (+ ratings), FilterButton (+ badge), BottomNav (+ acessibilidade)</li>
+        </ul>
+        
+        <strong style="margin-top: 12px;">🚀 Benefícios da Mudança:</strong>
+        <ul>
+            <li>Banner 6.6x menor (800px → 120px)</li>
+            <li>Avaliações visíveis aumentam confiança</li>
+            <li><strong>Filtros destacados com badge de contagem</strong></li>
+            <li><strong>Filtros ativos sempre visíveis (Zero Lactose, Vegano, De frutas)</strong></li>
+            <li>Quick stats melhoram engajamento com pontos</li>
+            <li>Bottom nav com labels sempre visíveis</li>
+            <li>Melhor uso do espaço vertical</li>
+        </ul>
+        
+        <strong style="margin-top: 12px;">🔍 Sobre os Filtros:</strong>
+        <ul>
+            <li><strong>Botão de filtro (≡ sliders)</strong> com badge mostrando quantidade de filtros ativos</li>
+            <li>Filtros aplicados ficam visíveis abaixo da barra de busca</li>
+            <li>Clientes podem filtrar por: Zero Lactose, Vegano, De frutas, Sem glúten, etc.</li>
+            <li>Fácil remoção individual de filtros com botão ✕</li>
+            <li>Essencial para clientes com restrições alimentares</li>
+        </ul>
+        
+        <strong style="margin-top: 12px;">⚙️ Mudança de Configurações:</strong>
+        <ul>
+            <li>Botão de configurações ⚙️ foi movido para a página de <strong>Perfil</strong></li>
+            <li>Header mais limpo, focado em notificações</li>
+            <li>Melhor organização das opções de conta</li>
+        </ul>
+    </div>
+</body>
+</html>

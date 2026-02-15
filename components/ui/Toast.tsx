@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 
 interface ToastProps {
     message: string;
@@ -25,9 +25,11 @@ export default function Toast({ message, type = 'success', isVisible, onClose }:
 
     return (
         <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-[100] animate-in slide-in-from-top-5 fade-in duration-300 w-auto max-w-[90%]">
-            <div className={`bg-white/95 backdrop-blur-sm px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 border-l-4 ${borderColors[type]}`}>
+            <div
+                className={`bg-white/95 backdrop-blur-sm px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border-l-4 ${borderColors[type]}`}
+            >
                 <span className="text-lg">{icons[type]}</span>
-                <p className="text-gray-800 font-semibold text-sm whitespace-nowrap">{message}</p>
+                <p className="text-gray-800 font-semibold text-sm whitespace-pre-line text-center">{message}</p>
             </div>
         </div>
     );

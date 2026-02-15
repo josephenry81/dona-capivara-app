@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Banner 16:9</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Grid de fundo para visualizar proporções */
+        .grid-bg {
+            background-image: 
+                linear-gradient(rgba(255,75,130,0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,75,130,0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-6xl mx-auto space-y-8">
+        <h1 class="text-4xl font-bold text-gray-800 mb-2">🎯 Teste de Banner 16:9</h1>
+        <p class="text-gray-600 mb-8">Redimensione a janela para ver a proporção se manter</p>
+
+        <!-- Banner com aspect-ratio (SOLUÇÃO CORRETA) -->
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-bold mb-4 text-green-600">✅ Solução Correta: aspect-ratio</h2>
+            <div class="relative w-full aspect-[16/9] bg-gradient-to-br from-pink-400 to-orange-400 rounded-xl overflow-hidden grid-bg">
+                <div class="absolute inset-0 flex flex-col items-center justify-center text-white">
+                    <h3 class="text-4xl font-bold mb-2">16:9 Perfeito</h3>
+                    <p class="text-xl opacity-90">Redimensione a janela!</p>
+                    <div id="dimensions1" class="mt-4 bg-black/30 px-4 py-2 rounded-lg font-mono text-sm"></div>
+                </div>
+            </div>
+            <pre class="mt-4 bg-gray-800 text-green-400 p-4 rounded-lg overflow-x-auto"><code>&lt;div class="w-full aspect-[16/9]"&gt;
+  &lt;!-- Conteúdo --&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+
+        <!-- Banner com altura fixa (ERRADO) -->
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-bold mb-4 text-red-600">❌ Errado: Altura Fixa</h2>
+            <div class="relative w-full h-[400px] bg-gradient-to-br from-red-400 to-purple-400 rounded-xl overflow-hidden grid-bg">
+                <div class="absolute inset-0 flex flex-col items-center justify-center text-white">
+                    <h3 class="text-4xl font-bold mb-2">Altura Fixa</h3>
+                    <p class="text-xl opacity-90">Distorce em telas diferentes</p>
+                    <div id="dimensions2" class="mt-4 bg-black/30 px-4 py-2 rounded-lg font-mono text-sm"></div>
+                </div>
+            </div>
+            <pre class="mt-4 bg-gray-800 text-red-400 p-4 rounded-lg overflow-x-auto"><code>&lt;div class="w-full h-[400px]"&gt;
+  &lt;!-- Sempre 400px, não importa a largura --&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+
+        <!-- Banner com conflito (PROBLEMÁTICO) -->
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-bold mb-4 text-yellow-600">⚠️ Problemático: Conflito de Propriedades</h2>
+            <div class="relative w-full aspect-[16/9] h-[300px] bg-gradient-to-br from-yellow-400 to-orange-400 rounded-xl overflow-hidden grid-bg">
+                <div class="absolute inset-0 flex flex-col items-center justify-center text-white">
+                    <h3 class="text-4xl font-bold mb-2">Conflito</h3>
+                    <p class="text-xl opacity-90">h-[300px] vence sobre aspect-ratio</p>
+                    <div id="dimensions3" class="mt-4 bg-black/30 px-4 py-2 rounded-lg font-mono text-sm"></div>
+                </div>
+            </div>
+            <pre class="mt-4 bg-gray-800 text-yellow-400 p-4 rounded-lg overflow-x-auto"><code>&lt;div class="w-full aspect-[16/9] h-[300px]"&gt;
+  &lt;!-- h-[300px] sobrescreve aspect-ratio --&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+
+        <!-- Comparação de Proporções -->
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-bold mb-4">📐 Comparação de Proporções</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <p class="text-sm font-semibold mb-2">16:9 (Widescreen)</p>
+                    <div class="w-full aspect-[16/9] bg-blue-500 rounded-lg"></div>
+                </div>
+                <div>
+                    <p class="text-sm font-semibold mb-2">4:3 (Padrão)</p>
+                    <div class="w-full aspect-[4/3] bg-green-500 rounded-lg"></div>
+                </div>
+                <div>
+                    <p class="text-sm font-semibold mb-2">1:1 (Quadrado)</p>
+                    <div class="w-full aspect-square bg-purple-500 rounded-lg"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informações de Tela -->
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-bold mb-4">📱 Informações da Tela</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 font-mono text-sm">
+                <div class="bg-gray-100 p-4 rounded-lg">
+                    <p class="text-gray-600 mb-1">Largura da Janela</p>
+                    <p id="windowWidth" class="text-2xl font-bold text-blue-600">-</p>
+                </div>
+                <div class="bg-gray-100 p-4 rounded-lg">
+                    <p class="text-gray-600 mb-1">Altura da Janela</p>
+                    <p id="windowHeight" class="text-2xl font-bold text-blue-600">-</p>
+                </div>
+                <div class="bg-gray-100 p-4 rounded-lg">
+                    <p class="text-gray-600 mb-1">Proporção Janela</p>
+                    <p id="windowRatio" class="text-2xl font-bold text-blue-600">-</p>
+                </div>
+                <div class="bg-gray-100 p-4 rounded-lg">
+                    <p class="text-gray-600 mb-1">Breakpoint</p>
+                    <p id="breakpoint" class="text-2xl font-bold text-blue-600">-</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateDimensions() {
+            // Banner 1 (correto)
+            const banner1 = document.querySelector('.aspect-\\[16\\/9\\]');
+            if (banner1) {
+                const rect1 = banner1.getBoundingClientRect();
+                const ratio1 = (rect1.height / rect1.width).toFixed(4);
+                const expected = (9 / 16).toFixed(4);
+                const isCorrect = Math.abs(ratio1 - expected) < 0.001;
+                document.getElementById('dimensions1').innerHTML = `
+                    Largura: ${rect1.width.toFixed(0)}px | 
+                    Altura: ${rect1.height.toFixed(0)}px | 
+                    Proporção: ${ratio1} 
+                    ${isCorrect ? '✅' : '❌'}
+                `;
+            }
+
+            // Banner 2 (altura fixa)
+            const banner2 = document.querySelector('.h-\\[400px\\]');
+            if (banner2) {
+                const rect2 = banner2.getBoundingClientRect();
+                const ratio2 = (rect2.height / rect2.width).toFixed(4);
+                const expected = (9 / 16).toFixed(4);
+                const isCorrect = Math.abs(ratio2 - expected) < 0.001;
+                document.getElementById('dimensions2').innerHTML = `
+                    Largura: ${rect2.width.toFixed(0)}px | 
+                    Altura: ${rect2.height.toFixed(0)}px | 
+                    Proporção: ${ratio2} 
+                    ${isCorrect ? '✅' : '❌'}
+                `;
+            }
+
+            // Banner 3 (conflito)
+            const banner3 = document.querySelector('.h-\\[300px\\]');
+            if (banner3) {
+                const rect3 = banner3.getBoundingClientRect();
+                const ratio3 = (rect3.height / rect3.width).toFixed(4);
+                const expected = (9 / 16).toFixed(4);
+                const isCorrect = Math.abs(ratio3 - expected) < 0.001;
+                document.getElementById('dimensions3').innerHTML = `
+                    Largura: ${rect3.width.toFixed(0)}px | 
+                    Altura: ${rect3.height.toFixed(0)}px | 
+                    Proporção: ${ratio3} 
+                    ${isCorrect ? '✅' : '❌'}
+                `;
+            }
+
+            // Informações da janela
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            const ratio = (width / height).toFixed(2);
+            
+            document.getElementById('windowWidth').textContent = width + 'px';
+            document.getElementById('windowHeight').textContent = height + 'px';
+            document.getElementById('windowRatio').textContent = ratio;
+
+            // Breakpoint
+            let bp = 'xs';
+            if (width >= 1536) bp = '2xl';
+            else if (width >= 1280) bp = 'xl';
+            else if (width >= 1024) bp = 'lg';
+            else if (width >= 768) bp = 'md';
+            else if (width >= 640) bp = 'sm';
+            document.getElementById('breakpoint').textContent = bp;
+        }
+
+        // Atualizar ao carregar e ao redimensionar
+        updateDimensions();
+        window.addEventListener('resize', updateDimensions);
+        
+        // Atualizar a cada 100ms para capturar mudanças suaves
+        setInterval(updateDimensions, 100);
+    </script>
+</body>
+</html>

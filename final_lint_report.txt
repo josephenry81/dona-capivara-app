@@ -1,0 +1,10 @@
+
+> dona-capivara@0.1.0 lint
+> eslint . --ext .js,.ts,.tsx
+
+
+C:\Users\HENRI\Desktop\dona-capivara-app-main\dona-capivara-app\jest.config.js
+  1:18  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+Ô£û 1 problem (1 error, 0 warnings)
+

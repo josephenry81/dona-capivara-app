@@ -1,0 +1,99 @@
+
+> dona-capivara@0.1.0 test
+> jest --ci
+
+  console.warn
+    J├í est├í processando
+
+    [0m [90m 185 |[39m         [36mconst[39m handleSubmit [33m=[39m () [33m=>[39m {
+     [90m 186 |[39m             [36mif[39m (isSubmitting) {
+    [31m[1m>[22m[39m[90m 187 |[39m                 console[33m.[39mwarn([32m'J├í est├í processando'[39m)[33m;[39m
+     [90m     |[39m                         [31m[1m^[22m[39m
+     [90m 188 |[39m                 [36mreturn[39m[33m;[39m
+     [90m 189 |[39m             }
+     [90m 190 |[39m             isSubmitting [33m=[39m [36mtrue[39m[33m;[39m[0m
+
+      at warn (__tests__/checkout.test.ts:187:25)
+      at Object.handleSubmit (__tests__/checkout.test.ts:195:9)
+
+FAIL __tests__/checkout.test.ts
+  WhatsApp Integration - Checkout Flow
+    Sanitiza├º├úo de Inputs
+      ÔêÜ deve remover caracteres especiais de markdown (2 ms)
+      ÔêÜ deve lidar com strings vazias (1 ms)
+      ├ù deve converter null/undefined para string vazia (2 ms)
+    Formata├º├úo de Moeda BRL
+      ├ù deve formatar valores corretamente (46 ms)
+      ├ù deve lidar com valores negativos (1 ms)
+    Constru├º├úo de Mensagem WhatsApp
+      ÔêÜ deve incluir todos os campos obrigat├│rios (1 ms)
+      ÔêÜ deve incluir sabores do Mix Gourmet (1 ms)
+      ÔêÜ deve incluir descontos separados (cupom e pontos)
+    Encoding de URL
+      ÔêÜ deve codificar corretamente caracteres especiais
+      ÔêÜ deve preservar emojis ap├│s encoding
+    Valida├º├úo de Dados
+      ÔêÜ deve converter ID num├®rico para string
+      ÔêÜ deve lidar com ID undefined
+  Idempot├¬ncia e Estado
+    ÔêÜ deve prevenir dupla submiss├úo (21 ms)
+  Configura├º├úo e Constantes
+    ÔêÜ deve usar vari├ível de ambiente ou fallback (1 ms)
+    ÔêÜ deve ter constantes definidas
+
+  ÔùÅ WhatsApp Integration - Checkout Flow ÔÇ║ Sanitiza├º├úo de Inputs ÔÇ║ deve converter null/undefined para string vazia
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "null"
+    Received: ""
+
+      21 |
+      22 |         it('deve converter null/undefined para string vazia', () => {
+    > 23 |             expect(sanitize(null as any)).toBe('null');
+         |                                           ^
+      24 |             expect(sanitize(undefined as any)).toBe('undefined');
+      25 |         });
+      26 |     });
+
+      at Object.toBe (__tests__/checkout.test.ts:23:43)
+
+  ÔùÅ WhatsApp Integration - Checkout Flow ÔÇ║ Formata├º├úo de Moeda BRL ÔÇ║ deve formatar valores corretamente
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "R$ 10,50"
+    Received: "R$┬á10,50"
+
+      34 |
+      35 |         it('deve formatar valores corretamente', () => {
+    > 36 |             expect(formatCurrency(10.5)).toBe('R$ 10,50');
+         |                                          ^
+      37 |             expect(formatCurrency(1000)).toBe('R$ 1.000,00');
+      38 |             expect(formatCurrency(0.99)).toBe('R$ 0,99');
+      39 |         });
+
+      at Object.toBe (__tests__/checkout.test.ts:36:42)
+
+  ÔùÅ WhatsApp Integration - Checkout Flow ÔÇ║ Formata├º├úo de Moeda BRL ÔÇ║ deve lidar com valores negativos
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "-R$ 5,50"
+    Received: "-R$┬á5,50"
+
+      40 |
+      41 |         it('deve lidar com valores negativos', () => {
+    > 42 |             expect(formatCurrency(-5.5)).toBe('-R$ 5,50');
+         |                                          ^
+      43 |         });
+      44 |     });
+      45 |
+
+      at Object.toBe (__tests__/checkout.test.ts:42:42)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 12 passed, 15 total
+Snapshots:   0 total
+Time:        1.601 s
+Ran all test suites.
